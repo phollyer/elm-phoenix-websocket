@@ -1,0 +1,39 @@
+# elm-package generated files
+elm-stuff
+# elm-repl generated files
+repl-temp-*
+# Elm build artifacts
+elm-stuff
+
+# Json lock files
+*-lock.json
+
+# Ash configs
+.ash
+
+# Elm build artifacts
+elm-stuff
+
+# Json lock files
+*-lock.json
+
+# Ash configs
+.ash
+
+# Elm build artifacts
+elm-stuff
+
+# Json lock files
+*-lock.json
+
+# Ash configs
+.ash
+
+# Elm build artifacts
+elm-stuff
+
+# Json lock files
+*-lock.json
+
+# Ash configs
+.ash

@@ -1,0 +1,8 @@
+{
+    "name": "phollyer/elm-phoenix-websocket-example",
+    "summary": "A chat client for use with the Elixir Phoenix framework.",
+    "version": "1.0.0",
+    "exposed-modules": [
+        "ExampleChatProgram"
+    ]
+}
