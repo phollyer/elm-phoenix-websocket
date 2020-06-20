@@ -282,8 +282,8 @@ an [On](#EventOut) event sent to the channel. So if your Phoenix Channel is
 going to `push` or `broadcast` a `new_msg` event, it needs to be registered as
 follows:
 
-    import Ports.Phoenix as Phx
     import Channel
+    import Ports.Phoenix as Phx
 
     Phx.sendMessage
         |> Channel.send
@@ -296,6 +296,7 @@ follows:
 Now you will be able to receive `new_msg`s as follows:
 
     import Channel exposing (EventIn(..))
+    import Ports.Phoenix as Phx
 
     type Msg
         = ChannelMsg Channel.EventIn
