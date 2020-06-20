@@ -16,7 +16,7 @@ app = Elm.Main.init({node: "elm-container", flags: {}})
 Then you can wire up this JS as follows:
 
 ```
-import ElmPhoenixWebSocket from "./elmPhoenixWebSocket"  // Change the path accoridngly
+import ElmPhoenixWebSocket from "./elmPhoenixWebSocket"  // Change the path accordingly
 
 ElmPhoenixWebSocket.init(app)
 ```
