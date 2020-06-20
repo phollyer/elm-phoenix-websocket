@@ -4,7 +4,7 @@ module Presence exposing
     , decodeMetas
     )
 
-{-| This module is used for working with Phoenix
+{-| This module is for working with Phoenix
 [Presence](https://hexdocs.pm/phoenix/1.5.3/Phoenix.Presence.html#content).
 
 Before you can receive presence information, you first need to

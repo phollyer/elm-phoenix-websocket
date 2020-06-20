@@ -47,7 +47,7 @@ import Json.Encode as JE exposing (Value)
         (Join
           { topic = "topic:subtopic"
           , timeout = Nothing
-          , payload : Nothing
+          , payload = Nothing
           }
         )
 
@@ -305,6 +305,12 @@ Now you will be able to receive `new_msg`s as follows:
         case msg of
             ChannelMsg (Message "topic:subtopic" "new_msg" payload) ->
                 ...
+
+    subscriptions : Model -> Sub Msg
+    subscriptions _ =
+        Phx.channelReceiver
+            |> Channel.subscriptions
+                ChannelMsg
 
 **NB** you must set your [On](#EventOut) events after you have joined the
 relevant channel.
