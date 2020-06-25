@@ -7,6 +7,176 @@ and [PhoenixJS](https://hexdocs.pm/phoenix/js).
 
 Multiple channels and Presences are supported from within your Elm program.
 
+# Multiple Channels
+
+All incoming events carry a `topic:subtopic` string to identify the channel.
+
+All outgoing events take a `Maybe String` to identify the channel, apart from
+**joining** a channel where the `topic:subtopic` string is required. So if you
+supply a `Nothing` for an outgoing event rather than a `Just "topic:subtopic"`
+then the channel used for that event will be:
+
+1. The last channel used if using multiple channels, or
+2. The only available channel if using just one.
+
+So unless you are only using a single channel, it is probably best to always
+supply the `Just "topic:subtopic"` to your outgoing events.
+
+# Presences
+
+There are no outgoing events for Presences, only incoming.
+
+I chose to seperate Presences off from the Channel module because, although
+Presences come in over the Channel, they are intended to be used in a different
+context. So while the information is similar, it is not the same.
+
+Channel events are likely to carry information relating to business logic,
+while Presences simply carry information about users as they join and leave
+specific channels.
+
+As a result, it means that when receiving both Channel and Presence events in
+the same module, there can be a seperatation of concerns that I feel is
+slightly more explicit when pattern matching than there would otherwise be:
+
+```
+    import Channel
+    import Presence
+
+    type Msg
+        = ChannelMsg Channel.EventIn
+        | PresenceMsg Presence.EventIn
+
+    update : Msg -> Model -> (Model, Cmd Msg)
+    update msg model =
+        case msg of
+            ChannelMsg (Channel.Message "topic:subtopic" "msg" payload) ->
+                ...
+
+            PresenceMsg (Presence.State "topic:subtopic" payload) ->
+                ...
+
+    subscriptions : Model -> Sub Msg
+    subscriptions _ =
+        Sub.batch
+            [ Channel.subscriptions
+                ChannelMsg
+                Phx.channelReceiver
+            , Presence.subscriptions
+                PresenceMsg
+                Phx.presenceReceiver
+            ]
+```
+
+# Workflow
+
+The general workflow would go like this:
+
+1. First connect to the socket:
+
+    ```
+    import Ports.Phoenix as Phx
+    import Socket
+
+    Socket.send
+        (Socket.Connect Nothing)
+        Phx.sendMessage
+    ```
+    `Socket.send` returns a `Cmd msg` so this can go in your `init` function, your
+    `update` function or any module where you are able to return a `Cmd msg`.
+
+2. Once the socket is opened, you can join a channel:
+
+    ```
+    import Channel
+    import Ports.Phoenix as Phx
+    import Socket
+
+    type Msg
+        = SocketMsg Socket.EventIn
+
+    update : Msg -> Model -> (Model, Cmd Msg)
+    update msg model =
+        case msg of
+            SocketMsg Socket.Opened ->
+                ( model
+                , Channel.send
+                    (Channel.Join
+                        { topic = "topic:subtopic"
+                        , timeout = Nothing
+                        , payload = Nothing
+                        }
+                    )
+                    Phx.sendMessage
+                )
+
+    subscriptions : Model -> Sub Msg
+    subscriptions _ =
+        Socket.subscriptions
+            SocketMsg
+            Phx.socketReceiver
+    ```
+
+3. Once you have joined the channel, you can turn incoming events on.
+
+    ```
+    import Channel
+    import Ports.Phoenix as Phx
+
+    type Msg
+        = ChannelMsg Channel.EventIn
+
+    update : Msg -> Model -> (Model, Cmd Msg)
+    update msg model =
+        case msg of
+            ChannelMsg (Channel.JoinOk "topic:subtopic" payload) ->
+                ( model
+                , Channel.eventsOn
+                    (Just topic)
+                    [ "msg1"
+                    , "msg2"
+                    , "msg3"
+                    ]
+                    Phx.sendMessage
+                )
+
+    subscriptions : Model -> Sub Msg
+    subscriptions _ =
+        Channel.subscriptions
+            ChannelMsg
+            Phx.channelReceiver
+    ```
+
+4. And then you can receive those events as follows:
+
+    ```
+    import Channel
+    import Ports.Phoenix as Phx
+
+    type Msg
+        = ChannelMsg Channel.EventIn
+
+    update : Msg -> Model -> (Model, Cmd Msg)
+    update msg model =
+        case msg of
+            ChannelMsg (Channel.Message "topic:subtopic" "msg1" payload) ->
+                ( model, Cmd.none )
+
+            ChannelMsg (Channel.Message "topic:subtopic" "msg2" payload) ->
+                ( model, Cmd.none )
+
+            ChannelMsg (Channel.Message "topic:subtopic" "msg3" payload) ->
+                ( model, Cmd.none )
+
+    subscriptions : Model -> Sub Msg
+    subscriptions _ =
+        Channel.subscriptions
+            ChannelMsg
+            Phx.channelReceiver
+    ```
+
+
+# How To
+
 In order for your Elm program to talk to
 [PhoenixJS](https://hexdocs.pm/phoenix/js), you will need to add a very small
 [`port`](https://github.com/phollyer/elm-phoenix-websocket/blob/master/src/Ports/Phoenix.elm)
@@ -14,43 +184,7 @@ module to your Elm `src` files, and some
 [JavaScript](https://github.com/phollyer/elm-phoenix-websocket/tree/master/elmPhoenixWebSocket)
 files to your Phoenix project.
 
-# How To
-## Set up JavaScript for Elm and ElmPhoenixWebSocket
-
-You first need to copy the contents of the
-[`elmPhoenixWebSocket`](https://github.com/phollyer/elm-phoenix-websocket/tree/master/elmPhoenixWebSocket)
-folder into `assets/js`.
-
-Here is an example `app.js` that sets up Elm and ElmPhoenixWebSocket.
-
-*Two assumptions are made here:*
-
-1. *The location of your `Main.elm` file is `assets/elm/src`, change the path
-if you need to.*
-2. *You are using [`webpack`](https://webpack.js.org/) for asset management,
-along with [`elm-webpack-loader`](https://github.com/elm-community/elm-webpack-loader).*
-
-```
-import { Elm } from "../elm/src/Main.elm";
-import ElmPhoenixWebSocket from "./elmPhoenixWebSocket/elmPhoenixWebSocket";
-
-var elmContainerId = 'elm-app-container';
-var elmContainer = document.getElementById(elmContainerId);
-var app;
-
-if (elmContainer) {
-    app = Elm.Main.init({node: elmContainer, flags: {}});
-} else {
-    console.error("Could not find Elm container: " + elmContainerId);
-}
-
-if(app) {
-    ElmPhoenixWebSocket.init(app.ports);
-} else {
-    console.error('Elm Program could not be instantiated.');
-}
-```
-## Set up JavaScript for just ElmPhoenixWebSocket assuming Elm is already setup
+## Set up JavaScript
 
 You first need to copy the contents of the
 [`elmPhoenixWebSocket`](https://github.com/phollyer/elm-phoenix-websocket/tree/master/elmPhoenixWebSocket)
@@ -61,7 +195,7 @@ as `app`:*
 
 
 ```
-import ElmPhoenixWebSocket from "./elmPhoenixWebSocket/elmPhoenixWebSocket";
+import ElmPhoenixWebSocket from "path/to/elmPhoenixWebSocket";
 
 ElmPhoenixWebSocket.init(app.ports);
 ```
