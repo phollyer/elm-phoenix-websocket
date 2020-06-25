@@ -3,6 +3,7 @@ module Channel exposing
     , PortOut, PackageOut
     , subscriptions, EventIn(..), Topic, PushEvent
     , PortIn, PackageIn
+    , eventsOn, eventsOff
     )
 
 {-| This module is for working directly with channels.
@@ -23,6 +24,11 @@ to [connect to a socket](Socket).
 @docs subscriptions, EventIn, Topic, PushEvent
 
 @docs PortIn, PackageIn
+
+
+# Helpers
+
+@docs eventsOn, eventsOff
 
 -}
 
@@ -528,3 +534,90 @@ identify which [Push](#EventOut) an [EventIn](#EventIn) relates to.
 -}
 type alias PushEvent =
     String
+
+
+
+-- Helpers
+
+
+{-| Set up all the incoming events from the channel.
+
+This needs to used after joining the channel.
+
+    import Channel
+    import Ports.Phoenix as Phx
+
+    Phx.sendMessage
+        |> Channel.eventsOn
+            (Just "topic:subtopic")
+            [ "msg1"
+            , "msg2"
+            , "msg3"
+            ]
+
+
+    Phx.sendMessage
+        |> Channel.eventsOn
+            Nothing  -- Will use the last used channel, or the only channel if only using one
+            [ "msg1"
+            , "msg2"
+            , "msg3"
+            ]
+
+-}
+eventsOn : Maybe Topic -> List String -> PortOut msg -> Cmd msg
+eventsOn maybeTopic events portOut =
+    events
+        |> List.map
+            (batchEvent
+                On
+                portOut
+                maybeTopic
+            )
+        |> Cmd.batch
+
+
+{-| Stop receiving specifc incoming events from the channel.
+
+    import Channel
+    import Ports.Phoenix as Phx
+
+    Phx.sendMessage
+        |> Channel.eventsOn
+            (Just "topic:subtopic")
+            [ "msg1"
+            , "msg2"
+            , "msg3"
+            ]
+
+    Phx.sendMessage
+        |> Channel.eventsOff
+            (Just "topic:subtopic")
+            [ "msg1"
+            , "msg2"
+            ]
+
+    -- "msg3" will still be received.
+
+-}
+eventsOff : Maybe Topic -> List String -> PortOut msg -> Cmd msg
+eventsOff maybeTopic events portOut =
+    events
+        |> List.map
+            (batchEvent
+                Off
+                portOut
+                maybeTopic
+            )
+        |> Cmd.batch
+
+
+batchEvent : (EventConfig -> EventOut) -> PortOut msg -> Maybe Topic -> String -> Cmd msg
+batchEvent eventFun portOut maybeTopic event =
+    portOut
+        |> send
+            (eventFun
+                { topic = maybeTopic
+                , event = event
+                }
+            )

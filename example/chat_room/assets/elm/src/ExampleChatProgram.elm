@@ -549,18 +549,10 @@ channel. This needs to be invoked **after** we receive the
 -}
 setupIncomingEvents : Cmd Msg
 setupIncomingEvents =
-    incomingEvents
-        |> List.map
-            (\msg ->
-                Phx.sendMessage
-                    |> Channel.send
-                        (Channel.On
-                            { topic = Just topic
-                            , event = msg
-                            }
-                        )
-            )
-        |> Cmd.batch
+    Phx.sendMessage
+        |> Channel.eventsOn
+            (Just topic)
+            incomingEvents
 
 
 {-| This is where we subscribe to incoming Socket, Channel and Presence events.
