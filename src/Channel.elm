@@ -375,10 +375,6 @@ subscriptions msg portIn =
 
 handleIn : (EventIn -> msg) -> PackageIn -> msg
 handleIn toMsg { topic, event, payload } =
-    let
-        _ =
-            Debug.log "" (payload |> JE.encode 2)
-    in
     case event of
         "JoinOk" ->
             toMsg (JoinOk topic payload)
