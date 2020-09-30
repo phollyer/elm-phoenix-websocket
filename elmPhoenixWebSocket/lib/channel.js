@@ -57,7 +57,7 @@ let Channel = {
         join
           .receive("ok", (payload) => self.joinOk(channel, params.topic, payload))
           .receive("error", (payload) => self.send(params.topic, "JoinError", payload))
-          .receive("timeout", () => self.send(params.topic, "JoinTimeout", {}))
+          .receive("timeout", () => self.send(params.topic, "JoinTimeout", {payload: params.payload}))
 
         return channel
     },
@@ -110,7 +110,7 @@ let Channel = {
         push
             .receive("ok", (payload) => self.send(params.topic, "PushOk", {event: params.event, payload: payload}))
             .receive("error", (payload) => self.send(params.topic, "PushError", {event: params.event, payload: payload}))
-            .receive("timeout", () => self.send(params.topic, "PushTimeout", {event: params.event}))
+            .receive("timeout", () => self.send(params.topic, "PushTimeout", {event: params.event, payload: params.payload}))
     },
 
     /* on/1

@@ -375,6 +375,10 @@ subscriptions msg portIn =
 
 handleIn : (EventIn -> msg) -> PackageIn -> msg
 handleIn toMsg { topic, event, payload } =
+    let
+        _ =
+            Debug.log "" (payload |> JE.encode 2)
+    in
     case event of
         "JoinOk" ->
             toMsg (JoinOk topic payload)
@@ -383,7 +387,15 @@ handleIn toMsg { topic, event, payload } =
             toMsg (JoinError topic payload)
 
         "JoinTimeout" ->
-            toMsg (JoinTimeout topic)
+            let
+                payload_ =
+                    payload
+                        |> JD.decodeValue
+                            (JD.field "payload" JD.value)
+                        |> Result.toMaybe
+                        |> Maybe.withDefault JE.null
+            in
+            toMsg (JoinTimeout topic payload_)
 
         "PushOk" ->
             let
@@ -429,8 +441,15 @@ handleIn toMsg { topic, event, payload } =
                             (JD.field "event" JD.string)
                         |> Result.toMaybe
                         |> Maybe.withDefault ""
+
+                payload_ =
+                    payload
+                        |> JD.decodeValue
+                            (JD.field "payload" JD.value)
+                        |> Result.toMaybe
+                        |> Maybe.withDefault JE.null
             in
-            toMsg (PushTimeout topic event_)
+            toMsg (PushTimeout topic event_ payload_)
 
         "Message" ->
             let
@@ -508,10 +527,10 @@ that cannot be handled. This should not happen, if it does, please raise an
 type EventIn
     = JoinOk Topic Value
     | JoinError Topic Value
-    | JoinTimeout Topic
+    | JoinTimeout Topic Value
     | PushOk Topic PushEvent Value
     | PushError Topic PushEvent Value
-    | PushTimeout Topic PushEvent
+    | PushTimeout Topic PushEvent Value
     | Message Topic PushEvent Value
     | Error Topic Value
     | LeaveOk Topic
