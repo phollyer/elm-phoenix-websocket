@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.0.0] - 2020-09-30
+
+### Changed
+
+Channel timeouts now also return the original payload back to Elm. This affects joining and pushing to channels and requires the user to replace their existing channel.js file with the current one.
+
 ## [1.1.0] - 2020-06-25
 
 ### Added
