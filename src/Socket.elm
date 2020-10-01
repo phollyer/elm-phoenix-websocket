@@ -49,6 +49,7 @@ that an option doesn't behave as it should.
 import Json.Decode as JD
 import Json.Decode.Extra exposing (andMap)
 import Json.Encode as JE exposing (Value)
+import Json.Encode.Extra exposing (maybe)
 
 
 
@@ -255,35 +256,28 @@ type alias ConnectOptions =
 
 
 connectWithOptions : ConnectOptions -> Maybe Value -> Value
-connectWithOptions options maybeValue =
+connectWithOptions options maybeParams =
     let
-        encodeMaybe maybe encoder =
-            case maybe of
-                Just prop ->
-                    encoder prop
-
-                Nothing ->
-                    JE.null
-
-        encode opts =
-            JE.object
-                [ ( "transport", encodeMaybe opts.transport JE.string )
-                , ( "timeout", encodeMaybe opts.timeout JE.int )
-                , ( "binaryType", encodeMaybe opts.binaryType JE.string )
-                , ( "heartbeatIntervalMs", encodeMaybe opts.heartbeatIntervalMs JE.int )
-                , ( "reconnectAfterMs", encodeMaybe opts.reconnectAfterMs JE.int )
-                , ( "reconnectMaxBackOff", encodeMaybe opts.reconnectMaxBackOff JE.int )
-                , ( "reconnectSteppedBackoff", encodeMaybe opts.reconnectSteppedBackoff (JE.list JE.int) )
-                , ( "rejoinAfterMs", encodeMaybe opts.rejoinAfterMs JE.int )
-                , ( "rejoinMaxBackOff", encodeMaybe opts.rejoinMaxBackOff JE.int )
-                , ( "rejoinSteppedBackoff", encodeMaybe opts.rejoinSteppedBackoff (JE.list JE.int) )
-                , ( "longpollerTimeout", encodeMaybe opts.rejoinMaxBackOff JE.int )
+        opts =
+            List.filter
+                (\( _, value ) -> value /= JE.null)
+                [ ( "transport", maybe JE.string options.transport )
+                , ( "timeout", maybe JE.int options.timeout )
+                , ( "binaryType", maybe JE.string options.binaryType )
+                , ( "heartbeatIntervalMs", maybe JE.int options.heartbeatIntervalMs )
+                , ( "reconnectAfterMs", maybe JE.int options.reconnectAfterMs )
+                , ( "reconnectMaxBackOff", maybe JE.int options.reconnectMaxBackOff )
+                , ( "reconnectSteppedBackoff", maybe (JE.list JE.int) options.reconnectSteppedBackoff )
+                , ( "rejoinAfterMs", maybe JE.int options.rejoinAfterMs )
+                , ( "rejoinMaxBackOff", maybe JE.int options.rejoinMaxBackOff )
+                , ( "rejoinSteppedBackoff", maybe (JE.list JE.int) options.rejoinSteppedBackoff )
+                , ( "longpollerTimeout", maybe JE.int options.rejoinMaxBackOff )
                 ]
     in
-    [ ( "params", Maybe.withDefault (JE.object []) maybeValue )
-    , ( "options", encode options )
-    ]
-        |> JE.object
+    JE.object
+        [ ( "options", JE.object opts )
+        , ( "params", Maybe.withDefault JE.null maybeParams )
+        ]
 
 
 

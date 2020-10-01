@@ -212,59 +212,49 @@ let ElmPhoenixWebSocket = {
                         options <maybe object> Any options to set on the socket when connecting.
     */
     optionsToParams(data) {
-        if(data) {
-            var options = data.options
-            var params = {params: data.params}
+        var params = data.params ? {params: data.params} : {}
 
-            for( var prop in options ) {
-                switch(prop) {
-                    case "reconnectAfterMs":
+        var options = data.options
+        for( var prop in options ) {
+            switch(prop) {
+                case "reconnectAfterMs":
 
-                        // Check to see if a backoff function is required for the socket.
-                        if(options.reconnectSteppedBackoff && options.reconnectMaxBackOff) {
+                    // Check to see if a backoff function is required for the socket.
+                    if(options.reconnectSteppedBackoff && options.reconnectMaxBackOff) {
 
-                            // Create the backoff function the socket uses when trying to reconnect.
-                            params.reconnectAfterMs = function(tries) { return options.reconnectSteppedBackoff[ tries - 1] || options.reconnectMaxBackOff }
-                        } else {
-                            if(options.reconnectAfterMs) {
+                        // Create the backoff function the socket uses when trying to reconnect.
+                        params.reconnectAfterMs = function(tries) { return options.reconnectSteppedBackoff[ tries - 1] || options.reconnectMaxBackOff }
+                    } else {
+                        if(options.reconnectAfterMs) {
 
-                                // No backoff function is required so just use the Int supplied.
-                                params.reconnectAfterMs = options.reconnectAfterMs
-                            }
+                            // No backoff function is required so just use the Int supplied.
+                            params.reconnectAfterMs = options.reconnectAfterMs
                         }
-                        break
+                    }
+                    break
 
-                    case "rejoinAfterMs":
+                case "rejoinAfterMs":
 
-                        // Check to see if a backoff function is required for the channels.
-                        if(options.rejoinSteppedBackoff && options.rejoinMaxBackOff) {
+                    // Check to see if a backoff function is required for the channels.
+                    if(options.rejoinSteppedBackoff && options.rejoinMaxBackOff) {
 
-                            // Create the backoff function the channels use when trying to rejoin.
-                            params.rejoinAfterMs = function(tries) { return options.rejoinSteppedBackoff[ tries - 1] || options.rejoinMaxBackOff }
-                        } else {
-                            if(options.rejoinAfterMs) {
+                        // Create the backoff function the channels use when trying to rejoin.
+                        params.rejoinAfterMs = function(tries) { return options.rejoinSteppedBackoff[ tries - 1] || options.rejoinMaxBackOff }
+                    } else {
+                        if(options.rejoinAfterMs) {
 
-                                // No backoff function is required so just use the Int supplied.
-                                params.rejoinAfterMs = options.rejoinAfterMs
-                            }
+                            // No backoff function is required so just use the Int supplied.
+                            params.rejoinAfterMs = options.rejoinAfterMs
                         }
-                        break
+                    }
+                    break
 
-                    default:
-
-                        // If an option has a value add it to the params object.
-                        //
-                        // Null values could be comming in from Elm, and we don't want
-                        // to override a default by mistake. So we only add properties
-                        // that have values other than null.
-                        if(options[prop]) {
-                            params[prop] = options[prop]
-                        }
-                }
+                default:
+                    params[prop] = options[prop]
             }
-
-            return params
         }
+
+        return params
     },
 
     /* Channel */
