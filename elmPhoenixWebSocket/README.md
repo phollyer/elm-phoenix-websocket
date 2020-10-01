@@ -1,22 +1,54 @@
 # Accompanying JS
 
-You need to add all these files to `assets/js/` and import
-`elmPhoenixWebSocket` into `app.js` or wherever you are instantiating your Elm
-program.
+Add the `elmPhoenixWebSocket.js` JS file to `assets/js/`.
 
-Probably the easiest way to get these files is to clone this repo and copy them
-into your Phoenix project.
-
-Assuming you are instantiating your Elm program something like this:
+In `app.js` you can then do the following to wire up the JS, or adjust as you
+see fit.
 
 ```
-app = Elm.Main.init({node: "elm-container", flags: {}})
+import { Socket } from "phoenix";
+
+import { Elm } from "../elm/src/Main.elm";
+
+import ElmPhoenixWebSocket from "./elmPhoenixWebSocket";
+
+var flags = { your: "flags" };
+
+var app = Elm.Main.init({flags: flags});
+
+if(app) {
+    ElmPhoenixWebSocket.init(app.ports, Socket);
+} else {
+  console.error('Elm Program could not be instantiated.');
+}
 ```
 
-Then you can wire up this JS as follows:
+In order to use Phoenix Presence then you can simply change the following
+lines as below.
+
+Change:
 
 ```
-import ElmPhoenixWebSocket from "./elmPhoenixWebSocket"  // Change the path accordingly
-
-ElmPhoenixWebSocket.init(app)
+import { Socket } from "phoenix";
 ```
+
+To
+
+```
+import { Socket, Presence } from "phoenix";
+```
+
+And Change
+
+```
+ElmPhoenixWebSocket.init(app.ports, Socket);
+```
+
+To
+
+```
+ElmPhoenixWebSocket.init(app.ports, Socket, Presence);
+```
+
+
+
