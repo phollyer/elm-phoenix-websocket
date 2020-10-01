@@ -108,10 +108,9 @@ let ElmPhoenixWebSocket = {
 
                 self.sendToSocket("Error", {reason: "Denied"})
             }
-                self.sendToSocket("Closed", resp)
-            }
-        )
 
+            self.sendToSocket("Closed", resp)
+        })
 
         this.socket.connect()
     },
