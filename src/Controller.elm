@@ -154,7 +154,19 @@ update msg model =
                 payload
                 model
 
-        PresenceMsg _ ->
+        PresenceMsg (Presence.Diff _ _) ->
+            ( model, Cmd.none )
+
+        PresenceMsg (Presence.InvalidEvent _ _) ->
+            ( model, Cmd.none )
+
+        PresenceMsg (Presence.Join _ _) ->
+            ( model, Cmd.none )
+
+        PresenceMsg (Presence.Leave _ _) ->
+            ( model, Cmd.none )
+
+        PresenceMsg (Presence.State _ _) ->
             ( model, Cmd.none )
 
         SocketMsg Socket.Closed ->
