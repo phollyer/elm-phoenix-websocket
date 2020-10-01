@@ -79,19 +79,18 @@ let ElmPhoenixWebSocket = {
         this.allowReconnect = false
 
         this.socket = new this.phoenixSocket(this.url, this.optionsToParams(data))
-        this.socket.onError( resp => self.sendToSocket("Error", resp))
-        this.socket.onMessage( resp => self.sendToSocket("Message", resp))
+        this.socket.onError( resp => self.socketSend("Error", resp))
+        this.socket.onMessage( resp => self.socketSend("Message", resp))
         this.socket.onOpen( function(resp) {
-                self.allowReconnect = true
-                self.sendToSocket("Opened", resp)
-            }
-        )
+            self.allowReconnect = true
+            self.socketSend("Opened", resp)
+        })
         this.socket.onClose( function(resp) {
             if(self.allowReconnect) {
 
                 // The socket has closed unexpectedly after having been open,
                 // so we assume the closure was due to a drop in the network.
-                self.sendToSocket("Error", {reason: "Unreachable"})
+                self.socketSend("Error", {reason: "Unreachable"})
             } else {
 
                 // The socket closes, and allowReconnect is still equal to false, so we assume
@@ -106,10 +105,10 @@ let ElmPhoenixWebSocket = {
                 // This is wrong, but, maybe not too much of an issue with a Phoenix OTP
                 // backend. Maybe look to Ajax as a final fallback check.
 
-                self.sendToSocket("Error", {reason: "Denied"})
+                self.socketSend("Error", {reason: "Denied"})
             }
 
-            self.sendToSocket("Closed", resp)
+            self.socketSend("Closed", resp)
         })
 
         this.socket.connect()
@@ -121,7 +120,7 @@ let ElmPhoenixWebSocket = {
         Retrieve the current connection state and send it back to Elm as a String.
 
     */
-    connectionState() { this.sendToSocket("ConnectionState", this.socket.connectionState()) },
+    connectionState() { this.socketSend("ConnectionState", this.socket.connectionState()) },
 
 
     /* disconnect/0
@@ -137,7 +136,7 @@ let ElmPhoenixWebSocket = {
         Retrieve the current endpoint and send it back to Elm as a String.
 
     */
-    endPointURL() { this.sendToSocket("EndPointURL", this.socket.endPointURL()) },
+    endPointURL() { this.socketSend("EndPointURL", this.socket.endPointURL()) },
 
 
     /* makeRef/0
@@ -145,7 +144,7 @@ let ElmPhoenixWebSocket = {
         Retrieve the next message ref, accounting for overflows, and send it back to Elm as a String.
 
     */
-    makeRef() { this.sendToSocket("MakeRef", this.socket.makeRef()) },
+    makeRef() { this.socketSend("MakeRef", this.socket.makeRef()) },
 
 
     /* protocol/0
@@ -153,7 +152,7 @@ let ElmPhoenixWebSocket = {
         Retrieve the current protocol and send it back to Elm as a String.
 
     */
-    protocol() { this.sendToSocket("Protocol", this.socket.protocol()) },
+    protocol() { this.socketSend("Protocol", this.socket.protocol()) },
 
 
     /* isConnected/0
@@ -161,7 +160,7 @@ let ElmPhoenixWebSocket = {
         Retrieve whether the socket is currently connected and send it back to Elm as a Bool.
 
     */
-    isConnected() { this.sendToSocket("IsConnected", this.socket.isConnected()) },
+    isConnected() { this.socketSend("IsConnected", this.socket.isConnected()) },
 
 
     /* log/1
@@ -192,10 +191,10 @@ let ElmPhoenixWebSocket = {
         // In Phoenix v1.3.2 the hasLogger function does not exist,
         // so check it exists before calling it.
         if( this.socket.hasLogger ) {
-            this.sendToSocket("HasLogger", this.socket.hasLogger())
+            this.socketSend("HasLogger", this.socket.hasLogger())
         } else {
             // The function does not exist so send back null to signify we could not test for a logger.
-            this.sendToSocket("HasLogger", null)
+            this.socketSend("HasLogger", null)
         }
     },
 
@@ -279,8 +278,8 @@ let ElmPhoenixWebSocket = {
         let self = this
 
         this.channel = this.socket.channel(params.topic, params.payload)
-        this.channel.onClose( () => self.sendToChannel(params.topic, "Closed", {}))
-        this.channel.onError( (error) => self.sendToChannel(params.topic, "Error", {msg: error}))
+        this.channel.onClose( () => self.channelSend(params.topic, "Closed", {}))
+        this.channel.onError( (error) => self.channelSend(params.topic, "Error", {msg: error}))
 
         this.channel.on("presence_diff", diff => self.onDiff(params.topic, diff))
         this.channel.on("presence_state", state => self.onState(params.topic, state))
@@ -296,8 +295,8 @@ let ElmPhoenixWebSocket = {
 
         join
             .receive("ok", (payload) => self.joinOk(this.channel, params.topic, payload))
-            .receive("error", (payload) => self.sendToChannel(params.topic, "JoinError", payload))
-            .receive("timeout", () => self.sendToChannel(params.topic, "JoinTimeout", {payload: params.payload}))
+            .receive("error", (payload) => self.channelSend(params.topic, "JoinError", payload))
+            .receive("timeout", () => self.channelSend(params.topic, "JoinTimeout", {payload: params.payload}))
     },
 
     /* joinOk/3
@@ -315,7 +314,7 @@ let ElmPhoenixWebSocket = {
         // topic later.
         this.channels[topic] = channel
 
-        this.sendToChannel(topic, "JoinOk", payload)
+        this.channelSend(topic, "JoinOk", payload)
     },
 
     /*    push/1
@@ -346,9 +345,9 @@ let ElmPhoenixWebSocket = {
         }
 
         push
-            .receive("ok", (payload) => self.sendToChannel(params.topic, "PushOk", {event: params.event, payload: payload}))
-            .receive("error", (payload) => self.sendToChannel(params.topic, "PushError", {event: params.event, payload: payload}))
-            .receive("timeout", () => self.sendToChannel(params.topic, "PushTimeout", {event: params.event, payload: params.payload}))
+            .receive("ok", (payload) => self.channelSend(params.topic, "PushOk", {event: params.event, payload: payload}))
+            .receive("error", (payload) => self.channelSend(params.topic, "PushError", {event: params.event, payload: payload}))
+            .receive("timeout", () => self.channelSend(params.topic, "PushTimeout", {event: params.event, payload: params.payload}))
     },
 
     /* on/1
@@ -363,7 +362,7 @@ let ElmPhoenixWebSocket = {
     on(params) {
         self = this
         this.find(params.topic)
-            .on(params.event, payload => self.sendToChannel(params.topic, "Message", {event: params.event, payload: payload}))
+            .on(params.event, payload => self.channelSend(params.topic, "Message", {event: params.event, payload: payload}))
     },
 
 
@@ -411,7 +410,7 @@ let ElmPhoenixWebSocket = {
 
     */
     leaveOk(topic) {
-        this.sendToChannel(topic, "LeaveOk", {})
+        this.channelSend(topic, "LeaveOk", {})
 
         delete this.find(topic)
     },
@@ -447,12 +446,12 @@ let ElmPhoenixWebSocket = {
         this.presence = this.phoenixPresence.syncDiff(
             this.presence,
             diff,
-            (id, current, newPres) => self.sendToPresence(topic, "Join", (this.packageForElm(id, newPres))),
-            (id, current, leftPres) => self.sendToPresence(topic, "Leave", (this.packageForElm(id, leftPres)))
+            (id, current, newPres) => self.presenceSend(topic, "Join", (this.packageForElm(id, newPres))),
+            (id, current, leftPres) => self.presenceSend(topic, "Leave", (this.packageForElm(id, leftPres)))
         )
 
-        this.sendToPresence(topic, "Diff", {leaves: this.toList(diff.leaves), joins: this.toList(diff.joins)})
-        this.sendToPresence(topic, "State",{list: this.phoenixPresence.list(this.presence, (id, metas) => (this.packageForElm(id, metas)))})
+        this.presenceSend(topic, "Diff", {leaves: this.toList(diff.leaves), joins: this.toList(diff.joins)})
+        this.presenceSend(topic, "State",{list: this.phoenixPresence.list(this.presence, (id, metas) => (this.packageForElm(id, metas)))})
     },
 
 
@@ -471,11 +470,11 @@ let ElmPhoenixWebSocket = {
         this.presence = this.phoenixPresence.syncState(
             this.presence,
             state,
-            (id, current, newPres) => self.sendToPresence(topic, "Join", (this.packageForElm(id, newPres))),
-            (id, current, leftPres) => self.sendToPresence(topic, "Leave", (this.packageForElm(id, leftPres)))
+            (id, current, newPres) => self.presenceSend(topic, "Join", (this.packageForElm(id, newPres))),
+            (id, current, leftPres) => self.presenceSend(topic, "Leave", (this.packageForElm(id, leftPres)))
         )
 
-        this.sendToPresence(topic, "State",{list: this.phoenixPresence.list(this.presence, (id, metas) => (this.packageForElm(id, metas)))})
+        this.presenceSend(topic, "State",{list: this.phoenixPresence.list(this.presence, (id, metas) => (this.packageForElm(id, metas)))})
     },
 
 
@@ -516,7 +515,7 @@ let ElmPhoenixWebSocket = {
 
     /* Ports */
 
-    /* sendToSocket/3
+    /* socketSend/3
 
             Send data to Elm.
 
@@ -529,7 +528,7 @@ let ElmPhoenixWebSocket = {
                 payload <json>|<elm comparable> - The data to send.
 
     */
-    sendToSocket(event, payload) {
+    socketSend(event, payload) {
         this.elmPorts.socketReceiver.send(
             {event: event,
              payload: payload
@@ -537,7 +536,7 @@ let ElmPhoenixWebSocket = {
         )
     },
 
-    /* sendToChannel/3
+    /* channelSend/3
 
             Send data to Elm.
 
@@ -551,7 +550,7 @@ let ElmPhoenixWebSocket = {
                 payload <json>|<elm comparable> - The data to send.
 
     */
-    sendToChannel(topic, event, payload) {
+    channelSend(topic, event, payload) {
         this.elmPorts.channelReceiver.send(
             {topic: topic,
              event: event,
@@ -559,7 +558,7 @@ let ElmPhoenixWebSocket = {
             }
         )
     },
-    /* sendToPresence/3
+    /* presenceSend/3
 
             Send data to Elm.
 
@@ -573,7 +572,7 @@ let ElmPhoenixWebSocket = {
                 payload <json>|<elm comparable> - The data to send.
 
     */
-    sendToPresence(topic, event, payload) {
+    presenceSend(topic, event, payload) {
         if(this.elmPorts.presenceReceiver) {
             this.elmPorts.presenceReceiver.send(
                 {topic: topic,
