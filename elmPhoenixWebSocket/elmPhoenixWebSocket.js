@@ -207,14 +207,14 @@ let ElmPhoenixWebSocket = {
             the `reconnectAfterMs` and `rejoinAfterMs` functions when required.
 
                 Parameter:
-                    params_ <object>
+                    data <object>
                         params <maybe object> Any data to be sent to the socket when connecting, such as authentication params.
                         options <maybe object> Any options to set on the socket when connecting.
     */
-    optionsToParams(params_) {
-        if(params_) {
-            var options = params_.options
-            var params = {params: params_.params || params_}
+    optionsToParams(data) {
+        if(data) {
+            var options = data.options
+            var params = {params: data.params}
 
             for( var prop in options ) {
                 switch(prop) {
