@@ -3,6 +3,7 @@ module Controller exposing
     , Msg
     , PushResponse(..)
     , init
+    , sendMessage
     , subscriptions
     , update
     )
@@ -383,6 +384,15 @@ handlePushTimeout topic event payload model =
 {- Server Requests - Private API -}
 
 
+sendMessage : Topic -> EventOut -> JE.Value -> Model -> ( Model, Cmd Msg )
+sendMessage topic event payload model =
+    sendIfConnected
+        topic
+        event
+        payload
+        model
+
+
 send : Topic -> EventOut -> JE.Value -> (PackageOut -> Cmd Channel.EventIn) -> Cmd Msg
 send topic event payload channelOutFunc =
     Cmd.map ChannelMsg <|
@@ -519,8 +529,8 @@ sendTimeoutEvents timeoutEvents model =
 -- Subscriptions
 
 
-subscriptions : Channel.PortIn Msg -> Socket.PortIn Msg -> Model -> Sub Msg
-subscriptions channelReceiver socketReceiver model =
+subscriptions : Socket.PortIn Msg -> Channel.PortIn Msg -> Model -> Sub Msg
+subscriptions socketReceiver channelReceiver model =
     Sub.batch
         [ Channel.subscriptions
             ChannelMsg
