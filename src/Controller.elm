@@ -2,7 +2,14 @@ module Controller exposing
     ( Model
     , Msg
     , PushResponse(..)
+    , getConnectionState
+    , getEndpointURL
+    , getHasLogger
+    , getIsConnected
+    , getProtocol
+    , getSocketInfo
     , init
+    , makeRef
     , sendMessage
     , subscriptions
     , update
@@ -24,10 +31,21 @@ init socketOutFunc channelOutFunc =
     { channelsBeingJoined = []
     , channelsJoined = []
     , channelOutFunc = channelOutFunc
+    , connectionState = Nothing
+    , endpointURL = Nothing
+    , hasLogger = Nothing
+    , invalidSocketEvent = Nothing
+    , invalidSocketEvents = []
+    , isConnected = False
     , pushResponse = Nothing
     , queuedEvents = []
+    , lastSocketMessage = Nothing
+    , nextMessageRef = Nothing
+    , protocol = Nothing
+    , socketError = ""
+    , socketMessages = []
     , socketOutFunc = socketOutFunc
-    , socketState = Disconnected
+    , socketState = Closed
     , timeoutEvents = []
     }
 
@@ -40,19 +58,26 @@ type alias Model =
     { channelsBeingJoined : List Topic
     , channelsJoined : List Topic
     , channelOutFunc : PackageOut -> Cmd Channel.EventIn
+    , connectionState : Maybe String
+    , endpointURL : Maybe String
+    , hasLogger : Maybe Bool
+    , invalidSocketEvent : Maybe String
+    , invalidSocketEvents : List String
+    , isConnected : Bool
     , pushResponse : Maybe PushResponse
     , queuedEvents : List QueuedEvent
+    , lastSocketMessage : Maybe Socket.MessageConfig
+    , nextMessageRef : Maybe String
+    , protocol : Maybe String
+    , socketError : String
     , socketOutFunc : PackageOut -> Cmd Socket.EventIn
+    , socketMessages : List Socket.MessageConfig
     , socketState : SocketState
     , timeoutEvents : List TimeoutEvent
     }
 
 
 type alias EventOut =
-    String
-
-
-type alias Topic =
     String
 
 
@@ -70,9 +95,9 @@ type alias QueuedEvent =
 
 
 type SocketState
-    = Connected
-    | Connecting
-    | Disconnected
+    = Open
+    | Opening
+    | Closed
 
 
 type alias TimeoutEvent =
@@ -81,6 +106,10 @@ type alias TimeoutEvent =
     , timeUntilRetry : Int
     , topic : Topic
     }
+
+
+type alias Topic =
+    String
 
 
 type alias PackageOut =
@@ -103,6 +132,10 @@ type Msg
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    let
+        _ =
+            Debug.log "" msg
+    in
     case msg of
         ChannelMsg (Channel.Closed _) ->
             ( model, Cmd.none )
@@ -169,48 +202,104 @@ update msg model =
         PresenceMsg (Presence.State _ _) ->
             ( model, Cmd.none )
 
-        SocketMsg Socket.Closed ->
-            ( model, Cmd.none )
+        SocketMsg subMsg ->
+            case subMsg of
+                Socket.Closed ->
+                    ( updateSocketState Closed model
+                    , Cmd.none
+                    )
 
-        SocketMsg (Socket.ConnectionStateReply _) ->
-            ( model, Cmd.none )
+                Socket.ConnectionStateReply connectionState_ ->
+                    ( updateConnectionState (Just connectionState_) model
+                    , Cmd.none
+                    )
 
-        SocketMsg (Socket.EndPointURLReply _) ->
-            ( model, Cmd.none )
+                Socket.EndPointURLReply endpointURL_ ->
+                    ( updateEndpointURL (Just endpointURL_) model
+                    , Cmd.none
+                    )
 
-        SocketMsg (Socket.Error _) ->
-            ( model, Cmd.none )
+                Socket.Error error ->
+                    ( updateSocketError error model
+                    , Cmd.none
+                    )
 
-        SocketMsg (Socket.HasLoggerReply _) ->
-            ( model, Cmd.none )
+                Socket.HasLoggerReply hasLogger_ ->
+                    ( updateHasLogger hasLogger_ model
+                    , Cmd.none
+                    )
 
-        SocketMsg (Socket.InvalidEvent _) ->
-            ( model, Cmd.none )
+                Socket.InvalidEvent event ->
+                    ( model
+                        |> addInvalidSocketEvent event
+                        |> updateInvalidSocketEvent (Just event)
+                    , Cmd.none
+                    )
 
-        SocketMsg (Socket.IsConnectedReply _) ->
-            ( model, Cmd.none )
+                Socket.IsConnectedReply isConnected_ ->
+                    ( updateIsConnected isConnected_ model
+                    , Cmd.none
+                    )
 
-        SocketMsg (Socket.MakeRefReply _) ->
-            ( model, Cmd.none )
+                Socket.MakeRefReply ref ->
+                    ( updateNextMessageRef (Just ref) model
+                    , Cmd.none
+                    )
 
-        SocketMsg (Socket.Message _) ->
-            ( model, Cmd.none )
+                Socket.Message message ->
+                    ( model
+                        |> addSocketMessage message
+                        |> updateLastSocketMessage (Just message)
+                    , Cmd.none
+                    )
 
-        SocketMsg Socket.Opened ->
-            ( model
-                |> updateSocketState Connected
-            , joinChannels
-                model.channelsBeingJoined
-                model.channelOutFunc
-            )
+                Socket.Opened ->
+                    ( model
+                        |> updateIsConnected True
+                        |> updateSocketState Open
+                    , joinChannels
+                        model.channelsBeingJoined
+                        model.channelOutFunc
+                    )
 
-        SocketMsg (Socket.ProtocolReply _) ->
-            ( model, Cmd.none )
+                Socket.ProtocolReply protocol ->
+                    ( updateProtocol (Just protocol) model
+                    , Cmd.none
+                    )
 
         TimeoutTick _ ->
             model
                 |> timeoutTick
                 |> retryTimeoutEvents
+
+
+
+{- Subscriptions -}
+
+
+subscriptions : Socket.PortIn Msg -> Channel.PortIn Msg -> Maybe (Channel.PortIn Msg) -> Model -> Sub Msg
+subscriptions socketReceiver channelReceiver maybePeresenceReceiver model =
+    Sub.batch
+        [ Channel.subscriptions
+            ChannelMsg
+            channelReceiver
+        , Socket.subscriptions
+            SocketMsg
+            socketReceiver
+        , case maybePeresenceReceiver of
+            Just presenceReceiver ->
+                Presence.subscriptions
+                    PresenceMsg
+                    presenceReceiver
+
+            Nothing ->
+                Sub.none
+        , if (model.timeoutEvents |> List.length) > 0 then
+            Time.every 1000 TimeoutTick
+
+          else
+            Sub.none
+        ]
 
 
 
@@ -236,6 +325,101 @@ dropQueuedEvent queued model =
                 |> List.filter
                     (\event -> event /= queued)
             )
+
+
+
+{- Socket -}
+
+
+connect : (PackageOut -> Cmd Socket.EventIn) -> Cmd Msg
+connect channelOutFunc =
+    Cmd.map SocketMsg <|
+        Socket.send
+            (Socket.Connect Nothing)
+            channelOutFunc
+
+
+getConnectionState : Model -> Cmd Msg
+getConnectionState model =
+    sendToSocket
+        Socket.ConnectionState
+        model
+
+
+getEndpointURL : Model -> Cmd Msg
+getEndpointURL model =
+    sendToSocket
+        Socket.EndPointURL
+        model
+
+
+getHasLogger : Model -> Cmd Msg
+getHasLogger model =
+    sendToSocket
+        Socket.HasLogger
+        model
+
+
+getIsConnected : Model -> Cmd Msg
+getIsConnected model =
+    sendToSocket
+        Socket.IsConnected
+        model
+
+
+getProtocol : Model -> Cmd Msg
+getProtocol model =
+    sendToSocket
+        Socket.Protocol
+        model
+
+
+getSocketInfo : Model -> Cmd Msg
+getSocketInfo model =
+    Cmd.batch
+        [ getConnectionState model
+        , getHasLogger model
+        , getIsConnected model
+        , getProtocol model
+        , makeRef model
+        ]
+
+
+makeRef : Model -> Cmd Msg
+makeRef model =
+    sendToSocket
+        Socket.MakeRef
+        model
+
+
+sendToSocket : Socket.EventOut -> Model -> Cmd Msg
+sendToSocket event model =
+    Cmd.map SocketMsg <|
+        Socket.send
+            event
+            model.socketOutFunc
+
+
+
+{- Socket Events -}
+
+
+addInvalidSocketEvent : String -> Model -> Model
+addInvalidSocketEvent event model =
+    model
+        |> updateInvalidSocketEvents
+            (event :: model.invalidSocketEvents)
+
+
+
+{- Socket Messages -}
+
+
+addSocketMessage : Socket.MessageConfig -> Model -> Model
+addSocketMessage message model =
+    model
+        |> updateSocketMessages
+            (message :: model.socketMessages)
 
 
 
@@ -274,18 +458,6 @@ timeoutTick model =
                 |> List.map
                     (\event -> { event | timeUntilRetry = event.timeUntilRetry - 1 })
             )
-
-
-
-{- Socket -}
-
-
-connect : (PackageOut -> Cmd Socket.EventIn) -> Cmd Msg
-connect channelOutFunc =
-    Cmd.map SocketMsg <|
-        Socket.send
-            (Socket.Connect Nothing)
-            channelOutFunc
 
 
 
@@ -455,14 +627,14 @@ send topic event payload channelOutFunc =
 sendIfConnected : Topic -> EventOut -> JE.Value -> Model -> ( Model, Cmd Msg )
 sendIfConnected topic event payload model =
     case model.socketState of
-        Connected ->
+        Open ->
             sendIfJoined
                 topic
                 event
                 payload
                 model
 
-        Connecting ->
+        Opening ->
             ( model
                 |> addChannelBeingJoined topic
                 |> addEventToQueue
@@ -473,7 +645,7 @@ sendIfConnected topic event payload model =
             , Cmd.none
             )
 
-        Disconnected ->
+        Closed ->
             ( model
                 |> addChannelBeingJoined topic
                 |> addEventToQueue
@@ -481,7 +653,7 @@ sendIfConnected topic event payload model =
                     , payload = payload
                     , topic = topic
                     }
-                |> updateSocketState Connecting
+                |> updateSocketState Opening
             , connect model.socketOutFunc
             )
 
@@ -571,30 +743,6 @@ sendTimeoutEvents timeoutEvents model =
 
 
 
--- Subscriptions
-
-
-subscriptions : Socket.PortIn Msg -> Channel.PortIn Msg -> Model -> Sub Msg
-subscriptions socketReceiver channelReceiver model =
-    Sub.batch
-        [ Channel.subscriptions
-            ChannelMsg
-            channelReceiver
-        , Presence.subscriptions
-            PresenceMsg
-            channelReceiver
-        , Socket.subscriptions
-            SocketMsg
-            socketReceiver
-        , if (model.timeoutEvents |> List.length) > 0 then
-            Time.every 1000 TimeoutTick
-
-          else
-            Sub.none
-        ]
-
-
-
 {- Update Model Fields -}
 
 
@@ -612,6 +760,55 @@ updateChannelsJoined channelsJoined model =
     }
 
 
+updateConnectionState : Maybe String -> Model -> Model
+updateConnectionState connectionState_ model =
+    { model
+        | connectionState = connectionState_
+    }
+
+
+updateHasLogger : Maybe Bool -> Model -> Model
+updateHasLogger hasLogger_ model =
+    { model
+        | hasLogger = hasLogger_
+    }
+
+
+updateEndpointURL : Maybe String -> Model -> Model
+updateEndpointURL endpointURL_ model =
+    { model
+        | endpointURL = endpointURL_
+    }
+
+
+updateInvalidSocketEvent : Maybe String -> Model -> Model
+updateInvalidSocketEvent event model =
+    { model
+        | invalidSocketEvent = event
+    }
+
+
+updateInvalidSocketEvents : List String -> Model -> Model
+updateInvalidSocketEvents events model =
+    { model
+        | invalidSocketEvents = events
+    }
+
+
+updateIsConnected : Bool -> Model -> Model
+updateIsConnected isConnected_ model =
+    { model
+        | isConnected = isConnected_
+    }
+
+
+updateProtocol : Maybe String -> Model -> Model
+updateProtocol protocol model =
+    { model
+        | protocol = protocol
+    }
+
+
 updatePushResponse : PushResponse -> Model -> Model
 updatePushResponse response model =
     { model
@@ -623,6 +820,34 @@ updateQueuedEvents : List QueuedEvent -> Model -> Model
 updateQueuedEvents queuedEvents model =
     { model
         | queuedEvents = queuedEvents
+    }
+
+
+updateLastSocketMessage : Maybe Socket.MessageConfig -> Model -> Model
+updateLastSocketMessage message model =
+    { model
+        | lastSocketMessage = message
+    }
+
+
+updateNextMessageRef : Maybe String -> Model -> Model
+updateNextMessageRef ref model =
+    { model
+        | nextMessageRef = ref
+    }
+
+
+updateSocketError : String -> Model -> Model
+updateSocketError error model =
+    { model
+        | socketError = error
+    }
+
+
+updateSocketMessages : List Socket.MessageConfig -> Model -> Model
+updateSocketMessages messages model =
+    { model
+        | socketMessages = messages
     }
 
 
