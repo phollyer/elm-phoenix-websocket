@@ -80,17 +80,17 @@ let ElmPhoenixWebSocket = {
         socket.onError( resp => self.sendToSocket("Error", resp))
         socket.onMessage( resp => self.sendToSocket("Message", resp))
         socket.onOpen( function(resp) {
-            allowReconnect = true
-            self.sendToSocket("Opened", resp)
+                allowReconnect = true
+                self.sendToSocket("Opened", resp)
             }
         )
         socket.onClose( function(resp) {
-             if(allowReconnect) {
+            if(allowReconnect) {
 
                 // The socket has closed unexpectedly after having been open,
                 // so we assume the closure was due to a drop in the network.
                 self.sendToSocket("Error", {reason: "Unreachable"})
-              } else {
+            } else {
 
                 // The socket closes, and allowReconnect is still equal to false, so we assume
                 // the socket has denied the connection for some reason.
@@ -105,8 +105,8 @@ let ElmPhoenixWebSocket = {
                 // backend. Maybe look to Ajax as a final fallback check.
 
                 self.sendToSocket("Error", {reason: "Denied"})
-              }
-              self.sendToSocket("Closed", resp)
+            }
+                self.sendToSocket("Closed", resp)
             }
         )
 
@@ -302,9 +302,9 @@ let ElmPhoenixWebSocket = {
         }
 
         join
-          .receive("ok", (payload) => self.joinOk(channel, params.topic, payload))
-          .receive("error", (payload) => self.sendToChannel(params.topic, "JoinError", payload))
-          .receive("timeout", () => self.sendToChannel(params.topic, "JoinTimeout", {payload: params.payload}))
+            .receive("ok", (payload) => self.joinOk(channel, params.topic, payload))
+            .receive("error", (payload) => self.sendToChannel(params.topic, "JoinError", payload))
+            .receive("timeout", () => self.sendToChannel(params.topic, "JoinTimeout", {payload: params.payload}))
 
         return channel
     },
