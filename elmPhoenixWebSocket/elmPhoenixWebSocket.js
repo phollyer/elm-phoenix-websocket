@@ -9,32 +9,28 @@
 //
 ////////////////////////////////////////////////////////
 
-/*
-    This module is to be used in conjunction with Socket.elm, Channel.elm,
-    Presences.elm and Ports/Phoenix.elm.
+// The Phoenix Socket class imported with `import {Socket} from "phoenix"`
+// This is passed in as a parameter to the `init` function
+var phoenixSocket
 
-    It is intended to simply route messages and events back
-    and forth between Elm and the Phoenix JS Websocket client, but in a nice
-    Elm friendly way.
-*/
-
-var phoenixSocket = {}
-
-// The Phoenix JS socket.
-var socket = {}
+// The Phoenix JS socket instantiated with `new phoenixSocket`
+var socket
 
 // The current channel
-var channel = {}
+var channel
 
 // A map of channels with each topic as a unique key
 var channels = {}
 
-var phoenixPresence = {}
+// The Phoenix Presence class imported with `import {Presence} from "phoenix"`
+// This is passed in as a parameter to the `init` function
+var phoenixPresence
 
-var presences = {}
+// The Presence data
+var presence = {}
 
 // The Elm ports object
-var elmPorts = {}
+var elmPorts
 
 // The endpoint url.
 var url = "/socket"
@@ -55,44 +51,10 @@ let ElmPhoenixWebSocket = {
     */
     init(ports, socket, presence) {
         elmPorts = ports
-        elmPorts.sendMessage.subscribe( params => this.sendMessage(params))
+        elmPorts.sendMessage.subscribe( params => this[params.event](params.payload))
 
         phoenixSocket = socket
         phoenixPresence = presence
-
-        return this;
-    },
-
-    sendMessage(params) {
-        switch (params.target) {
-            case "socket":
-                this.socketMessage(params.event, params.payload)
-                break;
-            case "channel":
-                this.channelMessage(params.event, params.payload)
-                break;
-            default:
-                console.error("Invalid target: " + params.target)
-        }
-    },
-    socketMessage(msg, payload) {
-        switch (msg) {
-            case "connect":
-                socket = this.connect(payload)
-                break;
-
-            default:
-                this[msg](payload)
-        }
-    },
-    channelMessage(msg, payload) {
-        switch(msg) {
-            case "join":
-                this.join(payload)
-                break;
-            default:
-                this[msg](payload)
-        }
     },
 
     /* Socket */
@@ -491,15 +453,15 @@ let ElmPhoenixWebSocket = {
     onDiff(topic, diff) {
         let self = this
 
-        presences = phoenixPresence.syncDiff(
-            presences,
+        presence = phoenixPresence.syncDiff(
+            presence,
             diff,
             (id, current, newPres) => self.sendToPresence(topic, "Join", (this.packageForElm(id, newPres))),
             (id, current, leftPres) => self.sendToPresence(topic, "Leave", (this.packageForElm(id, leftPres)))
         )
 
         this.sendToPresence(topic, "Diff", {leaves: this.toList(diff.leaves), joins: this.toList(diff.joins)})
-        this.sendToPresence(topic, "State",{list: phoenixPresence.list(presences, (id, metas) => (this.packageForElm(id, metas)))})
+        this.sendToPresence(topic, "State",{list: phoenixPresence.list(presence, (id, metas) => (this.packageForElm(id, metas)))})
     },
 
 
@@ -515,14 +477,14 @@ let ElmPhoenixWebSocket = {
     onState(topic, state) {
         let self = this
 
-        presences = phoenixPresence.syncState(
-            presences,
+        presence = phoenixPresence.syncState(
+            presence,
             state,
             (id, current, newPres) => self.sendToPresence(topic, "Join", (this.packageForElm(id, newPres))),
             (id, current, leftPres) => self.sendToPresence(topic, "Leave", (this.packageForElm(id, leftPres)))
         )
 
-        this.sendToPresence(topic, "State",{list: phoenixPresence.list(presences, (id, metas) => (this.packageForElm(id, metas)))})
+        this.sendToPresence(topic, "State",{list: phoenixPresence.list(presence, (id, metas) => (this.packageForElm(id, metas)))})
     },
 
 
@@ -531,7 +493,7 @@ let ElmPhoenixWebSocket = {
             List the presences in a consistent form that is easier to handle in Elm.
 
             Parameters:
-                presences_ <object> - The raw presences data received from the server. // {"id1": metas, "id2": metas, ... }
+                presences_ <object> - The raw presence data received from the server. // {"id1": metas, "id2": metas, ... }
 
             Returns:
                 [{id: "id1", metas: metas}, {id: "id2", metas: metas}, ... ]
