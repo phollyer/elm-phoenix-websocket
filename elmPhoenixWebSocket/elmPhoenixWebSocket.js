@@ -493,16 +493,16 @@ let ElmPhoenixWebSocket = {
             List the presences in a consistent form that is easier to handle in Elm.
 
             Parameters:
-                presences_ <object> - The raw presence data received from the server. // {"id1": metas, "id2": metas, ... }
+                presence <object> - The raw presence data received from the server. // {"id1": metas, "id2": metas, ... }
 
             Returns:
                 [{id: "id1", metas: metas}, {id: "id2", metas: metas}, ... ]
     */
-    toList(presences_) {
+    toList(presence) {
         let list = []
 
-        for(var id in presences_) {
-            list.push(this.packageForElm(id, presences_[id]))
+        for(var id in presence) {
+            list.push(this.packageForElm(id, presence[id]))
         }
 
         return list
