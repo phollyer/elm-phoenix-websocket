@@ -81,11 +81,11 @@ let ElmPhoenixWebSocket = {
         this.socket = new this.phoenixSocket(this.url, this.optionsToParams(data))
         this.socket.onError( resp => self.socketSend("Error", resp))
         this.socket.onMessage( resp => self.socketSend("Message", resp))
-        this.socket.onOpen( function(resp) {
+        this.socket.onOpen( resp => {
             self.allowReconnect = true
             self.socketSend("Opened", resp)
         })
-        this.socket.onClose( function(resp) {
+        this.socket.onClose( resp => {
             if(self.allowReconnect) {
 
                 // The socket has closed unexpectedly after having been open,
