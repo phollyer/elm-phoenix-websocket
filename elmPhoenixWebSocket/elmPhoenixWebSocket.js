@@ -122,7 +122,7 @@ let ElmPhoenixWebSocket = {
         Retrieve the current connection state and send it back to Elm as a String.
 
     */
-    connectionState() { Port.sendToSocket("ConnectionState", socket.connectionState()) },
+    connectionState() { this.sendToSocket("ConnectionState", socket.connectionState()) },
 
 
     /* disconnect/0
@@ -138,7 +138,7 @@ let ElmPhoenixWebSocket = {
         Retrieve the current endpoint and send it back to Elm as a String.
 
     */
-    endPointURL() { Port.sendToSocket("EndPointURL", socket.endPointURL()) },
+    endPointURL() { this.sendToSocket("EndPointURL", socket.endPointURL()) },
 
 
     /* makeRef/0
@@ -146,7 +146,7 @@ let ElmPhoenixWebSocket = {
         Retrieve the next message ref, accounting for overflows, and send it back to Elm as a String.
 
     */
-    makeRef() { Port.sendToSocket("MakeRef", socket.makeRef()) },
+    makeRef() { this.sendToSocket("MakeRef", socket.makeRef()) },
 
 
     /* protocol/0
@@ -154,7 +154,7 @@ let ElmPhoenixWebSocket = {
         Retrieve the current protocol and send it back to Elm as a String.
 
     */
-    protocol() { Port.sendToSocket("Protocol", socket.protocol()) },
+    protocol() { this.sendToSocket("Protocol", socket.protocol()) },
 
 
     /* isConnected/0
@@ -162,7 +162,7 @@ let ElmPhoenixWebSocket = {
         Retrieve whether the socket is currently connected and send it back to Elm as a Bool.
 
     */
-    isConnected() { Port.sendToSocket("IsConnected", socket.isConnected()) },
+    isConnected() { this.sendToSocket("IsConnected", socket.isConnected()) },
 
 
     /* log/1
@@ -193,10 +193,10 @@ let ElmPhoenixWebSocket = {
         // In Phoenix v1.3.2 the hasLogger function does not exist,
         // so check it exists before calling it.
         if( socket.hasLogger ) {
-            Port.sendToSocket("HasLogger", socket.hasLogger())
+            this.sendToSocket("HasLogger", socket.hasLogger())
         } else {
             // The function does not exist so send back null to signify we could not test for a logger.
-            Port.sendToSocket("HasLogger", null)
+            this.sendToSocket("HasLogger", null)
         }
     },
 
