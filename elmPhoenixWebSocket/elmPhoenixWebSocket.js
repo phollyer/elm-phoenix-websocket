@@ -259,6 +259,29 @@ let ElmPhoenixWebSocket = {
         }
     },
 
+
+    /* socketSend/3
+
+            Send data to Elm.
+
+            As we can't be certain the ports have been set up,
+            make checks before trying to send the data, and report
+            any errors to the console.
+
+            Paramters:
+                event <string> - The message to send through the port.
+                payload <json>|<elm comparable> - The data to send.
+
+    */
+    socketSend(event, payload) {
+        this.elmPorts.socketReceiver.send(
+            {event: event,
+             payload: payload
+            }
+        )
+    },
+
+
     /* Channel */
 
     /* join/2
@@ -427,6 +450,29 @@ let ElmPhoenixWebSocket = {
         return this.channels[topic] || this.channel
     },
 
+    /* channelSend/3
+
+            Send data to Elm.
+
+            As we can't be certain the ports have been set up,
+            make checks before trying to send the data, and report
+            any errors to the console.
+
+            Paramters:
+                topic <string> - The channel topic.
+                event <string> - The message to send through the port.
+                payload <json>|<elm comparable> - The data to send.
+
+    */
+    channelSend(topic, event, payload) {
+        this.elmPorts.channelReceiver.send(
+            {topic: topic,
+             event: event,
+             payload: payload
+            }
+        )
+    },
+
 
     /* Presence */
 
@@ -513,51 +559,6 @@ let ElmPhoenixWebSocket = {
     packageForElm(id, presence) { return {id: id, metas: presence.metas} },
 
 
-    /* Ports */
-
-    /* socketSend/3
-
-            Send data to Elm.
-
-            As we can't be certain the ports have been set up,
-            make checks before trying to send the data, and report
-            any errors to the console.
-
-            Paramters:
-                event <string> - The message to send through the port.
-                payload <json>|<elm comparable> - The data to send.
-
-    */
-    socketSend(event, payload) {
-        this.elmPorts.socketReceiver.send(
-            {event: event,
-             payload: payload
-            }
-        )
-    },
-
-    /* channelSend/3
-
-            Send data to Elm.
-
-            As we can't be certain the ports have been set up,
-            make checks before trying to send the data, and report
-            any errors to the console.
-
-            Paramters:
-                topic <string> - The channel topic.
-                event <string> - The message to send through the port.
-                payload <json>|<elm comparable> - The data to send.
-
-    */
-    channelSend(topic, event, payload) {
-        this.elmPorts.channelReceiver.send(
-            {topic: topic,
-             event: event,
-             payload: payload
-            }
-        )
-    },
     /* presenceSend/3
 
             Send data to Elm.
