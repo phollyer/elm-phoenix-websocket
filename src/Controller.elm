@@ -104,7 +104,13 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        ChannelMsg (Channel.Closed _) ->
+            ( model, Cmd.none )
+
         ChannelMsg (Channel.Error _ _) ->
+            ( model, Cmd.none )
+
+        ChannelMsg (Channel.InvalidEvent _ _ _) ->
             ( model, Cmd.none )
 
         ChannelMsg (Channel.JoinError _ _) ->
@@ -151,6 +157,33 @@ update msg model =
         PresenceMsg _ ->
             ( model, Cmd.none )
 
+        SocketMsg Socket.Closed ->
+            ( model, Cmd.none )
+
+        SocketMsg (Socket.ConnectionStateReply _) ->
+            ( model, Cmd.none )
+
+        SocketMsg (Socket.EndPointURLReply _) ->
+            ( model, Cmd.none )
+
+        SocketMsg (Socket.Error _) ->
+            ( model, Cmd.none )
+
+        SocketMsg (Socket.HasLoggerReply _) ->
+            ( model, Cmd.none )
+
+        SocketMsg (Socket.InvalidEvent _) ->
+            ( model, Cmd.none )
+
+        SocketMsg (Socket.IsConnectedReply _) ->
+            ( model, Cmd.none )
+
+        SocketMsg (Socket.MakeRefReply _) ->
+            ( model, Cmd.none )
+
+        SocketMsg (Socket.Message _) ->
+            ( model, Cmd.none )
+
         SocketMsg Socket.Opened ->
             ( model
                 |> updateSocketState Connected
@@ -159,13 +192,13 @@ update msg model =
                 model.channelOutFunc
             )
 
+        SocketMsg (Socket.ProtocolReply _) ->
+            ( model, Cmd.none )
+
         TimeoutTick _ ->
             model
                 |> timeoutTick
                 |> retryTimeoutEvents
-
-        _ ->
-            ( model, Cmd.none )
 
 
 
