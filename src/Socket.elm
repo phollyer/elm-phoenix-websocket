@@ -60,8 +60,7 @@ import Json.Encode as JE exposing (Value)
 You will not use this directly.
 -}
 type alias PackageOut =
-    { target : String
-    , event : String
+    { event : String
     , payload : JE.Value
     }
 
@@ -177,8 +176,7 @@ send msgOut portOut =
 
 package : String -> JE.Value -> PackageOut
 package event value =
-    { target = "socket"
-    , event = event
+    { event = event
     , payload = value
     }
 

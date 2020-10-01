@@ -9,8 +9,7 @@ import Json.Encode as JE
 
 
 type alias PackageOut =
-    { target : String
-    , event : String
+    { event : String
     , payload : JE.Value
     }
 

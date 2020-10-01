@@ -113,8 +113,7 @@ type alias Topic =
 
 
 type alias PackageOut =
-    { target : String
-    , event : String
+    { event : String
     , payload : JE.Value
     }
 

@@ -183,8 +183,7 @@ send msgOut portOut =
 
 package : String -> JE.Value -> PackageOut
 package event value =
-    { target = "channel"
-    , event = event
+    { event = event
     , payload = value
     }
 
@@ -193,8 +192,7 @@ package event value =
 You will not use this directly.
 -}
 type alias PackageOut =
-    { target : String
-    , event : String
+    { event : String
     , payload : JE.Value
     }
 
