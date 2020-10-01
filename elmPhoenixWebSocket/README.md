@@ -23,7 +23,7 @@ if(app) {
 }
 ```
 
-In order to use Phoenix Presence then you can simply change the following
+In order to use Phoenix Presence you can simply change the following
 lines as below.
 
 Change:
