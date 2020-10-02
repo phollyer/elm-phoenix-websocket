@@ -211,6 +211,5 @@ is commented and documented, so as well as browsing through the file, you can
 navigate to `example/chat_room/assets/elm` and use
 [elm-doc-preview](https://github.com/dmy/elm-doc-preview) to read the docs.
 
-The current HEAD has changes that prevent the example from working, so until I
-have updated the example, do a `git checkout 1.1.0` after cloning, and it
-should be good to go.
+
+

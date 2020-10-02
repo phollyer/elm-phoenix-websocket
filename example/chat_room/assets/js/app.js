@@ -1,29 +1,5 @@
-// This file belongs in assets/js/
 
-// Console-polyfill. MIT license.
-// https://github.com/paulmillr/console-polyfill
-// Make it safe to do console.log() always.
-(function(global) {
-  'use strict';
-
-  if (!global.console) {
-    global.console = {};
-  }
-
-  var con = global.console;
-  var prop, method;
-  var dummy = function() {};
-  var properties = ['memory'];
-  var methods = ('assert,clear,count,debug,dir,dirxml,error,exception,group,' +
-     'groupCollapsed,groupEnd,info,log,markTimeline,profile,profiles,profileEnd,' +
-     'show,table,time,timeEnd,timeline,timelineEnd,timeStamp,trace,warn').split(',');
-
-  while (prop = properties.pop()) if (!con[prop]) con[prop] = {};
-  while (method = methods.pop()) if (!con[method]) con[method] = dummy;
-
-  // Using `this` for web workers & supports Browserify / Webpack.
-})(typeof window === 'undefined' ? this : window);
-
+import {Socket, Presence} from "phoenix"
 import { Elm } from "../elm/src/ExampleChatProgram.elm";
 import ElmPhoenixWebSocket from "./elmPhoenixWebSocket";
 
@@ -33,24 +9,8 @@ var flags =
     version: document.querySelector('#body').dataset.version
   };
 
-var elmContainerId = 'elm-app-container'
-var elmContainer = document.getElementById(elmContainerId)
-var app
+var elmContainer = document.getElementById('elm-app-container')
+var app = Elm.ExampleChatProgram.init({node: elmContainer, flags: flags});
 
-if (elmContainer)
-  {
-    app = Elm.ExampleChatProgram.init({node: elmContainer, flags: flags});
-  }
-else
-  {
-    console.error("Could not find Elm container: " + elmContainerId)
-  }
+ElmPhoenixWebSocket.init(app.ports, Socket, Presence);
 
-if(app)
-  {
-    ElmPhoenixWebSocket.init(app.ports);
-  }
-else
-  {
-    console.error('Elm Program could not be instantiated.')
-  }
