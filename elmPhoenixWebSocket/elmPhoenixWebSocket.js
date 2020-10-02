@@ -155,6 +155,37 @@ let ElmPhoenixWebSocket = {
     protocol() { this.socketSend("Protocol", this.socket.protocol()) },
 
 
+    /* info/0
+
+        Retrieve the socket info and send it back to Elm as a String.
+
+    */
+    info() {
+        var hasLogger
+
+        // In Phoenix v1.3.2 the hasLogger function does not exist,
+        // so check it exists before calling it.
+        if( this.socket.hasLogger ) {
+            hasLogger = this.socket.hasLogger()
+        } else {
+            // The function does not exist so send back null to signify we could not test for a logger.
+            hasLogger = null
+        }
+
+        var info =
+            { connectionState: this.socket.connectionState(),
+              endPointURL: this.socket.endPointURL(),
+              hasLogger: hasLogger,
+              isConnected: this.socket.isConnected(),
+              nextMessageRef: this.socket.makeRef(),
+              protocol: this.socket.protocol()
+            }
+
+
+        this.socketSend("Info", info )
+    },
+
+
     /* isConnected/0
 
         Retrieve whether the socket is currently connected and send it back to Elm as a Bool.

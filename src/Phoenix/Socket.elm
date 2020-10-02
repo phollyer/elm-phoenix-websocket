@@ -134,6 +134,12 @@ send msgOut portOut =
                     "connectionState"
                 |> portOut
 
+        Info ->
+            JE.null
+                |> package
+                    "info"
+                |> portOut
+
         IsConnected ->
             JE.null
                 |> package
@@ -302,6 +308,7 @@ type EventOut
     | ConnectionState
     | EndPointURL
     | HasLogger
+    | Info
     | IsConnected
     | MakeRef
     | Protocol
@@ -353,7 +360,8 @@ type alias PortIn msg =
 -}
 subscriptions : (EventIn -> msg) -> PortIn msg -> Sub msg
 subscriptions msg portIn =
-    portIn (handleIn msg)
+    portIn <|
+        handleIn msg
 
 
 handleIn : (EventIn -> msg) -> PackageIn -> msg
@@ -366,28 +374,49 @@ handleIn toMsg { event, payload } =
             toMsg Closed
 
         "Error" ->
-            toMsg (Error (payload |> decodeError))
+            toMsg <|
+                Error
+                    (JD.decodeValue errorDecoder payload)
 
         "Message" ->
-            toMsg (Message (payload |> decodeMessage))
+            toMsg <|
+                Message
+                    (JD.decodeValue messageDecoder payload)
 
         "ConnectionState" ->
-            toMsg (ConnectionStateReply (payload |> decodeString))
+            toMsg <|
+                ConnectionStateReply
+                    (JD.decodeValue JD.string payload)
 
         "EndPointURL" ->
-            toMsg (EndPointURLReply (payload |> decodeString))
+            toMsg <|
+                EndPointURLReply
+                    (JD.decodeValue JD.string payload)
 
         "HasLogger" ->
-            toMsg (HasLoggerReply (payload |> decodeMaybeBool))
+            toMsg <|
+                HasLoggerReply
+                    (JD.decodeValue (JD.maybe JD.bool) payload)
+
+        "Info" ->
+            toMsg <|
+                InfoReply
+                    (JD.decodeValue infoDecoder payload)
 
         "IsConnected" ->
-            toMsg (IsConnectedReply (payload |> decodeBool))
+            toMsg <|
+                IsConnectedReply
+                    (JD.decodeValue JD.bool payload)
 
         "MakeRef" ->
-            toMsg (MakeRefReply (payload |> decodeString))
+            toMsg <|
+                MakeRefReply
+                    (JD.decodeValue JD.string payload)
 
         "Protocol" ->
-            toMsg (ProtocolReply (payload |> decodeString))
+            toMsg <|
+                ProtocolReply
+                    (JD.decodeValue JD.string payload)
 
         _ ->
             toMsg (InvalidEvent event)
@@ -414,15 +443,26 @@ that cannot be handled. This should not happen, if it does, please raise an
 type EventIn
     = Opened
     | Closed
-    | Error String
-    | Message MessageConfig
-    | ConnectionStateReply String
-    | EndPointURLReply String
-    | HasLoggerReply (Maybe Bool)
-    | IsConnectedReply Bool
-    | MakeRefReply String
-    | ProtocolReply String
+    | Error (Result JD.Error String)
+    | Message (Result JD.Error MessageConfig)
+    | ConnectionStateReply (Result JD.Error String)
+    | EndPointURLReply (Result JD.Error String)
+    | HasLoggerReply (Result JD.Error (Maybe Bool))
+    | InfoReply (Result JD.Error InfoData)
+    | IsConnectedReply (Result JD.Error Bool)
+    | MakeRefReply (Result JD.Error String)
+    | ProtocolReply (Result JD.Error String)
     | InvalidEvent String
+
+
+type alias InfoData =
+    { connectionState : String
+    , endpointURL : String
+    , hasLogger : Maybe Bool
+    , isConnected : Bool
+    , nextMessageRef : String
+    , protocol : String
+    }
 
 
 {-| A type alias representing the raw message received by the socket. This
@@ -453,73 +493,33 @@ type alias MessageConfig =
 -- Decoders
 
 
-decodeString : Value -> String
-decodeString value =
-    value
-        |> JD.decodeValue
-            JD.string
-        |> Result.toMaybe
-        |> Maybe.withDefault ""
+errorDecoder : JD.Decoder String
+errorDecoder =
+    JD.oneOf
+        [ JD.field "reason" JD.string
+        , JD.field "error" JD.string
+        , JD.string
+        ]
 
 
-decodeBool : Value -> Bool
-decodeBool value =
-    value
-        |> JD.decodeValue
-            JD.bool
-        |> Result.toMaybe
-        |> Maybe.withDefault False
+infoDecoder : JD.Decoder InfoData
+infoDecoder =
+    JD.succeed
+        InfoData
+        |> andMap (JD.field "connectionState" JD.string)
+        |> andMap (JD.field "endPointURL" JD.string)
+        |> andMap (JD.field "hasLogger" (JD.maybe JD.bool))
+        |> andMap (JD.field "isConnected" JD.bool)
+        |> andMap (JD.field "nextMessageRef" JD.string)
+        |> andMap (JD.field "protocol" JD.string)
 
 
-decodeMaybeBool : Value -> Maybe Bool
-decodeMaybeBool value =
-    value
-        |> JD.decodeValue
-            (JD.maybe
-                JD.bool
-            )
-        |> Result.toMaybe
-        |> Maybe.withDefault
-            Nothing
-
-
-decodeError : Value -> String
-decodeError value =
-    let
-        defaults =
-            [ JD.field "reason" JD.string
-            , JD.field "error" JD.string
-            , JD.string
-            ]
-    in
-    case JD.decodeValue (JD.oneOf defaults) value of
-        Ok v ->
-            v
-
-        Err e ->
-            JD.errorToString e
-
-
-decodeMessage : Value -> MessageConfig
-decodeMessage value =
-    let
-        messageDecoder =
-            JD.succeed
-                MessageConfig
-                |> andMap (JD.maybe (JD.field "join_ref" JD.string))
-                |> andMap (JD.maybe (JD.field "ref" JD.string))
-                |> andMap (JD.field "topic" JD.string)
-                |> andMap (JD.field "event" JD.string)
-                |> andMap (JD.field "payload" JD.value)
-    in
-    value
-        |> JD.decodeValue
-            messageDecoder
-        |> Result.toMaybe
-        |> Maybe.withDefault
-            { joinRef = Nothing
-            , ref = Nothing
-            , topic = ""
-            , event = ""
-            , payload = JE.null
-            }
+messageDecoder : JD.Decoder MessageConfig
+messageDecoder =
+    JD.succeed
+        MessageConfig
+        |> andMap (JD.maybe (JD.field "join_ref" JD.string))
+        |> andMap (JD.maybe (JD.field "ref" JD.string))
+        |> andMap (JD.field "topic" JD.string)
+        |> andMap (JD.field "event" JD.string)
+        |> andMap (JD.field "payload" JD.value)

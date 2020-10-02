@@ -1,5 +1,6 @@
 module Phoenix exposing
-    ( Model
+    ( DecoderError(..)
+    , Model
     , Msg
     , PushResponse(..)
     , getConnectionState
@@ -15,6 +16,7 @@ module Phoenix exposing
     , update
     )
 
+import Json.Decode as JD
 import Json.Encode as JE
 import Phoenix.Channel as Channel
 import Phoenix.Presence as Presence
@@ -32,11 +34,13 @@ init portOut =
         { channelsBeingJoined = []
         , channelsJoined = []
         , connectionState = Nothing
+        , decoderErrors = []
         , endpointURL = Nothing
         , hasLogger = Nothing
-        , invalidSocketEvent = Nothing
         , invalidSocketEvents = []
         , isConnected = False
+        , lastDecoderError = Nothing
+        , lastInvalidSocketEvent = Nothing
         , lastSocketMessage = Nothing
         , nextMessageRef = Nothing
         , portOut = portOut
@@ -59,11 +63,13 @@ type Model msg
         { channelsBeingJoined : List Topic
         , channelsJoined : List Topic
         , connectionState : Maybe String
+        , decoderErrors : List DecoderError
         , endpointURL : Maybe String
         , hasLogger : Maybe Bool
-        , invalidSocketEvent : Maybe String
         , invalidSocketEvents : List String
         , isConnected : Bool
+        , lastDecoderError : Maybe DecoderError
+        , lastInvalidSocketEvent : Maybe String
         , lastSocketMessage : Maybe Socket.MessageConfig
         , nextMessageRef : Maybe String
         , portOut : PackageOut -> Cmd msg
@@ -75,6 +81,10 @@ type Model msg
         , socketState : SocketState
         , timeoutEvents : List TimeoutEvent
         }
+
+
+type DecoderError
+    = Socket JD.Error
 
 
 type alias EventOut =
@@ -131,10 +141,6 @@ type Msg
 
 update : Msg -> Model msg -> ( Model msg, Cmd msg )
 update msg (Model model) =
-    let
-        _ =
-            Debug.log "" msg
-    in
     case msg of
         ChannelMsg (Channel.Closed _) ->
             ( Model model, Cmd.none )
@@ -208,49 +214,132 @@ update msg (Model model) =
                     , Cmd.none
                     )
 
-                Socket.ConnectionStateReply connectionState_ ->
-                    ( updateConnectionState (Just connectionState_) (Model model)
-                    , Cmd.none
-                    )
+                Socket.ConnectionStateReply result ->
+                    case result of
+                        Ok connectionState_ ->
+                            ( updateConnectionState (Just connectionState_) (Model model)
+                            , Cmd.none
+                            )
 
-                Socket.EndPointURLReply endpointURL_ ->
-                    ( updateEndpointURL (Just endpointURL_) (Model model)
-                    , Cmd.none
-                    )
+                        Err error ->
+                            ( Model model
+                                |> addDecoderError (Socket error)
+                                |> updateLastDecoderError (Just (Socket error))
+                            , Cmd.none
+                            )
 
-                Socket.Error error ->
-                    ( updateSocketError error (Model model)
-                    , Cmd.none
-                    )
+                Socket.EndPointURLReply result ->
+                    case result of
+                        Ok endpointURL_ ->
+                            ( updateEndpointURL (Just endpointURL_) (Model model)
+                            , Cmd.none
+                            )
 
-                Socket.HasLoggerReply hasLogger_ ->
-                    ( updateHasLogger hasLogger_ (Model model)
-                    , Cmd.none
-                    )
+                        Err error ->
+                            ( Model model
+                                |> addDecoderError (Socket error)
+                                |> updateLastDecoderError (Just (Socket error))
+                            , Cmd.none
+                            )
+
+                Socket.Error result ->
+                    case result of
+                        Ok error ->
+                            ( updateSocketError error (Model model)
+                            , Cmd.none
+                            )
+
+                        Err error ->
+                            ( Model model
+                                |> addDecoderError (Socket error)
+                                |> updateLastDecoderError (Just (Socket error))
+                            , Cmd.none
+                            )
+
+                Socket.HasLoggerReply result ->
+                    case result of
+                        Ok hasLogger_ ->
+                            ( updateHasLogger hasLogger_ (Model model)
+                            , Cmd.none
+                            )
+
+                        Err error ->
+                            ( Model model
+                                |> addDecoderError (Socket error)
+                                |> updateLastDecoderError (Just (Socket error))
+                            , Cmd.none
+                            )
+
+                Socket.InfoReply result ->
+                    case result of
+                        Ok info ->
+                            ( Model model
+                                |> updateConnectionState (Just info.connectionState)
+                                |> updateEndpointURL (Just info.endpointURL)
+                                |> updateHasLogger info.hasLogger
+                                |> updateIsConnected info.isConnected
+                                |> updateNextMessageRef (Just info.nextMessageRef)
+                                |> updateProtocol (Just info.protocol)
+                            , Cmd.none
+                            )
+
+                        Err error ->
+                            ( Model model
+                                |> addDecoderError (Socket error)
+                                |> updateLastDecoderError (Just (Socket error))
+                            , Cmd.none
+                            )
 
                 Socket.InvalidEvent event ->
                     ( Model model
                         |> addInvalidSocketEvent event
-                        |> updateInvalidSocketEvent (Just event)
+                        |> updateLastInvalidSocketEvent (Just event)
                     , Cmd.none
                     )
 
-                Socket.IsConnectedReply isConnected_ ->
-                    ( updateIsConnected isConnected_ (Model model)
-                    , Cmd.none
-                    )
+                Socket.IsConnectedReply result ->
+                    case result of
+                        Ok isConnected ->
+                            ( updateIsConnected isConnected (Model model)
+                            , Cmd.none
+                            )
 
-                Socket.MakeRefReply ref ->
-                    ( updateNextMessageRef (Just ref) (Model model)
-                    , Cmd.none
-                    )
+                        Err error ->
+                            ( Model model
+                                |> addDecoderError (Socket error)
+                                |> updateLastDecoderError (Just (Socket error))
+                            , Cmd.none
+                            )
 
-                Socket.Message message ->
-                    ( Model model
-                        |> addSocketMessage message
-                        |> updateLastSocketMessage (Just message)
-                    , Cmd.none
-                    )
+                Socket.MakeRefReply result ->
+                    case result of
+                        Ok ref ->
+                            ( updateNextMessageRef (Just ref) (Model model)
+                            , Cmd.none
+                            )
+
+                        Err error ->
+                            ( Model model
+                                |> addDecoderError (Socket error)
+                                |> updateLastDecoderError (Just (Socket error))
+                            , Cmd.none
+                            )
+
+                Socket.Message result ->
+                    case result of
+                        Ok message ->
+                            ( Model model
+                                |> addSocketMessage message
+                                |> updateLastSocketMessage (Just message)
+                            , Cmd.none
+                            )
+
+                        Err error ->
+                            ( Model model
+                                |> addDecoderError (Socket error)
+                                |> updateLastDecoderError (Just (Socket error))
+                            , Cmd.none
+                            )
 
                 Socket.Opened ->
                     ( Model model
@@ -261,10 +350,19 @@ update msg (Model model) =
                         model.portOut
                     )
 
-                Socket.ProtocolReply protocol ->
-                    ( updateProtocol (Just protocol) (Model model)
-                    , Cmd.none
-                    )
+                Socket.ProtocolReply result ->
+                    case result of
+                        Ok protocol ->
+                            ( updateProtocol (Just protocol) (Model model)
+                            , Cmd.none
+                            )
+
+                        Err error ->
+                            ( Model model
+                                |> addDecoderError (Socket error)
+                                |> updateLastDecoderError (Just (Socket error))
+                            , Cmd.none
+                            )
 
         TimeoutTick _ ->
             Model model
@@ -299,6 +397,21 @@ subscriptions socketReceiver channelReceiver maybePeresenceReceiver (Model model
           else
             Sub.none
         ]
+
+
+
+{- Decoder Errors -}
+
+
+addDecoderError : DecoderError -> Model msg -> Model msg
+addDecoderError decoderError (Model model) =
+    if model.decoderErrors |> List.member decoderError then
+        Model model
+
+    else
+        updateDecoderErrors
+            (decoderError :: model.decoderErrors)
+            (Model model)
 
 
 
@@ -374,13 +487,9 @@ getProtocol model =
 
 getSocketInfo : Model msg -> Cmd msg
 getSocketInfo model =
-    Cmd.batch
-        [ getConnectionState model
-        , getHasLogger model
-        , getIsConnected model
-        , getProtocol model
-        , makeRef model
-        ]
+    sendToSocket
+        Socket.Info
+        model
 
 
 makeRef : Model msg -> Cmd msg
@@ -765,11 +874,11 @@ updateConnectionState connectionState_ (Model model) =
         }
 
 
-updateHasLogger : Maybe Bool -> Model msg -> Model msg
-updateHasLogger hasLogger_ (Model model) =
+updateDecoderErrors : List DecoderError -> Model msg -> Model msg
+updateDecoderErrors decoderErrors (Model model) =
     Model
         { model
-            | hasLogger = hasLogger_
+            | decoderErrors = decoderErrors
         }
 
 
@@ -781,11 +890,11 @@ updateEndpointURL endpointURL_ (Model model) =
         }
 
 
-updateInvalidSocketEvent : Maybe String -> Model msg -> Model msg
-updateInvalidSocketEvent event (Model model) =
+updateHasLogger : Maybe Bool -> Model msg -> Model msg
+updateHasLogger hasLogger_ (Model model) =
     Model
         { model
-            | invalidSocketEvent = event
+            | hasLogger = hasLogger_
         }
 
 
@@ -802,6 +911,30 @@ updateIsConnected isConnected_ (Model model) =
     Model
         { model
             | isConnected = isConnected_
+        }
+
+
+updateLastDecoderError : Maybe DecoderError -> Model msg -> Model msg
+updateLastDecoderError error (Model model) =
+    Model
+        { model
+            | lastDecoderError = error
+        }
+
+
+updateLastInvalidSocketEvent : Maybe String -> Model msg -> Model msg
+updateLastInvalidSocketEvent event (Model model) =
+    Model
+        { model
+            | lastInvalidSocketEvent = event
+        }
+
+
+updateLastSocketMessage : Maybe Socket.MessageConfig -> Model msg -> Model msg
+updateLastSocketMessage message (Model model) =
+    Model
+        { model
+            | lastSocketMessage = message
         }
 
 
@@ -826,14 +959,6 @@ updateQueuedEvents queuedEvents (Model model) =
     Model
         { model
             | queuedEvents = queuedEvents
-        }
-
-
-updateLastSocketMessage : Maybe Socket.MessageConfig -> Model msg -> Model msg
-updateLastSocketMessage message (Model model) =
-    Model
-        { model
-            | lastSocketMessage = message
         }
 
 
