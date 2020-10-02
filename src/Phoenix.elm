@@ -7,10 +7,10 @@ module Phoenix exposing
     , getEndpointURL
     , getHasLogger
     , getIsConnected
+    , getNextRef
     , getProtocol
     , getSocketInfo
     , init
-    , makeRef
     , sendMessage
     , subscriptions
     , update
@@ -478,6 +478,13 @@ getIsConnected model =
         model
 
 
+getNextRef : Model msg -> Cmd msg
+getNextRef model =
+    sendToSocket
+        Socket.MakeRef
+        model
+
+
 getProtocol : Model msg -> Cmd msg
 getProtocol model =
     sendToSocket
@@ -489,13 +496,6 @@ getSocketInfo : Model msg -> Cmd msg
 getSocketInfo model =
     sendToSocket
         Socket.Info
-        model
-
-
-makeRef : Model msg -> Cmd msg
-makeRef model =
-    sendToSocket
-        Socket.MakeRef
         model
 
 
