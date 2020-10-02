@@ -180,25 +180,14 @@ The general workflow would go like this:
 In order for your Elm program to talk to
 [PhoenixJS](https://hexdocs.pm/phoenix/js), you will need to add a very small
 [`port`](https://github.com/phollyer/elm-phoenix-websocket/blob/master/src/Ports/Phoenix.elm)
-module to your Elm `src` files, and some
+module to your Elm `src` files, and a
 [JavaScript](https://github.com/phollyer/elm-phoenix-websocket/tree/master/elmPhoenixWebSocket)
-files to your Phoenix project.
+file to your Phoenix project.
 
 ## Set up JavaScript
 
-You first need to copy the contents of the
-[`elmPhoenixWebSocket`](https://github.com/phollyer/elm-phoenix-websocket/tree/master/elmPhoenixWebSocket)
-folder into `assets/js`.
-
-*Assuming you already have Elm setup in your Phoenix project and instantiated
-as `app`:*
-
-
-```
-import ElmPhoenixWebSocket from "path/to/elmPhoenixWebSocket";
-
-ElmPhoenixWebSocket.init(app.ports);
-```
+The JS file you need, and set up instructions are
+[`here`](https://github.com/phollyer/elm-phoenix-websocket/tree/master/elmPhoenixWebSocket).
 
 # Set up Elm
 
@@ -221,3 +210,7 @@ The file
 is commented and documented, so as well as browsing through the file, you can
 navigate to `example/chat_room/assets/elm` and use
 [elm-doc-preview](https://github.com/dmy/elm-doc-preview) to read the docs.
+
+The current HEAD has changes that prevent the example from working, so until I
+have updated the example, do a `git checkout 1.1.0` after cloning, and it
+should be good to go.
