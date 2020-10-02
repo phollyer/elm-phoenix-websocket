@@ -216,8 +216,8 @@ update msg (Model model) =
 
                 Socket.ConnectionStateReply result ->
                     case result of
-                        Ok connectionState_ ->
-                            ( updateConnectionState (Just connectionState_) (Model model)
+                        Ok connectionState ->
+                            ( updateConnectionState (Just connectionState) (Model model)
                             , Cmd.none
                             )
 
@@ -230,8 +230,8 @@ update msg (Model model) =
 
                 Socket.EndPointURLReply result ->
                     case result of
-                        Ok endpointURL_ ->
-                            ( updateEndpointURL (Just endpointURL_) (Model model)
+                        Ok endpointURL ->
+                            ( updateEndpointURL (Just endpointURL) (Model model)
                             , Cmd.none
                             )
 
@@ -258,8 +258,8 @@ update msg (Model model) =
 
                 Socket.HasLoggerReply result ->
                     case result of
-                        Ok hasLogger_ ->
-                            ( updateHasLogger hasLogger_ (Model model)
+                        Ok hasLogger ->
+                            ( updateHasLogger hasLogger (Model model)
                             , Cmd.none
                             )
 
@@ -867,10 +867,10 @@ updateChannelsJoined channelsJoined (Model model) =
 
 
 updateConnectionState : Maybe String -> Model msg -> Model msg
-updateConnectionState connectionState_ (Model model) =
+updateConnectionState connectionState (Model model) =
     Model
         { model
-            | connectionState = connectionState_
+            | connectionState = connectionState
         }
 
 
@@ -883,18 +883,18 @@ updateDecoderErrors decoderErrors (Model model) =
 
 
 updateEndpointURL : Maybe String -> Model msg -> Model msg
-updateEndpointURL endpointURL_ (Model model) =
+updateEndpointURL endpointURL (Model model) =
     Model
         { model
-            | endpointURL = endpointURL_
+            | endpointURL = endpointURL
         }
 
 
 updateHasLogger : Maybe Bool -> Model msg -> Model msg
-updateHasLogger hasLogger_ (Model model) =
+updateHasLogger hasLogger (Model model) =
     Model
         { model
-            | hasLogger = hasLogger_
+            | hasLogger = hasLogger
         }
 
 
@@ -907,10 +907,10 @@ updateInvalidSocketEvents events (Model model) =
 
 
 updateIsConnected : Bool -> Model msg -> Model msg
-updateIsConnected isConnected_ (Model model) =
+updateIsConnected isConnected (Model model) =
     Model
         { model
-            | isConnected = isConnected_
+            | isConnected = isConnected
         }
 
 
@@ -938,6 +938,14 @@ updateLastSocketMessage message (Model model) =
         }
 
 
+updateNextMessageRef : Maybe String -> Model msg -> Model msg
+updateNextMessageRef ref (Model model) =
+    Model
+        { model
+            | nextMessageRef = ref
+        }
+
+
 updateProtocol : Maybe String -> Model msg -> Model msg
 updateProtocol protocol (Model model) =
     Model
@@ -959,14 +967,6 @@ updateQueuedEvents queuedEvents (Model model) =
     Model
         { model
             | queuedEvents = queuedEvents
-        }
-
-
-updateNextMessageRef : Maybe String -> Model msg -> Model msg
-updateNextMessageRef ref (Model model) =
-    Model
-        { model
-            | nextMessageRef = ref
         }
 
 
