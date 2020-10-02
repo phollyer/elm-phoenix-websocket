@@ -37,11 +37,11 @@ init socketOutFunc channelOutFunc =
     , invalidSocketEvent = Nothing
     , invalidSocketEvents = []
     , isConnected = False
-    , pushResponse = Nothing
-    , queuedEvents = []
     , lastSocketMessage = Nothing
     , nextMessageRef = Nothing
     , protocol = Nothing
+    , pushResponse = Nothing
+    , queuedEvents = []
     , socketError = ""
     , socketMessages = []
     , socketOutFunc = socketOutFunc
@@ -64,11 +64,11 @@ type alias Model =
     , invalidSocketEvent : Maybe String
     , invalidSocketEvents : List String
     , isConnected : Bool
-    , pushResponse : Maybe PushResponse
-    , queuedEvents : List QueuedEvent
     , lastSocketMessage : Maybe Socket.MessageConfig
     , nextMessageRef : Maybe String
     , protocol : Maybe String
+    , pushResponse : Maybe PushResponse
+    , queuedEvents : List QueuedEvent
     , socketError : String
     , socketOutFunc : PackageOut -> Cmd Socket.EventIn
     , socketMessages : List Socket.MessageConfig
