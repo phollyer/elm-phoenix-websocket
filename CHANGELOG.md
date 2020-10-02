@@ -54,6 +54,7 @@ Documentation - fixed a typo, improved an example, used better English.
 
 Initial Commit.
 
+[1.0.1]: https://github.com/phollyer/elm-phoenix-websocket/compare/1.1.0...2.0.0
 [1.0.1]: https://github.com/phollyer/elm-phoenix-websocket/compare/1.0.4...1.1.0
 [1.0.1]: https://github.com/phollyer/elm-phoenix-websocket/compare/1.0.3...1.0.4
 [1.0.1]: https://github.com/phollyer/elm-phoenix-websocket/compare/1.0.2...1.0.3
