@@ -45,7 +45,6 @@ function.
 
 import Browser
 import Browser.Dom as Dom
-import Channel exposing (EventIn(..), EventOut(..))
 import Color.Blue as Blue
 import Color.Green as Green
 import Color.Red as Red
@@ -60,9 +59,10 @@ import Html.Attributes as Attr
 import Json.Decode as JD
 import Json.Decode.Extra exposing (andMap)
 import Json.Encode as JE
+import Phoenix.Channel as Channel exposing (EventIn(..), EventOut(..))
+import Phoenix.Presence as Presence exposing (EventIn(..), Presence, PresenceState)
+import Phoenix.Socket as Socket exposing (EventIn(..), EventOut(..))
 import Ports.Phoenix as Phx
-import Presence exposing (EventIn(..), Presence, PresenceState)
-import Socket exposing (EventIn(..), EventOut(..))
 import Task
 
 
