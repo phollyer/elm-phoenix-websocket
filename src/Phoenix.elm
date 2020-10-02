@@ -12,6 +12,8 @@ module Phoenix exposing
     , getSocketInfo
     , init
     , sendMessage
+    , setConnectOptions
+    , setConnectParams
     , subscriptions
     , update
     )
@@ -28,12 +30,14 @@ import Time
 {- Init -}
 
 
-init : (PackageOut -> Cmd msg) -> Model msg
-init portOut =
+init : (PackageOut -> Cmd msg) -> Maybe Socket.ConnectOptions -> Maybe JE.Value -> Model msg
+init portOut connectOptions connectParams =
     Model
         { channelsBeingJoined = []
         , channelsJoined = []
         , connectionState = Nothing
+        , connectOptions = connectOptions
+        , connectParams = connectParams
         , decoderErrors = []
         , endpointURL = Nothing
         , hasLogger = Nothing
@@ -63,6 +67,8 @@ type Model msg
         { channelsBeingJoined : List Topic
         , channelsJoined : List Topic
         , connectionState : Maybe String
+        , connectOptions : Maybe Socket.ConnectOptions
+        , connectParams : Maybe JE.Value
         , decoderErrors : List DecoderError
         , endpointURL : Maybe String
         , hasLogger : Maybe Bool
@@ -371,6 +377,29 @@ update msg (Model model) =
 
 
 
+{- Public API -}
+
+
+sendMessage : Topic -> EventOut -> JE.Value -> Model msg -> ( Model msg, Cmd msg )
+sendMessage topic event payload model =
+    sendIfConnected
+        topic
+        event
+        payload
+        model
+
+
+setConnectOptions : Socket.ConnectOptions -> Model msg -> Model msg
+setConnectOptions options model =
+    updateConnectOptions (Just options) model
+
+
+setConnectParams : JE.Value -> Model msg -> Model msg
+setConnectParams params model =
+    updateConnectParams (Just params) model
+
+
+
 {- Subscriptions -}
 
 
@@ -443,11 +472,18 @@ dropQueuedEvent queued (Model model) =
 {- Socket -}
 
 
-connect : (PackageOut -> Cmd msg) -> Cmd msg
-connect portOut =
-    Socket.send
-        (Socket.Connect Nothing)
-        portOut
+connect : (PackageOut -> Cmd msg) -> Maybe JE.Value -> Maybe Socket.ConnectOptions -> Cmd msg
+connect portOut params maybeOptions =
+    case maybeOptions of
+        Just options ->
+            Socket.send
+                (Socket.ConnectWithOptions options params)
+                portOut
+
+        Nothing ->
+            Socket.send
+                (Socket.Connect params)
+                portOut
 
 
 getConnectionState : Model msg -> Cmd msg
@@ -706,15 +742,6 @@ handlePushTimeout topic event payload model =
 {- Server Requests - Private API -}
 
 
-sendMessage : Topic -> EventOut -> JE.Value -> Model msg -> ( Model msg, Cmd msg )
-sendMessage topic event payload model =
-    sendIfConnected
-        topic
-        event
-        payload
-        model
-
-
 send : Topic -> EventOut -> JE.Value -> (PackageOut -> Cmd msg) -> Cmd msg
 send topic event payload portOut =
     Channel.send
@@ -758,7 +785,10 @@ sendIfConnected topic event payload (Model model) =
                     , topic = topic
                     }
                 |> updateSocketState Opening
-            , connect model.portOut
+            , connect
+                model.portOut
+                model.connectParams
+                model.connectOptions
             )
 
 
@@ -871,6 +901,22 @@ updateConnectionState connectionState (Model model) =
     Model
         { model
             | connectionState = connectionState
+        }
+
+
+updateConnectOptions : Maybe Socket.ConnectOptions -> Model msg -> Model msg
+updateConnectOptions options (Model model) =
+    Model
+        { model
+            | connectOptions = options
+        }
+
+
+updateConnectParams : Maybe JE.Value -> Model msg -> Model msg
+updateConnectParams params (Model model) =
+    Model
+        { model
+            | connectParams = params
         }
 
 
