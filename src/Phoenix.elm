@@ -1,4 +1,4 @@
-module Controller exposing
+module Phoenix exposing
     ( Model
     , Msg
     , PushResponse(..)
@@ -15,10 +15,10 @@ module Controller exposing
     , update
     )
 
-import Channel
 import Json.Encode as JE
-import Presence
-import Socket
+import Phoenix.Channel as Channel
+import Phoenix.Presence as Presence
+import Phoenix.Socket as Socket
 import Time
 
 

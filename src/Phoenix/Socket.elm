@@ -1,4 +1,4 @@
-module Socket exposing
+module Phoenix.Socket exposing
     ( send, EventOut(..)
     , PortOut, PackageOut
     , connectOptions

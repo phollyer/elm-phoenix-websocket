@@ -1,4 +1,4 @@
-module Presence exposing
+module Phoenix.Presence exposing
     ( subscriptions, EventIn(..), Topic, Presence, PresenceState, PresenceDiff
     , PortIn, Package
     , decodeMetas

@@ -1,4 +1,4 @@
-module Channel exposing
+module Phoenix.Channel exposing
     ( send, EventOut(..), JoinConfig, PushConfig, EventConfig, LeaveConfig
     , PortOut, PackageOut
     , subscriptions, EventIn(..), Topic, PushEvent
