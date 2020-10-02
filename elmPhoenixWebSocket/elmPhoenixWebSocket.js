@@ -79,8 +79,8 @@ let ElmPhoenixWebSocket = {
         this.allowReconnect = false
 
         this.socket = new this.phoenixSocket(this.url, this.optionsToParams(data))
-        this.socket.onError( resp => self.socketSend("Error", resp))
         this.socket.onMessage( resp => self.socketSend("Message", resp))
+        this.socket.onError( resp => self.socketSend("Error", {reason: "Unknown"}))
         this.socket.onOpen( resp => {
             self.allowReconnect = true
             self.socketSend("Opened", resp)
