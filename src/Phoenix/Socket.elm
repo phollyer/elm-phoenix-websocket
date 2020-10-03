@@ -7,8 +7,9 @@ module Phoenix.Socket exposing
 
 {-| Use this module to work directly with the socket.
 
-After connecting to the socket, you can then [join a channel](Channel) and
-start sending and receiving messages from your channels.
+After connecting to the socket, you can then join one or more
+[channel](Channel)s and start sending and receiving messages from your
+channel(s).
 
 
 # Connecting
@@ -84,8 +85,8 @@ type ConnectOption
     | Transport String
 
 
-{-| A type alias repesenting the params to be sent when connecting, usually
-authentication params such as username and password.
+{-| A type alias repesenting the params to be sent when connecting, such as
+authentication params like username and password.
 -}
 type alias Params =
     Value
