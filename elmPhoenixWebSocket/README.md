@@ -13,11 +13,9 @@ import { Elm } from "../elm/src/Main.elm";
 
 import ElmPhoenixWebSocket from "./elmPhoenixWebSocket";
 
-var flags = { your: "flags" };
-
 var elmContainer = document.getElementById('your-elm-app-container-id');
 
-var app = Elm.Main.init({node: elmContainer, flags: flags});
+var app = Elm.Main.init({node: elmContainer, flags: { your: "flags" }});
 
 ElmPhoenixWebSocket.init(app.ports, Socket, Presence);
 ```
@@ -32,9 +30,7 @@ import { Elm } from "../elm/src/Main.elm";
 
 import ElmPhoenixWebSocket from "./elmPhoenixWebSocket";
 
-var flags = { your: "flags" };
-
-var app = Elm.Main.init({flags: flags});
+var app = Elm.Main.init({flags: { your: "flags" }});
 
 ElmPhoenixWebSocket.init(app.ports, Socket, Presence);
 ```
