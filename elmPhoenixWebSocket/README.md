@@ -1,10 +1,10 @@
-# Accompanying JS
+# JS for Elm-Phoenix-WebSocket package
 
-Add the `elmPhoenixWebSocket.js` JS file to `assets/js/`.
+Add `elmPhoenixWebSocket.js` to `assets/js/` in your Phoenix App.
 
-In `app.js` you can then do the following to wire up the JS, or adjust as you
-see fit.
+The following example is for an Elm SPA.
 
+`app.js`
 ```
 import { Socket } from "phoenix";
 

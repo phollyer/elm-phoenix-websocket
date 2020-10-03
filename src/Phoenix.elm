@@ -1,22 +1,41 @@
 module Phoenix exposing
-    ( DecoderError(..)
-    , Model
-    , Msg
-    , PushResponse(..)
+    ( Model
     , init
-    , requestConnectionState
-    , requestEndpointURL
-    , requestHasLogger
-    , requestIsConnected
-    , requestMakeRef
-    , requestProtocol
-    , requestSocketInfo
+    , setConnectOptions, setConnectParams
     , sendMessage
-    , setConnectOptions
-    , setConnectParams
     , subscriptions
-    , update
+    , Msg, update
+    , DecoderError(..), PushResponse(..)
+    , requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
     )
+
+{-| This module is a wrapper around the [Socket](Phoenix.Socket),
+[Channel](Phoenix.Channel) and [Presence](Phoenix.Presence) modules. It handles
+all the low level stuff with a simple API, automates a few processes, and
+generally simplifies working with Phoenix WebSockets without losing any
+functionality.
+
+You can use the [Socket](Phoenix.Socket), [Channel](Phoenix.Channel) and
+[Presence](Phoenix.Presence) modules directly, but it is probably unlikely you
+will need to do so.
+
+@docs Model
+
+@docs init
+
+@docs setConnectOptions, setConnectParams
+
+@docs sendMessage
+
+@docs subscriptions
+
+@docs Msg, update
+
+@docs DecoderError, PushResponse
+
+@docs requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
+
+-}
 
 import Json.Decode as JD
 import Json.Encode as JE
@@ -26,10 +45,37 @@ import Phoenix.Socket as Socket
 import Time
 
 
+{-| Model
+-}
+type Model msg
+    = Model
+        { channelsBeingJoined : List Topic
+        , channelsJoined : List Topic
+        , connectionState : Maybe String
+        , connectOptions : Maybe Socket.ConnectOptions
+        , connectParams : Maybe JE.Value
+        , decoderErrors : List DecoderError
+        , endpointURL : Maybe String
+        , hasLogger : Maybe Bool
+        , invalidSocketEvents : List String
+        , isConnected : Bool
+        , lastDecoderError : Maybe DecoderError
+        , lastInvalidSocketEvent : Maybe String
+        , lastSocketMessage : Maybe Socket.MessageConfig
+        , nextMessageRef : Maybe String
+        , portOut : PackageOut -> Cmd msg
+        , protocol : Maybe String
+        , pushResponse : Maybe PushResponse
+        , queuedEvents : List QueuedEvent
+        , socketError : String
+        , socketMessages : List Socket.MessageConfig
+        , socketState : SocketState
+        , timeoutEvents : List TimeoutEvent
+        }
 
-{- Init -}
 
-
+{-| Init
+-}
 init : (PackageOut -> Cmd msg) -> Maybe Socket.ConnectOptions -> Maybe JE.Value -> Model msg
 init portOut connectOptions connectParams =
     Model
@@ -58,37 +104,19 @@ init portOut connectOptions connectParams =
         }
 
 
-
-{- Model -}
-
-
-type Model msg
-    = Model
-        { channelsBeingJoined : List Topic
-        , channelsJoined : List Topic
-        , connectionState : Maybe String
-        , connectOptions : Maybe Socket.ConnectOptions
-        , connectParams : Maybe JE.Value
-        , decoderErrors : List DecoderError
-        , endpointURL : Maybe String
-        , hasLogger : Maybe Bool
-        , invalidSocketEvents : List String
-        , isConnected : Bool
-        , lastDecoderError : Maybe DecoderError
-        , lastInvalidSocketEvent : Maybe String
-        , lastSocketMessage : Maybe Socket.MessageConfig
-        , nextMessageRef : Maybe String
-        , portOut : PackageOut -> Cmd msg
-        , protocol : Maybe String
-        , pushResponse : Maybe PushResponse
-        , queuedEvents : List QueuedEvent
-        , socketError : String
-        , socketMessages : List Socket.MessageConfig
-        , socketState : SocketState
-        , timeoutEvents : List TimeoutEvent
-        }
+{-| -}
+setConnectOptions : Socket.ConnectOptions -> Model msg -> Model msg
+setConnectOptions options model =
+    updateConnectOptions (Just options) model
 
 
+{-| -}
+setConnectParams : JE.Value -> Model msg -> Model msg
+setConnectParams params model =
+    updateConnectParams (Just params) model
+
+
+{-| -}
 type DecoderError
     = Socket JD.Error
 
@@ -97,6 +125,7 @@ type alias EventOut =
     String
 
 
+{-| -}
 type PushResponse
     = PushOk Topic EventOut JE.Value
     | PushError Topic EventOut JE.Value
@@ -138,6 +167,7 @@ type alias PackageOut =
 -- Update
 
 
+{-| -}
 type Msg
     = ChannelMsg Channel.EventIn
     | PresenceMsg Presence.EventIn
@@ -145,6 +175,7 @@ type Msg
     | TimeoutTick Time.Posix
 
 
+{-| -}
 update : Msg -> Model msg -> ( Model msg, Cmd msg )
 update msg (Model model) =
     case msg of
@@ -386,15 +417,16 @@ update msg (Model model) =
 
 In order for the message to be sent:
 
-    * the Socket must be open, and
-    * the Channel Topic must have been joined
+  - the Socket must be open, and
+  - the Channel Topic must have been joined
 
 If either of these processes have not been completed, the message will be
 queued until the Channel has been joined - at which point, all queued messages
 will be sent.
 
 Connecting to the Socket, and joining the Channel Topic is handled internally
-when the first message is sent.
+when the first message is sent, so you don't need to worry about these
+processes.
 
 If the Socket is open, and the Channel Topic joined, the message will be sent
 immediately.
@@ -469,20 +501,8 @@ requestSocketInfo model =
         model
 
 
-setConnectOptions : Socket.ConnectOptions -> Model msg -> Model msg
-setConnectOptions options model =
-    updateConnectOptions (Just options) model
-
-
-setConnectParams : JE.Value -> Model msg -> Model msg
-setConnectParams params model =
-    updateConnectParams (Just params) model
-
-
-
-{- Subscriptions -}
-
-
+{-| Subscriptions
+-}
 subscriptions : Socket.PortIn Msg -> Channel.PortIn Msg -> Maybe (Channel.PortIn Msg) -> Model msg -> Sub Msg
 subscriptions socketReceiver channelReceiver maybePeresenceReceiver (Model model) =
     Sub.batch
