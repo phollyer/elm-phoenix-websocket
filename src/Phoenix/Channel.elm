@@ -3,6 +3,7 @@ module Phoenix.Channel exposing
     , LeaveConfig, leave
     , PushConfig, push
     , PortIn, Topic, OriginalPushMsg, NewPushMsg, Msg(..), subscriptions
+    , on, off
     )
 
 {-| Use this module to work directly with channels.
@@ -30,6 +31,11 @@ you first need to connect to a [socket](Phoenix.Socket), and join the channels.
 
 @docs PortIn, Topic, OriginalPushMsg, NewPushMsg, Msg, subscriptions
 
+
+# Custom Messages
+
+@docs on, off
+
 -}
 
 import Json.Decode as JD
@@ -40,16 +46,16 @@ import Json.Encode as JE exposing (Value)
 
   - `topic` - the channel topic id, for example: `"topic:subtopic"`.
 
+  - `payload` - optional data to be sent to the channel when joining.
+
   - `timeout` - optional timeout, in ms, before retrying to join if the previous
     attempt failed.
-
-  - `payload` - optional data to be sent to the channel when joining.
 
 -}
 type alias JoinConfig =
     { topic : String
-    , timeout : Maybe Int
     , payload : Maybe Value
+    , timeout : Maybe Int
     }
 
 
@@ -75,8 +81,8 @@ type alias PortOut msg =
 
     Channel.join
         { topic = "topic:subtopic"
-        , timeout = Nothing
         , payload = Nothing
+        , timeout = Nothing
         }
         Port.pheonixSend
 
@@ -218,7 +224,7 @@ push { topic, msg, payload, timeout } portOut =
 
 
 {-| A type alias representing the `port` function required to receive
-the [Msg](#Msg) from the socket.
+a [Msg](#Msg) from a channel.
 
 You will find this `port` function in the
 [Port](https://github.com/phollyer/elm-phoenix-websocket/tree/master/src/Ports)
@@ -435,3 +441,52 @@ handleIn toMsg { topic, msg, payload } =
 
         _ ->
             toMsg (InvalidEvent topic msg payload)
+
+
+{-| Switch incoming messages on.
+
+In order to receive messages that are `push`ed or `broadcast` from a channel,
+it is necessary to set up the JS to receive them. This function allows you to
+do just that.
+
+-}
+on : { topic : String, msgs : List String } -> PortOut msg -> Cmd msg
+on { topic, msgs } portOut =
+    Cmd.batch <|
+        List.map
+            (\msg ->
+                let
+                    payload =
+                        JE.object
+                            [ ( "topic", JE.string topic )
+                            , ( "msg", JE.string msg )
+                            ]
+                in
+                portOut
+                    { msg = "on"
+                    , payload = payload
+                    }
+            )
+            msgs
+
+
+{-| Switch incoming messages off.
+-}
+off : { topic : String, msgs : List String } -> PortOut msg -> Cmd msg
+off { topic, msgs } portOut =
+    Cmd.batch <|
+        List.map
+            (\msg ->
+                let
+                    payload =
+                        JE.object
+                            [ ( "topic", JE.string topic )
+                            , ( "msg", JE.string msg )
+                            ]
+                in
+                portOut
+                    { msg = "off"
+                    , payload = payload
+                    }
+            )
+            msgs
