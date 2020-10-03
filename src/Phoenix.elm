@@ -629,7 +629,7 @@ connect options params portOut =
     Socket.connect options params portOut
 
 
-sendToSocket : Socket.EventOut -> Model msg -> Cmd msg
+sendToSocket : Socket.MsgOut -> Model msg -> Cmd msg
 sendToSocket event (Model model) =
     Socket.send
         event

@@ -1,7 +1,7 @@
 module Phoenix.Socket exposing
     ( ConnectOption(..), Params, PortOut, connect
     , disconnect
-    , EventOut(..), send
+    , MsgOut(..), send
     , subscriptions, EventIn(..), MessageConfig
     , PortIn, PackageIn
     )
@@ -24,7 +24,7 @@ start sending and receiving messages from your channels.
 
 # Sending Messages
 
-@docs EventOut, send
+@docs MsgOut, send
 
 
 # Receiving Messages
@@ -177,7 +177,7 @@ following instance members are not supported:
 Also, `disconnect` is called without any of the optional parameters.
 
 -}
-type EventOut
+type MsgOut
     = ConnectionState
     | EndPointURL
     | HasLogger
@@ -188,7 +188,7 @@ type EventOut
     | Log { kind : String, msg : String, data : JD.Value }
 
 
-{-| Send an [EventOut](#EventOut) to the socket.
+{-| Send an [MsgOut](#MsgOut) to the socket.
 
     import Port
     import Socket
@@ -206,7 +206,7 @@ type EventOut
         Port.phoenixSend
 
 -}
-send : EventOut -> PortOut msg -> Cmd msg
+send : MsgOut -> PortOut msg -> Cmd msg
 send msgOut portOut =
     case msgOut of
         ConnectionState ->
