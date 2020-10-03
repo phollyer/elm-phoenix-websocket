@@ -228,7 +228,7 @@ type alias PackageOut =
 type Msg
     = ChannelMsg Channel.EventIn
     | PresenceMsg Presence.EventIn
-    | SocketMsg Socket.EventIn
+    | SocketMsg Socket.MsgIn
     | TimeoutTick Time.Posix
 
 
@@ -384,10 +384,10 @@ update msg (Model model) =
                             , Cmd.none
                             )
 
-                Socket.InvalidEvent event ->
+                Socket.InvalidMsg message ->
                     ( Model model
-                        |> addInvalidSocketEvent event
-                        |> updateLastInvalidSocketEvent (Just event)
+                        |> addInvalidSocketEvent message
+                        |> updateLastInvalidSocketEvent (Just message)
                     , Cmd.none
                     )
 

@@ -2,8 +2,7 @@ module Phoenix.Socket exposing
     ( ConnectOption(..), Params, PortOut, connect
     , disconnect
     , MsgOut(..), send
-    , subscriptions, EventIn(..), MessageConfig
-    , PortIn, PackageIn
+    , MsgIn(..), MessageConfig, InfoData, PortIn, subscriptions
     )
 
 {-| Use this module to work directly with the socket.
@@ -29,9 +28,7 @@ start sending and receiving messages from your channels.
 
 # Receiving Messages
 
-@docs subscriptions, EventIn, MessageConfig
-
-@docs PortIn, PackageIn
+@docs MsgIn, MessageConfig, InfoData, PortIn, subscriptions
 
 -}
 
@@ -115,16 +112,17 @@ to use.
 
     import Json.Encode as JE
     import Port
+    import Socket
 
     -- A simple connection
 
-    connect [] Nothing Port.phoenixSend
+    Socket.connect [] Nothing Port.phoenixSend
 
     -- A connection with options and auth params
 
     options =
-        [ HeartbeatIntervalMillis 500
-        , Timeout 10000
+        [ Socket.HeartbeatIntervalMillis 500
+        , Socket.Timeout 10000
         ]
 
     params =
@@ -133,7 +131,7 @@ to use.
             , ("password", JE.string "password")
             ]
 
-    connect options (Just params) Port.phoenixSend
+    Socket.connect options (Just params) Port.phoenixSend
 
 -}
 connect : List ConnectOption -> Maybe Params -> PortOut msg -> Cmd msg
@@ -144,6 +142,48 @@ connect options maybeParams portOut =
     in
     portOut <|
         package "connect" (Just payload)
+
+
+encodeConnectOptionsAndParams : List ConnectOption -> Maybe Value -> Value
+encodeConnectOptionsAndParams options maybeParams =
+    JE.object
+        [ ( "options"
+          , JE.object <|
+                List.map encodeConnectOption options
+          )
+        , ( "params", Maybe.withDefault JE.null maybeParams )
+        ]
+
+
+encodeConnectOption : ConnectOption -> ( String, Value )
+encodeConnectOption option =
+    case option of
+        BinaryType binaryType ->
+            ( "binaryType", JE.string binaryType )
+
+        HeartbeatIntervalMillis interval ->
+            ( "heartbeatIntervalMs", JE.int interval )
+
+        LongpollerTimeout timeout ->
+            ( "longpollerTimeout", JE.int timeout )
+
+        ReconnectAfterMillis millis ->
+            ( "reconnectAfterMs", JE.int millis )
+
+        ReconnectSteppedBackoff list ->
+            ( "reconnectSteppedBackoff", JE.list JE.int list )
+
+        RejoinAfterMillis millis ->
+            ( "rejoinAfterMs", JE.int millis )
+
+        RejoinSteppedBackoff list ->
+            ( "rejoinSteppedBackoff", JE.list JE.int list )
+
+        Timeout millis ->
+            ( "timeout", JE.int millis )
+
+        Transport transport ->
+            ( "transport", JE.string transport )
 
 
 {-| Disconnect the socket.
@@ -169,7 +209,8 @@ These messages correspond to the instance members of the socket as described
 `Info`.
 
 Sending the `Info` message will request all of the following in a single
-request and their results will come back in a single response.
+request and their results will come back in a single `InfoReply`
+[MsgIn](#MsgIn) response.
 
   - `ConnectionState`
   - `EndPointURL`
@@ -199,8 +240,9 @@ type MsgOut
 {-| Send a [MsgOut](#MsgOut) to the socket.
 
     import Port
+    import Socket
 
-    send Info Port.phoenixSend
+    Socket.send Socket.Info Port.phoenixSend
 
 -}
 send : MsgOut -> PortOut msg -> Cmd msg
@@ -261,98 +303,125 @@ package event maybePayload =
             }
 
 
-encodeConnectOptionsAndParams : List ConnectOption -> Maybe Value -> Value
-encodeConnectOptionsAndParams options maybeParams =
-    JE.object
-        [ ( "options"
-          , JE.object <|
-                List.map encodeConnectOption options
-          )
-        , ( "params", Maybe.withDefault JE.null maybeParams )
-        ]
-
-
-encodeConnectOption : ConnectOption -> ( String, Value )
-encodeConnectOption option =
-    case option of
-        BinaryType binaryType ->
-            ( "binaryType", JE.string binaryType )
-
-        HeartbeatIntervalMillis interval ->
-            ( "heartbeatIntervalMs", JE.int interval )
-
-        LongpollerTimeout timeout ->
-            ( "longpollerTimeout", JE.int timeout )
-
-        ReconnectAfterMillis millis ->
-            ( "reconnectAfterMs", JE.int millis )
-
-        ReconnectSteppedBackoff list ->
-            ( "reconnectSteppedBackoff", JE.list JE.int list )
-
-        RejoinAfterMillis millis ->
-            ( "rejoinAfterMs", JE.int millis )
-
-        RejoinSteppedBackoff list ->
-            ( "rejoinSteppedBackoff", JE.list JE.int list )
-
-        Timeout millis ->
-            ( "timeout", JE.int millis )
-
-        Transport transport ->
-            ( "transport", JE.string transport )
-
-
 
 -- Receiving
 
 
-{-| A type alias representing the data received from the socket. You will not
-use this directly.
+{-| All of the messages you can receive from the socket.
+
+The data each [MsgIn](#MsgIn) carries should be self explanatory,
+except for maybe:
+
+  - `HasLoggerReply` - not all versions of
+    [PhoenixJS](https://hexdocs.pm/phoenix/js) have the `hasLogger` function.
+    Therefore, a value of `Nothing` means the function does not exist and therefore
+    could not be called, while a `Just` will carry the result of calling
+    `hasLogger` on the socket.
+
+  - `InvalidMsg` means that a message has been received from the accompanying JS
+    that cannot be handled. This should not happen, if it does, please raise an
+    [issue](https://github.com/phollyer/elm-phoenix-websocket/issues).
+
+The `Error` in a `Result` is a `Json.Decode.Error`. These should not occur, but
+will if the data received from the accompanying JS is of the wrong type, so I
+decided to leave the `Error` to be handled by the user of the package, rather
+than gloss over it with some kind of default.
+
 -}
-type alias PackageIn =
-    { event : String
-    , payload : JE.Value
+type MsgIn
+    = Opened
+    | Closed
+    | Error (Result JD.Error String)
+    | Message (Result JD.Error MessageConfig)
+    | ConnectionStateReply (Result JD.Error String)
+    | EndPointURLReply (Result JD.Error String)
+    | HasLoggerReply (Result JD.Error (Maybe Bool))
+    | InfoReply (Result JD.Error InfoData)
+    | IsConnectedReply (Result JD.Error Bool)
+    | MakeRefReply (Result JD.Error String)
+    | ProtocolReply (Result JD.Error String)
+    | InvalidMsg String
+
+
+{-| A type alias representing the raw message received by the socket. This
+arrives as a [MsgIn](#MsgIn) `Message`.
+
+You will need to decode `payload` yourself, as only you will know the structure
+of this `Value`. It will be whatever data has been sent back from Phoenix
+corresponding to `event` so you will need to check this in order to select the
+correct decoder if you are sending different structures for different `event`s.
+
+If you are using multiple channels, you will also need to check the `topic` to
+identify the channel that sent the `event`.
+
+**NB** You won't need this if you choose to handle messages over
+[Channel](Channel#MsgIn)s.
+
+-}
+type alias MessageConfig =
+    { joinRef : Maybe String
+    , ref : Maybe String
+    , topic : String
+    , event : String
+    , payload : Value
+    }
+
+
+{-| All of the info available about the socket. This arrive as a
+[MsgIn](#MsgIn) `InfoReply` and is the result of sending an `Info`
+[MsgOut](#MsgOut).
+-}
+type alias InfoData =
+    { connectionState : String
+    , endpointURL : String
+    , hasLogger : Maybe Bool
+    , isConnected : Bool
+    , nextMessageRef : String
+    , protocol : String
     }
 
 
 {-| A type alias representing the `port` function required to receive
-the [EventIn](#EventIn) from the socket.
+the [MsgIn](#MsgIn) from the socket.
 
-You could write this yourself, if you do, it needs to be named
-`socketReceiver`, although you may find it simpler to just add
-[this port module](https://github.com/phollyer/elm-phoenix-websocket/blob/master/src/Ports/Phoenix.elm)
-to your `src` - it includes all the necessary `port` functions.
+You will find this `port` function in the
+[Port](https://github.com/phollyer/elm-phoenix-websocket/tree/master/src/Ports)
+module.
 
 -}
 type alias PortIn msg =
-    (PackageIn -> msg) -> Sub msg
+    ({ event : String
+     , payload : JE.Value
+     }
+     -> msg
+    )
+    -> Sub msg
 
 
 {-| Subscribe to receive incoming socket events.
 
-    import Ports.Phoenix as Phx
+    import Port
     import Socket
 
     type Msg
-      = SocketMsg Socket.EventIn
+      = SocketMsg Socket.MsgIn
       | ...
 
 
     subscriptions : Model -> Sub Msg
     subscriptions _ =
-        Phx.socketReceiver
-          |> Socket.subscriptions
+        Socket.subscriptions
             SocketMsg
+            Port.socketReceiver
 
 -}
-subscriptions : (EventIn -> msg) -> PortIn msg -> Sub msg
+subscriptions : (MsgIn -> msg) -> PortIn msg -> Sub msg
 subscriptions msg portIn =
     portIn <|
         handleIn msg
 
 
-handleIn : (EventIn -> msg) -> PackageIn -> msg
+handleIn : (MsgIn -> msg) -> { event : String, payload : JE.Value } -> msg
 handleIn toMsg { event, payload } =
     case event of
         "Opened" ->
@@ -407,74 +476,7 @@ handleIn toMsg { event, payload } =
                     (JD.decodeValue JD.string payload)
 
         _ ->
-            toMsg (InvalidEvent event)
-
-
-{-| All of the events you can receive from the socket.
-
-You will probably be most interested in `Opened`,
-`Closed` and `Error`.
-
-The data each [EventIn](#EventIn) carries should be self explanatory,
-except for maybe:
-
-`HasLoggerReply` - not all versions of
-[PhoenixJS](https://hexdocs.pm/phoenix/js) have the `hasLogger` function.
-Therefore, a value of `Nothing` means the function does not exist, while a
-`Just` will carry the result of calling `hasLogger` on the socket.
-
-`InvalidEvent` means that an event has been received from the accompanying JS
-that cannot be handled. This should not happen, if it does, please raise an
-[issue](https://github.com/phollyer/elm-phoenix-websocket/issues).
-
--}
-type EventIn
-    = Opened
-    | Closed
-    | Error (Result JD.Error String)
-    | Message (Result JD.Error MessageConfig)
-    | ConnectionStateReply (Result JD.Error String)
-    | EndPointURLReply (Result JD.Error String)
-    | HasLoggerReply (Result JD.Error (Maybe Bool))
-    | InfoReply (Result JD.Error InfoData)
-    | IsConnectedReply (Result JD.Error Bool)
-    | MakeRefReply (Result JD.Error String)
-    | ProtocolReply (Result JD.Error String)
-    | InvalidEvent String
-
-
-type alias InfoData =
-    { connectionState : String
-    , endpointURL : String
-    , hasLogger : Maybe Bool
-    , isConnected : Bool
-    , nextMessageRef : String
-    , protocol : String
-    }
-
-
-{-| A type alias representing the raw message received by the socket. This
-arrives as an [EventIn](#EventIn) `Message`.
-
-You will need to decode `payload` yourself, as only you will know the structure
-of this `Value`. It will be whatever data has been sent back from Phoenix
-corresponding to `event` so you will need to check this in order to select the
-correct decoder if you are sending different structures for different `event`s.
-
-If you are using multiple channels, you will also need to check the `topic` to
-identify the channel that sent the `event`.
-
-You won't need this if you choose to handle messages over
-[Channel](Channel#MsgIn)s.
-
--}
-type alias MessageConfig =
-    { joinRef : Maybe String
-    , ref : Maybe String
-    , topic : String
-    , event : String
-    , payload : Value
-    }
+            toMsg (InvalidMsg event)
 
 
 
