@@ -162,19 +162,27 @@ disconnect portOut =
         package "disconnect" Nothing
 
 
-{-| All of the events you can send to the socket.
+{-| All of the messages you can send to the socket.
 
-You will probably be most interested in `Connect` and `Disconnect`.
+These messages correspond to the instance members of the socket as described
+[here](https://hexdocs.pm/phoenix/js/index.html#socket), with the exception of
+`Info`.
 
-These events correspond to the instance members of the socket as described
-[here](https://hexdocs.pm/phoenix/js/index.html#socket). Currently, the
-following instance members are not supported:
+Sending the `Info` message will request all of the following in a single
+request and their results will come back in a single response.
+
+  - `ConnectionState`
+  - `EndPointURL`
+  - `HasLogger`
+  - `IsConnected`
+  - `MakeRef`
+  - `Protocol`
+
+Currently, the following JS instance members are not supported:
 
   - `off(refs, null-null)`
   - `channel(topic, chanParams)`
   - `push(data)`
-
-Also, `disconnect` is called without any of the optional parameters.
 
 -}
 type MsgOut
@@ -188,22 +196,11 @@ type MsgOut
     | Log { kind : String, msg : String, data : JD.Value }
 
 
-{-| Send an [MsgOut](#MsgOut) to the socket.
+{-| Send a [MsgOut](#MsgOut) to the socket.
 
     import Port
-    import Socket
 
-    -- Connect to the Socket
-
-    Socket.send
-        (Socket.Connect [] Nothing)
-        Port.phoenixSend
-
-    -- Disconnect from the Socket
-
-    Socket.send
-        Socket.Disconnect
-        Port.phoenixSend
+    send Info Port.phoenixSend
 
 -}
 send : MsgOut -> PortOut msg -> Cmd msg
