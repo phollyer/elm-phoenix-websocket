@@ -297,11 +297,11 @@ type Msg
     = JoinOk Topic Value
     | JoinError Topic Value
     | JoinTimeout Topic Value
-    | PushOk Topic OriginalPushMsg Value
-    | PushError Topic OriginalPushMsg Value
-    | PushTimeout Topic OriginalPushMsg Value
-    | Message Topic NewPushMsg Value
-    | Error Topic Value
+    | PushOk Topic (Result JD.Error OriginalPushMsg) (Result JD.Error Value)
+    | PushError Topic (Result JD.Error OriginalPushMsg) (Result JD.Error Value)
+    | PushTimeout Topic (Result JD.Error OriginalPushMsg) (Result JD.Error Value)
+    | Message Topic (Result JD.Error NewPushMsg) (Result JD.Error Value)
+    | Error Topic
     | LeaveOk Topic
     | Closed Topic
     | InvalidEvent Topic String Value
@@ -340,98 +340,66 @@ handleIn toMsg { topic, msg, payload } =
             toMsg (JoinError topic payload)
 
         "JoinTimeout" ->
-            let
-                payload_ =
-                    payload
-                        |> JD.decodeValue
-                            (JD.field "payload" JD.value)
-                        |> Result.toMaybe
-                        |> Maybe.withDefault JE.null
-            in
-            toMsg (JoinTimeout topic payload_)
+            toMsg (JoinTimeout topic payload)
 
         "PushOk" ->
             let
                 msg_ =
-                    payload
-                        |> JD.decodeValue
-                            (JD.field "msg" JD.string)
-                        |> Result.toMaybe
-                        |> Maybe.withDefault ""
+                    JD.decodeValue
+                        (JD.field "msg" JD.string)
+                        payload
 
                 payload_ =
-                    payload
-                        |> JD.decodeValue
-                            (JD.field "payload" JD.value)
-                        |> Result.toMaybe
-                        |> Maybe.withDefault JE.null
+                    JD.decodeValue
+                        (JD.field "payload" JD.value)
+                        payload
             in
             toMsg (PushOk topic msg_ payload_)
 
         "PushError" ->
             let
                 msg_ =
-                    payload
-                        |> JD.decodeValue
-                            (JD.field "msg" JD.string)
-                        |> Result.toMaybe
-                        |> Maybe.withDefault ""
+                    JD.decodeValue
+                        (JD.field "msg" JD.string)
+                        payload
 
                 payload_ =
-                    payload
-                        |> JD.decodeValue
-                            (JD.field "payload" JD.value)
-                        |> Result.toMaybe
-                        |> Maybe.withDefault JE.null
+                    JD.decodeValue
+                        (JD.field "payload" JD.value)
+                        payload
             in
             toMsg (PushError topic msg_ payload_)
 
         "PushTimeout" ->
             let
                 msg_ =
-                    payload
-                        |> JD.decodeValue
-                            (JD.field "msg" JD.string)
-                        |> Result.toMaybe
-                        |> Maybe.withDefault ""
+                    JD.decodeValue
+                        (JD.field "msg" JD.string)
+                        payload
 
                 payload_ =
-                    payload
-                        |> JD.decodeValue
-                            (JD.field "payload" JD.value)
-                        |> Result.toMaybe
-                        |> Maybe.withDefault JE.null
+                    JD.decodeValue
+                        (JD.field "payload" JD.value)
+                        payload
             in
             toMsg (PushTimeout topic msg_ payload_)
 
         "Message" ->
             let
                 msg_ =
-                    payload
-                        |> JD.decodeValue
-                            (JD.field "msg" JD.string)
-                        |> Result.toMaybe
-                        |> Maybe.withDefault ""
+                    JD.decodeValue
+                        (JD.field "msg" JD.string)
+                        payload
 
                 payload_ =
-                    payload
-                        |> JD.decodeValue
-                            (JD.field "payload" JD.value)
-                        |> Result.toMaybe
-                        |> Maybe.withDefault JE.null
+                    JD.decodeValue
+                        (JD.field "payload" JD.value)
+                        payload
             in
             toMsg (Message topic msg_ payload_)
 
         "Error" ->
-            let
-                msg_ =
-                    payload
-                        |> JD.decodeValue
-                            (JD.field "msg" JD.value)
-                        |> Result.toMaybe
-                        |> Maybe.withDefault JE.null
-            in
-            toMsg (Error topic msg_)
+            toMsg (Error topic)
 
         "LeaveOk" ->
             toMsg (LeaveOk topic)

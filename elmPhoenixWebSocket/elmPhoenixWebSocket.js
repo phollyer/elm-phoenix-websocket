@@ -333,7 +333,7 @@ let ElmPhoenixWebSocket = {
 
         this.channel = this.socket.channel(params.topic, params.payload)
         this.channel.onClose( () => self.channelSend(params.topic, "Closed", {}))
-        this.channel.onError( (error) => self.channelSend(params.topic, "Error", {msg: error}))
+        this.channel.onError( () => self.channelSend(params.topic, "Error", {}))
 
         this.channel.on("presence_diff", diff => self.onDiff(params.topic, diff))
         this.channel.on("presence_state", state => self.onState(params.topic, state))

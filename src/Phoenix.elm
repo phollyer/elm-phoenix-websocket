@@ -233,7 +233,7 @@ update msg (Model model) =
         ChannelMsg (Channel.Closed _) ->
             ( Model model, Cmd.none )
 
-        ChannelMsg (Channel.Error _ _) ->
+        ChannelMsg (Channel.Error _) ->
             ( Model model, Cmd.none )
 
         ChannelMsg (Channel.InvalidEvent _ _ _) ->
@@ -259,25 +259,25 @@ update msg (Model model) =
         ChannelMsg (Channel.Message _ _ _) ->
             ( Model model, Cmd.none )
 
-        ChannelMsg (Channel.PushError topic msg_ payload) ->
+        ChannelMsg (Channel.PushError topic msgResult payloadResult) ->
             handlePushError
                 topic
-                msg_
-                payload
+                msgResult
+                payloadResult
                 (Model model)
 
-        ChannelMsg (Channel.PushOk topic msg_ payload) ->
+        ChannelMsg (Channel.PushOk topic msgResult payloadResult) ->
             handlePushOk
                 topic
-                msg_
-                payload
+                msgResult
+                payloadResult
                 (Model model)
 
-        ChannelMsg (Channel.PushTimeout topic msg_ payload) ->
+        ChannelMsg (Channel.PushTimeout topic msgResult payloadResult) ->
             handlePushTimeout
                 topic
-                msg_
-                payload
+                msgResult
+                payloadResult
                 (Model model)
 
         PresenceMsg (Presence.Diff _ _) ->
@@ -751,77 +751,92 @@ joinChannels channelTopics portOut =
 {- Pushes -}
 
 
-handlePushError : Channel.Topic -> Channel.OriginalPushMsg -> JE.Value -> Model msg -> ( Model msg, Cmd msg )
-handlePushError topic msg payload model =
-    let
-        queued =
-            { msg = msg
-            , payload = payload
-            , topic = topic
-            }
+handlePushError : Channel.Topic -> Result JD.Error Channel.OriginalPushMsg -> Result JD.Error JE.Value -> Model msg -> ( Model msg, Cmd msg )
+handlePushError topic msgResult payloadResult model =
+    case ( msgResult, payloadResult ) of
+        ( Ok msg, Ok payload ) ->
+            let
+                queued =
+                    { msg = msg
+                    , payload = payload
+                    , topic = topic
+                    }
 
-        push =
-            PushError
-                queued.topic
-                queued.msg
-                queued.payload
-    in
-    ( model
-        |> dropQueuedEvent queued
-        |> updatePushResponse push
-    , Cmd.none
-    )
+                push =
+                    PushError
+                        queued.topic
+                        queued.msg
+                        queued.payload
+            in
+            ( model
+                |> dropQueuedEvent queued
+                |> updatePushResponse push
+            , Cmd.none
+            )
 
-
-handlePushOk : Channel.Topic -> Channel.OriginalPushMsg -> JE.Value -> Model msg -> ( Model msg, Cmd msg )
-handlePushOk topic msg payload model =
-    let
-        queued =
-            { msg = msg
-            , payload = payload
-            , topic = topic
-            }
-
-        push =
-            PushOk
-                queued.topic
-                queued.msg
-                queued.payload
-    in
-    ( model
-        |> dropQueuedEvent queued
-        |> updatePushResponse push
-    , Cmd.none
-    )
+        _ ->
+            ( model, Cmd.none )
 
 
-handlePushTimeout : Channel.Topic -> Channel.OriginalPushMsg -> JE.Value -> Model msg -> ( Model msg, Cmd msg )
-handlePushTimeout topic msg payload model =
-    let
-        queued =
-            { msg = msg
-            , payload = payload
-            , topic = topic
-            }
+handlePushOk : Channel.Topic -> Result JD.Error Channel.OriginalPushMsg -> Result JD.Error JE.Value -> Model msg -> ( Model msg, Cmd msg )
+handlePushOk topic msgResult payloadResult model =
+    case ( msgResult, payloadResult ) of
+        ( Ok msg, Ok payload ) ->
+            let
+                queued =
+                    { msg = msg
+                    , payload = payload
+                    , topic = topic
+                    }
 
-        push =
-            PushTimeout
-                queued.topic
-                queued.msg
+                push =
+                    PushOk
+                        queued.topic
+                        queued.msg
+                        queued.payload
+            in
+            ( model
+                |> dropQueuedEvent queued
+                |> updatePushResponse push
+            , Cmd.none
+            )
 
-        timeout =
-            { msg = queued.msg
-            , payload = payload
-            , timeUntilRetry = 5
-            , topic = queued.topic
-            }
-    in
-    ( model
-        |> addTimeoutEvent timeout
-        |> dropQueuedEvent queued
-        |> updatePushResponse push
-    , Cmd.none
-    )
+        _ ->
+            ( model, Cmd.none )
+
+
+handlePushTimeout : Channel.Topic -> Result JD.Error Channel.OriginalPushMsg -> Result JD.Error JE.Value -> Model msg -> ( Model msg, Cmd msg )
+handlePushTimeout topic msgResult payloadResult model =
+    case ( msgResult, payloadResult ) of
+        ( Ok msg, Ok payload ) ->
+            let
+                queued =
+                    { msg = msg
+                    , payload = payload
+                    , topic = topic
+                    }
+
+                push =
+                    PushTimeout
+                        queued.topic
+                        queued.msg
+
+                timeout =
+                    { msg = queued.msg
+                    , payload = payload
+                    , timeUntilRetry = 5
+                    , topic = queued.topic
+                    }
+            in
+            ( model
+                |> addTimeoutEvent timeout
+                |> dropQueuedEvent queued
+                |> updatePushResponse push
+            , Cmd.none
+            )
+
+        _ ->
+            ( model, Cmd.none )
 
 
 
