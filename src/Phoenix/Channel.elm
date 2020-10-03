@@ -288,7 +288,7 @@ type alias NewPushMsg =
   - `Value` - is the payload received from the channel, with the exception of
     `JoinTimout` and `PushTimeout` where it will be the original payload.
 
-`InvalidEvent` means that a msg has been received from the accompanying JS
+`InvalidMsg` means that a msg has been received from the accompanying JS
 that cannot be handled. This should not happen, if it does, please raise an
 [issue](https://github.com/phollyer/elm-phoenix-websocket/issues).
 
@@ -304,7 +304,7 @@ type Msg
     | Error Topic
     | LeaveOk Topic
     | Closed Topic
-    | InvalidEvent Topic String Value
+    | InvalidMsg Topic String Value
 
 
 {-| Subscribe to receive incoming channel [Msg](#Msg)s.
@@ -408,7 +408,7 @@ handleIn toMsg { topic, msg, payload } =
             toMsg (Closed topic)
 
         _ ->
-            toMsg (InvalidEvent topic msg payload)
+            toMsg (InvalidMsg topic msg payload)
 
 
 {-| Switch incoming messages on.

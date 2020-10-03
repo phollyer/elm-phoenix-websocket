@@ -236,7 +236,7 @@ update msg (Model model) =
         ChannelMsg (Channel.Error _) ->
             ( Model model, Cmd.none )
 
-        ChannelMsg (Channel.InvalidEvent _ _ _) ->
+        ChannelMsg (Channel.InvalidMsg _ _ _) ->
             ( Model model, Cmd.none )
 
         ChannelMsg (Channel.JoinError _ _) ->
