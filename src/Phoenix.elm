@@ -120,7 +120,7 @@ type Model msg
         , lastInvalidSocketEvent : Maybe String
         , lastSocketMessage : Maybe Socket.MessageConfig
         , nextMessageRef : Maybe String
-        , portOut : PackageOut -> Cmd msg
+        , portOut : { msg : String, payload : JE.Value } -> Cmd msg
         , protocol : Maybe String
         , pushResponse : Maybe PushResponse
         , queuedEvents : List QueuedEvent
@@ -133,7 +133,7 @@ type Model msg
 
 {-| Init
 -}
-init : (PackageOut -> Cmd msg) -> List Socket.ConnectOption -> Maybe JE.Value -> Model msg
+init : ({ msg : String, payload : JE.Value } -> Cmd msg) -> List Socket.ConnectOption -> Maybe JE.Value -> Model msg
 init portOut connectOptions connectParams =
     Model
         { channelsBeingJoined = []
@@ -190,7 +190,7 @@ type PushResponse
 
 
 type alias QueuedEvent =
-    { event : EventOut
+    { msg : EventOut
     , payload : JE.Value
     , topic : Topic
     }
@@ -203,7 +203,7 @@ type SocketState
 
 
 type alias TimeoutEvent =
-    { event : EventOut
+    { msg : EventOut
     , payload : JE.Value
     , timeUntilRetry : Int
     , topic : Topic
@@ -212,12 +212,6 @@ type alias TimeoutEvent =
 
 type alias Topic =
     String
-
-
-type alias PackageOut =
-    { event : String
-    , payload : JE.Value
-    }
 
 
 
@@ -265,24 +259,24 @@ update msg (Model model) =
         ChannelMsg (Channel.Message _ _ _) ->
             ( Model model, Cmd.none )
 
-        ChannelMsg (Channel.PushError topic event payload) ->
+        ChannelMsg (Channel.PushError topic msg_ payload) ->
             handlePushError
                 topic
-                event
+                msg_
                 payload
                 (Model model)
 
-        ChannelMsg (Channel.PushOk topic event payload) ->
+        ChannelMsg (Channel.PushOk topic msg_ payload) ->
             handlePushOk
                 topic
-                event
+                msg_
                 payload
                 (Model model)
 
-        ChannelMsg (Channel.PushTimeout topic event payload) ->
+        ChannelMsg (Channel.PushTimeout topic msg_ payload) ->
             handlePushTimeout
                 topic
-                event
+                msg_
                 payload
                 (Model model)
 
@@ -490,10 +484,10 @@ immediately.
 
 -}
 sendMessage : Topic -> EventOut -> JE.Value -> Model msg -> ( Model msg, Cmd msg )
-sendMessage topic event payload model =
+sendMessage topic msg payload model =
     sendIfConnected
         topic
-        event
+        msg
         payload
         model
 
@@ -600,13 +594,13 @@ addDecoderError decoderError (Model model) =
 
 
 addEventToQueue : QueuedEvent -> Model msg -> Model msg
-addEventToQueue event (Model model) =
-    if model.queuedEvents |> List.member event then
+addEventToQueue msg (Model model) =
+    if model.queuedEvents |> List.member msg then
         Model model
 
     else
         updateQueuedEvents
-            (event :: model.queuedEvents)
+            (msg :: model.queuedEvents)
             (Model model)
 
 
@@ -616,7 +610,7 @@ dropQueuedEvent queued (Model model) =
         |> updateQueuedEvents
             (model.queuedEvents
                 |> List.filter
-                    (\event -> event /= queued)
+                    (\msg -> msg /= queued)
             )
 
 
@@ -624,15 +618,15 @@ dropQueuedEvent queued (Model model) =
 {- Socket -}
 
 
-connect : List Socket.ConnectOption -> Maybe JE.Value -> (PackageOut -> Cmd msg) -> Cmd msg
+connect : List Socket.ConnectOption -> Maybe JE.Value -> ({ msg : String, payload : JE.Value } -> Cmd msg) -> Cmd msg
 connect options params portOut =
     Socket.connect options params portOut
 
 
 sendToSocket : Socket.MsgOut -> Model msg -> Cmd msg
-sendToSocket event (Model model) =
+sendToSocket msg (Model model) =
     Socket.send
-        event
+        msg
         model.portOut
 
 
@@ -641,9 +635,9 @@ sendToSocket event (Model model) =
 
 
 addInvalidSocketEvent : String -> Model msg -> Model msg
-addInvalidSocketEvent event (Model model) =
+addInvalidSocketEvent msg (Model model) =
     updateInvalidSocketEvents
-        (event :: model.invalidSocketEvents)
+        (msg :: model.invalidSocketEvents)
         (Model model)
 
 
@@ -663,27 +657,27 @@ addSocketMessage message (Model model) =
 
 
 addTimeoutEvent : TimeoutEvent -> Model msg -> Model msg
-addTimeoutEvent event (Model model) =
-    if model.timeoutEvents |> List.member event then
+addTimeoutEvent msg (Model model) =
+    if model.timeoutEvents |> List.member msg then
         Model model
 
     else
         updateTimeoutEvents
-            (event :: model.timeoutEvents)
+            (msg :: model.timeoutEvents)
             (Model model)
 
 
 retryTimeoutEvents : Model msg -> ( Model msg, Cmd msg )
 retryTimeoutEvents (Model model) =
     let
-        ( eventsToSend, eventsStillTicking ) =
+        ( msgsToSend, msgsStillTicking ) =
             model.timeoutEvents
                 |> List.partition
-                    (\event -> event.timeUntilRetry == 0)
+                    (\msg -> msg.timeUntilRetry == 0)
     in
     Model model
-        |> updateTimeoutEvents eventsStillTicking
-        |> sendTimeoutEvents eventsToSend
+        |> updateTimeoutEvents msgsStillTicking
+        |> sendTimeoutEvents msgsToSend
 
 
 timeoutTick : Model msg -> Model msg
@@ -692,7 +686,7 @@ timeoutTick (Model model) =
         |> updateTimeoutEvents
             (model.timeoutEvents
                 |> List.map
-                    (\event -> { event | timeUntilRetry = event.timeUntilRetry - 1 })
+                    (\msg -> { msg | timeUntilRetry = msg.timeUntilRetry - 1 })
             )
 
 
@@ -735,7 +729,7 @@ dropChannelBeingJoined topic (Model model) =
         (Model model)
 
 
-join : Topic -> (PackageOut -> Cmd msg) -> Cmd msg
+join : Topic -> ({ msg : String, payload : JE.Value } -> Cmd msg) -> Cmd msg
 join topic portOut =
     Channel.send
         (Channel.Join
@@ -747,7 +741,7 @@ join topic portOut =
         portOut
 
 
-joinChannels : List Topic -> (PackageOut -> Cmd msg) -> Cmd msg
+joinChannels : List Topic -> ({ msg : String, payload : JE.Value } -> Cmd msg) -> Cmd msg
 joinChannels channelTopics portOut =
     channelTopics
         |> List.map
@@ -760,10 +754,10 @@ joinChannels channelTopics portOut =
 
 
 handlePushError : Channel.Topic -> Channel.PushEvent -> JE.Value -> Model msg -> ( Model msg, Cmd msg )
-handlePushError topic event payload model =
+handlePushError topic msg payload model =
     let
         queued =
-            { event = event
+            { msg = msg
             , payload = payload
             , topic = topic
             }
@@ -771,7 +765,7 @@ handlePushError topic event payload model =
         push =
             PushError
                 queued.topic
-                queued.event
+                queued.msg
                 queued.payload
     in
     ( model
@@ -782,10 +776,10 @@ handlePushError topic event payload model =
 
 
 handlePushOk : Channel.Topic -> Channel.PushEvent -> JE.Value -> Model msg -> ( Model msg, Cmd msg )
-handlePushOk topic event payload model =
+handlePushOk topic msg payload model =
     let
         queued =
-            { event = event
+            { msg = msg
             , payload = payload
             , topic = topic
             }
@@ -793,7 +787,7 @@ handlePushOk topic event payload model =
         push =
             PushOk
                 queued.topic
-                queued.event
+                queued.msg
                 queued.payload
     in
     ( model
@@ -804,10 +798,10 @@ handlePushOk topic event payload model =
 
 
 handlePushTimeout : Channel.Topic -> Channel.PushEvent -> JE.Value -> Model msg -> ( Model msg, Cmd msg )
-handlePushTimeout topic event payload model =
+handlePushTimeout topic msg payload model =
     let
         queued =
-            { event = event
+            { msg = msg
             , payload = payload
             , topic = topic
             }
@@ -815,10 +809,10 @@ handlePushTimeout topic event payload model =
         push =
             PushTimeout
                 queued.topic
-                queued.event
+                queued.msg
 
         timeout =
-            { event = queued.event
+            { msg = queued.msg
             , payload = payload
             , timeUntilRetry = 5
             , topic = queued.topic
@@ -836,12 +830,12 @@ handlePushTimeout topic event payload model =
 {- Server Requests - Private API -}
 
 
-send : Topic -> EventOut -> JE.Value -> (PackageOut -> Cmd msg) -> Cmd msg
-send topic event payload portOut =
+send : Topic -> EventOut -> JE.Value -> ({ msg : String, payload : JE.Value } -> Cmd msg) -> Cmd msg
+send topic msg payload portOut =
     Channel.send
         (Channel.Push
             { topic = Just topic
-            , event = event
+            , msg = msg
             , timeout = Nothing
             , payload = payload
             }
@@ -850,12 +844,12 @@ send topic event payload portOut =
 
 
 sendIfConnected : Topic -> EventOut -> JE.Value -> Model msg -> ( Model msg, Cmd msg )
-sendIfConnected topic event payload (Model model) =
+sendIfConnected topic msg payload (Model model) =
     case model.socketState of
         Open ->
             sendIfJoined
                 topic
-                event
+                msg
                 payload
                 (Model model)
 
@@ -863,7 +857,7 @@ sendIfConnected topic event payload (Model model) =
             ( Model model
                 |> addChannelBeingJoined topic
                 |> addEventToQueue
-                    { event = event
+                    { msg = msg
                     , payload = payload
                     , topic = topic
                     }
@@ -874,7 +868,7 @@ sendIfConnected topic event payload (Model model) =
             ( Model model
                 |> addChannelBeingJoined topic
                 |> addEventToQueue
-                    { event = event
+                    { msg = msg
                     , payload = payload
                     , topic = topic
                     }
@@ -887,19 +881,19 @@ sendIfConnected topic event payload (Model model) =
 
 
 sendIfJoined : Topic -> EventOut -> JE.Value -> Model msg -> ( Model msg, Cmd msg )
-sendIfJoined topic event payload (Model model) =
+sendIfJoined topic msg payload (Model model) =
     if model.channelsJoined |> List.member topic then
         ( Model model
         , send
             topic
-            event
+            msg
             payload
             model.portOut
         )
 
     else if model.channelsBeingJoined |> List.member topic then
         ( addEventToQueue
-            { event = event
+            { msg = msg
             , payload = payload
             , topic = topic
             }
@@ -911,7 +905,7 @@ sendIfJoined topic event payload (Model model) =
         ( Model model
             |> addChannelBeingJoined topic
             |> addEventToQueue
-                { event = event
+                { msg = msg
                 , payload = payload
                 , topic = topic
                 }
@@ -919,25 +913,25 @@ sendIfJoined topic event payload (Model model) =
         )
 
 
-sendQueuedEvents : Topic -> List QueuedEvent -> (PackageOut -> Cmd msg) -> Cmd msg
+sendQueuedEvents : Topic -> List QueuedEvent -> ({ msg : String, payload : JE.Value } -> Cmd msg) -> Cmd msg
 sendQueuedEvents topic queuedEvents portOut =
     queuedEvents
         |> List.filterMap
-            (\event ->
-                if event.topic /= topic then
+            (\msg ->
+                if msg.topic /= topic then
                     Nothing
 
                 else
-                    Just (sendQueuedEvent event portOut)
+                    Just (sendQueuedEvent msg portOut)
             )
         |> Cmd.batch
 
 
-sendQueuedEvent : QueuedEvent -> (PackageOut -> Cmd msg) -> Cmd msg
-sendQueuedEvent { event, payload, topic } portOut =
+sendQueuedEvent : QueuedEvent -> ({ msg : String, payload : JE.Value } -> Cmd msg) -> Cmd msg
+sendQueuedEvent { msg, payload, topic } portOut =
     send
         topic
-        event
+        msg
         payload
         portOut
 
@@ -948,7 +942,7 @@ sendTimeoutEvent timeoutEvent ( model, cmd ) =
         ( model_, cmd_ ) =
             sendIfConnected
                 timeoutEvent.topic
-                timeoutEvent.event
+                timeoutEvent.msg
                 timeoutEvent.payload
                 model
     in
@@ -1039,10 +1033,10 @@ updateHasLogger hasLogger (Model model) =
 
 
 updateInvalidSocketEvents : List String -> Model msg -> Model msg
-updateInvalidSocketEvents events (Model model) =
+updateInvalidSocketEvents msgs (Model model) =
     Model
         { model
-            | invalidSocketEvents = events
+            | invalidSocketEvents = msgs
         }
 
 
@@ -1063,10 +1057,10 @@ updateLastDecoderError error (Model model) =
 
 
 updateLastInvalidSocketEvent : Maybe String -> Model msg -> Model msg
-updateLastInvalidSocketEvent event (Model model) =
+updateLastInvalidSocketEvent msg (Model model) =
     Model
         { model
-            | lastInvalidSocketEvent = event
+            | lastInvalidSocketEvent = msg
         }
 
 

@@ -3,7 +3,7 @@ module Phoenix.Channel exposing
     , PortOut, PackageOut
     , subscriptions, EventIn(..), Topic, PushEvent
     , PortIn, PackageIn
-    , eventsOn, eventsOff
+    , msgsOn, msgsOff
     )
 
 {-| This module is for working directly with channels.
@@ -28,7 +28,7 @@ to [connect to a socket](Socket).
 
 # Helpers
 
-@docs eventsOn, eventsOff
+@docs msgsOn, msgsOff
 
 -}
 
@@ -65,7 +65,7 @@ import Json.Encode as JE exposing (Value)
       |> Channel.send
         (Push
           { topic = Just "topic:subtopic"
-          , event = "send_msg"
+          , msg = "send_msg"
           , timeout = Nothing
           , data =
               JE.object
@@ -100,7 +100,7 @@ send msgOut portOut =
                     "join"
                 |> portOut
 
-        Push { topic, event, timeout, payload } ->
+        Push { topic, msg, timeout, payload } ->
             [ ( "topic"
               , case topic of
                     Just t ->
@@ -109,7 +109,7 @@ send msgOut portOut =
                     Nothing ->
                         JE.null
               )
-            , ( "event", JE.string event )
+            , ( "msg", JE.string msg )
             , ( "timeout"
               , case timeout of
                     Just t ->
@@ -125,7 +125,7 @@ send msgOut portOut =
                     "push"
                 |> portOut
 
-        On { topic, event } ->
+        On { topic, msg } ->
             [ ( "topic"
               , case topic of
                     Just t ->
@@ -134,14 +134,14 @@ send msgOut portOut =
                     Nothing ->
                         JE.null
               )
-            , ( "event", JE.string event )
+            , ( "msg", JE.string msg )
             ]
                 |> JE.object
                 |> package
                     "on"
                 |> portOut
 
-        Off { topic, event } ->
+        Off { topic, msg } ->
             [ ( "topic"
               , case topic of
                     Just t ->
@@ -150,7 +150,7 @@ send msgOut portOut =
                     Nothing ->
                         JE.null
               )
-            , ( "event", JE.string event )
+            , ( "msg", JE.string msg )
             ]
                 |> JE.object
                 |> package
@@ -182,8 +182,8 @@ send msgOut portOut =
 
 
 package : String -> JE.Value -> PackageOut
-package event value =
-    { event = event
+package msg value =
+    { msg = msg
     , payload = value
     }
 
@@ -192,7 +192,7 @@ package event value =
 You will not use this directly.
 -}
 type alias PackageOut =
-    { event : String
+    { msg : String
     , payload : JE.Value
     }
 
@@ -210,7 +210,7 @@ type alias PortOut msg =
     PackageOut -> Cmd msg
 
 
-{-| All of the events you can send to the channel.
+{-| All of the msgs you can send to the channel.
 
 Each of these [EventOut](#EventOut) messages corresponds to the equivalent function
 in the [PhoenixJS API](https://hexdocs.pm/phoenix/js/index.html#channel). For
@@ -252,7 +252,7 @@ utilising multiple channels. Setting `topic = Nothing` will send the push over
 the last used channel, or the only channel you're using if using only one
 channel.
 
-`event` - the event to send to the channel.
+`msg` - the msg to send to the channel.
 
 `timeout` - optional timeout, in ms, before retrying to push if the previous
 attempt failed.
@@ -262,28 +262,28 @@ attempt failed.
 -}
 type alias PushConfig =
     { topic : Maybe String
-    , event : String
+    , msg : String
     , timeout : Maybe Int
     , payload : Value
     }
 
 
-{-| A type alias representing channel events that can be turned [On](#EventOut)
+{-| A type alias representing channel msgs that can be turned [On](#EventOut)
 or [Off](#EventOut).
 
 `topic` - optional channel topic id, for example: `Just "topic:subtopic"`.
 
 The `topic` is used to track the channels on the JS side. This allows for
-utilising multiple channels. Setting `topic = Nothing` will set the event on
+utilising multiple channels. Setting `topic = Nothing` will set the msg on
 the last used channel, or the only channel you're using if using only one
 channel.
 
-`event` - the event that you want to be turned [On](#EventOut) or
+`msg` - the msg that you want to be turned [On](#EventOut) or
 [Off](#EventOut).
 
-In order to receive event [Message](#EventIn)s, they need to be registered with
-an [On](#EventOut) event sent to the channel. So if your Phoenix Channel is
-going to `push` or `broadcast` a `new_msg` event, it needs to be registered as
+In order to receive msg [Message](#EventIn)s, they need to be registered with
+an [On](#EventOut) msg sent to the channel. So if your Phoenix Channel is
+going to `push` or `broadcast` a `new_msg` msg, it needs to be registered as
 follows:
 
     import Channel
@@ -293,7 +293,7 @@ follows:
         |> Channel.send
             (On
                 { topic = Just "topic:subtopic"
-                , event = "new_msg"
+                , msg = "new_msg"
                 }
             )
 
@@ -317,13 +317,13 @@ Now you will be able to receive `new_msg`s as follows:
             |> Channel.subscriptions
                 ChannelMsg
 
-**NB** you must set your [On](#EventOut) events after you have joined the
+**NB** you must set your [On](#EventOut) msgs after you have joined the
 relevant channel.
 
 -}
 type alias EventConfig =
     { topic : Maybe String
-    , event : String
+    , msg : String
     }
 
 
@@ -349,7 +349,7 @@ type alias LeaveConfig =
 -- Receiving
 
 
-{-| Subscribe to receive incoming channel events.
+{-| Subscribe to receive incoming channel msgs.
 
     import Channel
     import Ports.Phoenix as Phx
@@ -372,8 +372,8 @@ subscriptions msg portIn =
 
 
 handleIn : (EventIn -> msg) -> PackageIn -> msg
-handleIn toMsg { topic, event, payload } =
-    case event of
+handleIn toMsg { topic, msg, payload } =
+    case msg of
         "JoinOk" ->
             toMsg (JoinOk topic payload)
 
@@ -393,10 +393,10 @@ handleIn toMsg { topic, event, payload } =
 
         "PushOk" ->
             let
-                event_ =
+                msg_ =
                     payload
                         |> JD.decodeValue
-                            (JD.field "event" JD.string)
+                            (JD.field "msg" JD.string)
                         |> Result.toMaybe
                         |> Maybe.withDefault ""
 
@@ -407,14 +407,14 @@ handleIn toMsg { topic, event, payload } =
                         |> Result.toMaybe
                         |> Maybe.withDefault JE.null
             in
-            toMsg (PushOk topic event_ payload_)
+            toMsg (PushOk topic msg_ payload_)
 
         "PushError" ->
             let
-                event_ =
+                msg_ =
                     payload
                         |> JD.decodeValue
-                            (JD.field "event" JD.string)
+                            (JD.field "msg" JD.string)
                         |> Result.toMaybe
                         |> Maybe.withDefault ""
 
@@ -425,14 +425,14 @@ handleIn toMsg { topic, event, payload } =
                         |> Result.toMaybe
                         |> Maybe.withDefault JE.null
             in
-            toMsg (PushError topic event_ payload_)
+            toMsg (PushError topic msg_ payload_)
 
         "PushTimeout" ->
             let
-                event_ =
+                msg_ =
                     payload
                         |> JD.decodeValue
-                            (JD.field "event" JD.string)
+                            (JD.field "msg" JD.string)
                         |> Result.toMaybe
                         |> Maybe.withDefault ""
 
@@ -443,36 +443,36 @@ handleIn toMsg { topic, event, payload } =
                         |> Result.toMaybe
                         |> Maybe.withDefault JE.null
             in
-            toMsg (PushTimeout topic event_ payload_)
+            toMsg (PushTimeout topic msg_ payload_)
 
         "Message" ->
             let
-                event_ =
+                msg_ =
                     payload
                         |> JD.decodeValue
-                            (JD.field "event" JD.string)
+                            (JD.field "msg" JD.string)
                         |> Result.toMaybe
                         |> Maybe.withDefault ""
 
-                msg =
+                payload_ =
                     payload
                         |> JD.decodeValue
                             (JD.field "payload" JD.value)
                         |> Result.toMaybe
                         |> Maybe.withDefault JE.null
             in
-            toMsg (Message topic event_ msg)
+            toMsg (Message topic msg_ payload_)
 
         "Error" ->
             let
-                msg =
+                msg_ =
                     payload
                         |> JD.decodeValue
                             (JD.field "msg" JD.value)
                         |> Result.toMaybe
                         |> Maybe.withDefault JE.null
             in
-            toMsg (Error topic msg)
+            toMsg (Error topic msg_)
 
         "LeaveOk" ->
             toMsg (LeaveOk topic)
@@ -481,7 +481,7 @@ handleIn toMsg { topic, event, payload } =
             toMsg (Closed topic)
 
         _ ->
-            toMsg (InvalidEvent topic event payload)
+            toMsg (InvalidEvent topic msg payload)
 
 
 {-| A type alias representing the data received from a channel. You will not
@@ -489,7 +489,7 @@ use this directly.
 -}
 type alias PackageIn =
     { topic : String
-    , event : String
+    , msg : String
     , payload : JE.Value
     }
 
@@ -507,13 +507,13 @@ type alias PortIn msg =
     (PackageIn -> msg) -> Sub msg
 
 
-{-| All of the events you can receive from the channel.
+{-| All of the msgs you can receive from the channel.
 
 If you are using more than one channel, then you can check `Topic` to determine
 which channel the [EventIn](#EventIn) relates to. If you are only using a single
 channel, you can ignore `Topic`.
 
-`InvalidEvent` means that an event has been received from the accompanying JS
+`InvalidEvent` means that an msg has been received from the accompanying JS
 that cannot be handled. This should not happen, if it does, please raise an
 [issue](https://github.com/phollyer/elm-phoenix-websocket/issues).
 
@@ -553,7 +553,7 @@ type alias PushEvent =
 -- Helpers
 
 
-{-| Set up all the incoming events from the channel.
+{-| Set up all the incoming msgs from the channel.
 
 This needs to used after joining the channel.
 
@@ -561,7 +561,7 @@ This needs to used after joining the channel.
     import Ports.Phoenix as Phx
 
     Phx.sendMessage
-        |> Channel.eventsOn
+        |> Channel.msgsOn
             (Just "topic:subtopic")
             [ "msg1"
             , "msg2"
@@ -570,7 +570,7 @@ This needs to used after joining the channel.
 
 
     Phx.sendMessage
-        |> Channel.eventsOn
+        |> Channel.msgsOn
             Nothing  -- Will use the last used channel, or the only channel if only using one
             [ "msg1"
             , "msg2"
@@ -578,9 +578,9 @@ This needs to used after joining the channel.
             ]
 
 -}
-eventsOn : Maybe Topic -> List String -> PortOut msg -> Cmd msg
-eventsOn maybeTopic events portOut =
-    events
+msgsOn : Maybe Topic -> List String -> PortOut msg -> Cmd msg
+msgsOn maybeTopic msgs portOut =
+    msgs
         |> List.map
             (batchEvent
                 On
@@ -590,13 +590,13 @@ eventsOn maybeTopic events portOut =
         |> Cmd.batch
 
 
-{-| Stop receiving specifc incoming events from the channel.
+{-| Stop receiving specifc incoming msgs from the channel.
 
     import Channel
     import Ports.Phoenix as Phx
 
     Phx.sendMessage
-        |> Channel.eventsOn
+        |> Channel.msgsOn
             (Just "topic:subtopic")
             [ "msg1"
             , "msg2"
@@ -604,7 +604,7 @@ eventsOn maybeTopic events portOut =
             ]
 
     Phx.sendMessage
-        |> Channel.eventsOff
+        |> Channel.msgsOff
             (Just "topic:subtopic")
             [ "msg1"
             , "msg2"
@@ -613,9 +613,9 @@ eventsOn maybeTopic events portOut =
     -- "msg3" will still be received.
 
 -}
-eventsOff : Maybe Topic -> List String -> PortOut msg -> Cmd msg
-eventsOff maybeTopic events portOut =
-    events
+msgsOff : Maybe Topic -> List String -> PortOut msg -> Cmd msg
+msgsOff maybeTopic msgs portOut =
+    msgs
         |> List.map
             (batchEvent
                 Off
@@ -626,11 +626,11 @@ eventsOff maybeTopic events portOut =
 
 
 batchEvent : (EventConfig -> EventOut) -> PortOut msg -> Maybe Topic -> String -> Cmd msg
-batchEvent eventFun portOut maybeTopic event =
+batchEvent msgFun portOut maybeTopic msg =
     portOut
         |> send
-            (eventFun
+            (msgFun
                 { topic = maybeTopic
-                , event = event
+                , msg = msg
                 }
             )

@@ -22,7 +22,7 @@ functions. The package docs show you where this is required, and the Elm
 compiler will help too.
 
 -}
-port phoenixSend : { event : String, payload : Value } -> Cmd msg
+port phoenixSend : { msg : String, payload : Value } -> Cmd msg
 
 
 {-| Receive messages from the socket.
@@ -31,7 +31,7 @@ This is passed in as parameter to the `subscriptions` function in the Phoenix
 and Socket modules.
 
 -}
-port socketReceiver : ({ event : String, payload : Value } -> msg) -> Sub msg
+port socketReceiver : ({ msg : String, payload : Value } -> msg) -> Sub msg
 
 
 {-| Receive messages from channels.
@@ -40,7 +40,7 @@ This is passed in as parameter to the `subscriptions` function in the Phoenix
 and Channel modules.
 
 -}
-port channelReceiver : ({ topic : String, event : String, payload : Value } -> msg) -> Sub msg
+port channelReceiver : ({ topic : String, msg : String, payload : Value } -> msg) -> Sub msg
 
 
 {-| Receive presence messages.
@@ -49,4 +49,4 @@ This is passed in as parameter to the `subscriptions` function in the Phoenix
 and Presence modules.
 
 -}
-port presenceReceiver : ({ topic : String, event : String, payload : Value } -> msg) -> Sub msg
+port presenceReceiver : ({ topic : String, msg : String, payload : Value } -> msg) -> Sub msg

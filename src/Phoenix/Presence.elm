@@ -40,7 +40,7 @@ import Json.Encode as JE
 -- Receiving Messages
 
 
-{-| Subscribe to receive incoming presence events.
+{-| Subscribe to receive incoming presence msgs.
 
     import Presence
     import Ports.Phoenix as Phx
@@ -63,8 +63,8 @@ subscriptions msg portIn =
 
 
 handleIn : (EventIn -> msg) -> Package -> msg
-handleIn toMsg { topic, event, payload } =
-    case event of
+handleIn toMsg { topic, msg, payload } =
+    case msg of
         "Join" ->
             payload
                 |> decodePresence
@@ -94,7 +94,7 @@ handleIn toMsg { topic, event, payload } =
                 |> toMsg
 
         _ ->
-            toMsg (InvalidEvent topic event)
+            toMsg (InvalidEvent topic msg)
 
 
 {-| A type alias representing the data received from a channel. You will not
@@ -102,7 +102,7 @@ use this directly.
 -}
 type alias Package =
     { topic : String
-    , event : String
+    , msg : String
     , payload : JE.Value
     }
 
@@ -120,13 +120,13 @@ type alias PortIn msg =
     (Package -> msg) -> Sub msg
 
 
-{-| All of the presence events that can come from the channel.
+{-| All of the presence msgs that can come from the channel.
 
 If you are using more than one channel, then you can check `Topic` to determine
 which channel the [EventIn](#EventIn) relates to. If you are only using a single
 channel, you can ignore `Topic`.
 
-`InvalidEvent` means that an event has been received from the accompanying JS
+`InvalidEvent` means that an msg has been received from the accompanying JS
 that cannot be handled. This should not happen, if it does, please raise an
 [issue](https://github.com/phollyer/elm-phoenix-websocket/issues).
 

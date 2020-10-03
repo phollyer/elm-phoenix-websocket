@@ -101,7 +101,7 @@ module.
 
 -}
 type alias PortOut msg =
-    { event : String
+    { msg : String
     , payload : Value
     }
     -> Cmd msg
@@ -290,16 +290,16 @@ send msgOut portOut =
                 package "log" (Just payload)
 
 
-package : String -> Maybe JE.Value -> { event : String, payload : JE.Value }
-package event maybePayload =
+package : String -> Maybe JE.Value -> { msg : String, payload : JE.Value }
+package msg maybePayload =
     case maybePayload of
         Just payload ->
-            { event = event
+            { msg = msg
             , payload = payload
             }
 
         Nothing ->
-            { event = event
+            { msg = msg
             , payload = JE.null
             }
 
@@ -349,11 +349,11 @@ arrives as a [MsgIn](#MsgIn) `Message`.
 
 You will need to decode `payload` yourself, as only you will know the structure
 of this `Value`. It will be whatever data has been sent back from Phoenix
-corresponding to `event` so you will need to check this in order to select the
-correct decoder if you are sending different structures for different `event`s.
+corresponding to `msg` so you will need to check this in order to select the
+correct decoder if you are sending different structures for different `msg`s.
 
 If you are using multiple channels, you will also need to check the `topic` to
-identify the channel that sent the `event`.
+identify the channel that sent the `msg`.
 
 **NB** You won't need this if you choose to handle messages over
 [Channel](Channel#MsgIn)s.
@@ -363,7 +363,7 @@ type alias MessageConfig =
     { joinRef : Maybe String
     , ref : Maybe String
     , topic : String
-    , event : String
+    , msg : String
     , payload : Value
     }
 
@@ -391,7 +391,7 @@ module.
 
 -}
 type alias PortIn msg =
-    ({ event : String
+    ({ msg : String
      , payload : JE.Value
      }
      -> msg
@@ -399,7 +399,7 @@ type alias PortIn msg =
     -> Sub msg
 
 
-{-| Subscribe to receive incoming socket events.
+{-| Subscribe to receive incoming socket msgs.
 
     import Port
     import Socket
@@ -422,9 +422,9 @@ subscriptions msg portIn =
         handleIn msg
 
 
-handleIn : (MsgIn -> msg) -> { event : String, payload : JE.Value } -> msg
-handleIn toMsg { event, payload } =
-    case event of
+handleIn : (MsgIn -> msg) -> { msg : String, payload : JE.Value } -> msg
+handleIn toMsg { msg, payload } =
+    case msg of
         "Opened" ->
             toMsg Opened
 
@@ -477,7 +477,7 @@ handleIn toMsg { event, payload } =
                     (JD.decodeValue JD.string payload)
 
         _ ->
-            toMsg (InvalidMsg event)
+            toMsg (InvalidMsg msg)
 
 
 
@@ -512,5 +512,5 @@ messageDecoder =
         |> andMap (JD.maybe (JD.field "join_ref" JD.string))
         |> andMap (JD.maybe (JD.field "ref" JD.string))
         |> andMap (JD.field "topic" JD.string)
-        |> andMap (JD.field "event" JD.string)
+        |> andMap (JD.field "msg" JD.string)
         |> andMap (JD.field "payload" JD.value)
