@@ -1,5 +1,5 @@
 module Phoenix.Channel exposing
-    ( send, EventOut(..), JoinConfig, PushConfig, EventConfig, LeaveConfig
+    ( send, MsgOut(..), JoinConfig, PushConfig, EventConfig, LeaveConfig
     , PortOut, PackageOut
     , subscriptions, EventIn(..), Topic, PushEvent
     , PortIn, PackageIn
@@ -9,12 +9,12 @@ module Phoenix.Channel exposing
 {-| This module is for working directly with channels.
 
 Before you can join a channel and start sending and receiving, you first need
-to [connect to a socket](Socket).
+to connect to a [socket](Phoenix.Socket).
 
 
 # Sending Messages
 
-@docs send, EventOut, JoinConfig, PushConfig, EventConfig, LeaveConfig
+@docs send, MsgOut, JoinConfig, PushConfig, EventConfig, LeaveConfig
 
 @docs PortOut, PackageOut
 
@@ -36,33 +36,27 @@ import Json.Decode as JD
 import Json.Encode as JE exposing (Value)
 
 
+{-| Send a [MsgOut](#MsgOut) to the channel.
 
-{- Sending And Receiving -}
--- Sending
-
-
-{-| Send an [EventOut](#EventOut) to the channel.
-
-    import Channel exposing (EventOut(..))
-    import Ports.Phoenix as Phx
+    import Phoenix.Channel as Channel
+    import Port
 
     -- Join a Channel
 
-    Phx.sendMessage
-      |> Channel.send
+    Channel.send
         (Join
           { topic = "topic:subtopic"
           , timeout = Nothing
           , payload = Nothing
           }
         )
+        Port.pheonixSend
 
     -- Push some data to a Channel
 
     import Json.Encode as JE
 
-    Phx.sendMessage
-      |> Channel.send
+    Channel.send
         (Push
           { topic = Just "topic:subtopic"
           , msg = "send_msg"
@@ -71,9 +65,10 @@ import Json.Encode as JE exposing (Value)
               JE.object
                 [ ("msg", "Hello to everyone!" |> JE.string) ]
           }
+          Port.phoenixSend
 
 -}
-send : EventOut -> PortOut msg -> Cmd msg
+send : MsgOut -> PortOut msg -> Cmd msg
 send msgOut portOut =
     case msgOut of
         Join { topic, timeout, payload } ->
@@ -198,7 +193,7 @@ type alias PackageOut =
 
 
 {-| A type alias representing the `port` function required to send the
-[EventOut](#EventOut) to the channel.
+[MsgOut](#MsgOut) to the channel.
 
 You could write this yourself, if you do, it needs to be named
 `sendMessage`, although you may find it simpler to just add
@@ -212,13 +207,13 @@ type alias PortOut msg =
 
 {-| All of the msgs you can send to the channel.
 
-Each of these [EventOut](#EventOut) messages corresponds to the equivalent function
+Each of these [MsgOut](#MsgOut) messages corresponds to the equivalent function
 in the [PhoenixJS API](https://hexdocs.pm/phoenix/js/index.html#channel). For
 more info on these please read the API
 [docs](https://hexdocs.pm/phoenix/js/index.html#channel).
 
 -}
-type EventOut
+type MsgOut
     = Join JoinConfig
     | Push PushConfig
     | On EventConfig
@@ -268,8 +263,8 @@ type alias PushConfig =
     }
 
 
-{-| A type alias representing channel msgs that can be turned [On](#EventOut)
-or [Off](#EventOut).
+{-| A type alias representing channel msgs that can be turned [On](#MsgOut)
+or [Off](#MsgOut).
 
 `topic` - optional channel topic id, for example: `Just "topic:subtopic"`.
 
@@ -278,11 +273,11 @@ utilising multiple channels. Setting `topic = Nothing` will set the msg on
 the last used channel, or the only channel you're using if using only one
 channel.
 
-`msg` - the msg that you want to be turned [On](#EventOut) or
-[Off](#EventOut).
+`msg` - the msg that you want to be turned [On](#MsgOut) or
+[Off](#MsgOut).
 
 In order to receive msg [Message](#EventIn)s, they need to be registered with
-an [On](#EventOut) msg sent to the channel. So if your Phoenix Channel is
+an [On](#MsgOut) msg sent to the channel. So if your Phoenix Channel is
 going to `push` or `broadcast` a `new_msg` msg, it needs to be registered as
 follows:
 
@@ -317,7 +312,7 @@ Now you will be able to receive `new_msg`s as follows:
             |> Channel.subscriptions
                 ChannelMsg
 
-**NB** you must set your [On](#EventOut) msgs after you have joined the
+**NB** you must set your [On](#MsgOut) msgs after you have joined the
 relevant channel.
 
 -}
@@ -542,8 +537,8 @@ type alias Topic =
     String
 
 
-{-| A type alias representing a [Push](#EventOut) to a channel. Use this to
-identify which [Push](#EventOut) an [EventIn](#EventIn) relates to.
+{-| A type alias representing a [Push](#MsgOut) to a channel. Use this to
+identify which [Push](#MsgOut) an [EventIn](#EventIn) relates to.
 -}
 type alias PushEvent =
     String
@@ -625,7 +620,7 @@ msgsOff maybeTopic msgs portOut =
         |> Cmd.batch
 
 
-batchEvent : (EventConfig -> EventOut) -> PortOut msg -> Maybe Topic -> String -> Cmd msg
+batchEvent : (EventConfig -> MsgOut) -> PortOut msg -> Maybe Topic -> String -> Cmd msg
 batchEvent msgFun portOut maybeTopic msg =
     portOut
         |> send
