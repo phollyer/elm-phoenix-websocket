@@ -1,7 +1,7 @@
 port module Ports.Phoenix exposing
     ( channelReceiver
+    , phoenixSend
     , presenceReceiver
-    , sendMessage
     , socketReceiver
     )
 
@@ -27,7 +27,7 @@ type alias ChannelPackage =
     }
 
 
-port sendMessage : PackageOut -> Cmd msg
+port phoenixSend : PackageOut -> Cmd msg
 
 
 port socketReceiver : (SocketPackage -> msg) -> Sub msg

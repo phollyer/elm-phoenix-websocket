@@ -51,7 +51,7 @@ let ElmPhoenixWebSocket = {
     */
     init(ports, socket, presence) {
         this.elmPorts = ports
-        this.elmPorts.sendMessage.subscribe( params => this[params.event](params.payload))
+        this.elmPorts.phoenixSend.subscribe( params => this[params.event](params.payload))
 
         this.phoenixSocket = socket
         this.phoenixPresence = presence
