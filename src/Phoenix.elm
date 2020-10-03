@@ -20,7 +20,7 @@ will need to do so. The benefit(?) of using these modules directly, is that
 they do not carry any state, and so do not need to be attached to your model.
 
 In order for this module to provide the benefits that it does, it is required
-to add it to your model so that it can carry it's own state and internal logic.
+to add it to your model so that it can carry its own state and internal logic.
 So, once you have installed the package, and followed the simple setup instructions
 [here](https://package.elm-lang.org/packages/phollyer/elm-phoenix-websocket/latest/),
 configuring this module is as simple as this:
