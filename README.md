@@ -21,6 +21,8 @@ The Port module you need, and set up instructions are
 
 ## Further Reading
 
+Package [docs](https://package.elm-lang.org/packages/phollyer/elm-phoenix-websocket/latest/)
+
 For more information about Phoenix WebSockets see
 [Phoenix.Channel](https://hexdocs.pm/phoenix/1.5.3/Phoenix.Channel.html#content)
 , [Phoenix.Presence](https://hexdocs.pm/phoenix/1.5.3/Phoenix.Presence.html#content)
