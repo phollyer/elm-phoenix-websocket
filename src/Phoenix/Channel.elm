@@ -1,34 +1,34 @@
 module Phoenix.Channel exposing
-    ( send, MsgOut(..), JoinConfig, PushConfig, EventConfig, LeaveConfig
-    , PortOut, PackageOut
-    , subscriptions, EventIn(..), Topic, PushEvent
-    , PortIn, PackageIn
-    , msgsOn, msgsOff
+    ( JoinConfig, PortOut, join
+    , LeaveConfig, leave
+    , PushConfig, push
+    , PortIn, Topic, OriginalPushMsg, NewPushMsg, Msg(..), subscriptions
     )
 
-{-| This module is for working directly with channels.
+{-| Use this module to work directly with channels.
 
-Before you can join a channel and start sending and receiving, you first need
-to connect to a [socket](Phoenix.Socket).
-
-
-# Sending Messages
-
-@docs send, MsgOut, JoinConfig, PushConfig, EventConfig, LeaveConfig
-
-@docs PortOut, PackageOut
+Before you can start sending and receiving messages to and from your channels,
+you first need to connect to a [socket](Phoenix.Socket), and join the channels.
 
 
-# Receiving Messages
+# Joining
 
-@docs subscriptions, EventIn, Topic, PushEvent
-
-@docs PortIn, PackageIn
+@docs JoinConfig, PortOut, join
 
 
-# Helpers
+# Leaving
 
-@docs msgsOn, msgsOff
+@docs LeaveConfig, leave
+
+
+# Pushing
+
+@docs PushConfig, push
+
+
+# Receiving
+
+@docs PortIn, Topic, OriginalPushMsg, NewPushMsg, Msg, subscriptions
 
 -}
 
@@ -36,199 +36,14 @@ import Json.Decode as JD
 import Json.Encode as JE exposing (Value)
 
 
-{-| Send a [MsgOut](#MsgOut) to the channel.
+{-| A type alias representing the config for joining a channel.
 
-    import Phoenix.Channel as Channel
-    import Port
+  - `topic` - the channel topic id, for example: `"topic:subtopic"`.
 
-    -- Join a Channel
+  - `timeout` - optional timeout, in ms, before retrying to join if the previous
+    attempt failed.
 
-    Channel.send
-        (Join
-          { topic = "topic:subtopic"
-          , timeout = Nothing
-          , payload = Nothing
-          }
-        )
-        Port.pheonixSend
-
-    -- Push some data to a Channel
-
-    import Json.Encode as JE
-
-    Channel.send
-        (Push
-          { topic = Just "topic:subtopic"
-          , msg = "send_msg"
-          , timeout = Nothing
-          , data =
-              JE.object
-                [ ("msg", "Hello to everyone!" |> JE.string) ]
-          }
-          Port.phoenixSend
-
--}
-send : MsgOut -> PortOut msg -> Cmd msg
-send msgOut portOut =
-    case msgOut of
-        Join { topic, timeout, payload } ->
-            [ ( "topic", JE.string topic )
-            , ( "timeout"
-              , case timeout of
-                    Just t ->
-                        JE.int t
-
-                    Nothing ->
-                        JE.null
-              )
-            , ( "payload"
-              , case payload of
-                    Just data ->
-                        data
-
-                    Nothing ->
-                        JE.null
-              )
-            ]
-                |> JE.object
-                |> package
-                    "join"
-                |> portOut
-
-        Push { topic, msg, timeout, payload } ->
-            [ ( "topic"
-              , case topic of
-                    Just t ->
-                        JE.string t
-
-                    Nothing ->
-                        JE.null
-              )
-            , ( "msg", JE.string msg )
-            , ( "timeout"
-              , case timeout of
-                    Just t ->
-                        JE.int t
-
-                    Nothing ->
-                        JE.null
-              )
-            , ( "payload", payload )
-            ]
-                |> JE.object
-                |> package
-                    "push"
-                |> portOut
-
-        On { topic, msg } ->
-            [ ( "topic"
-              , case topic of
-                    Just t ->
-                        JE.string t
-
-                    Nothing ->
-                        JE.null
-              )
-            , ( "msg", JE.string msg )
-            ]
-                |> JE.object
-                |> package
-                    "on"
-                |> portOut
-
-        Off { topic, msg } ->
-            [ ( "topic"
-              , case topic of
-                    Just t ->
-                        JE.string t
-
-                    Nothing ->
-                        JE.null
-              )
-            , ( "msg", JE.string msg )
-            ]
-                |> JE.object
-                |> package
-                    "off"
-                |> portOut
-
-        Leave { topic, timeout } ->
-            [ ( "topic"
-              , case topic of
-                    Just t ->
-                        JE.string t
-
-                    Nothing ->
-                        JE.null
-              )
-            , ( "timeout"
-              , case timeout of
-                    Just t ->
-                        JE.int t
-
-                    Nothing ->
-                        JE.null
-              )
-            ]
-                |> JE.object
-                |> package
-                    "leave"
-                |> portOut
-
-
-package : String -> JE.Value -> PackageOut
-package msg value =
-    { msg = msg
-    , payload = value
-    }
-
-
-{-| A type alias representing the data sent out through a `port` to a channel.
-You will not use this directly.
--}
-type alias PackageOut =
-    { msg : String
-    , payload : JE.Value
-    }
-
-
-{-| A type alias representing the `port` function required to send the
-[MsgOut](#MsgOut) to the channel.
-
-You could write this yourself, if you do, it needs to be named
-`sendMessage`, although you may find it simpler to just add
-[this port module](https://github.com/phollyer/elm-phoenix-websocket/blob/master/src/Ports/Phoenix.elm)
-to your `src` - it includes all the necessary `port` functions.
-
--}
-type alias PortOut msg =
-    PackageOut -> Cmd msg
-
-
-{-| All of the msgs you can send to the channel.
-
-Each of these [MsgOut](#MsgOut) messages corresponds to the equivalent function
-in the [PhoenixJS API](https://hexdocs.pm/phoenix/js/index.html#channel). For
-more info on these please read the API
-[docs](https://hexdocs.pm/phoenix/js/index.html#channel).
-
--}
-type MsgOut
-    = Join JoinConfig
-    | Push PushConfig
-    | On EventConfig
-    | Off EventConfig
-    | Leave LeaveConfig
-
-
-{-| A type alias representing the settings for joining a channel.
-
-`topic` - the channel topic id, for example: `"topic:subtopic"`.
-
-`timeout` - optional timeout, in ms, before retrying to join if the previous
-attempt failed.
-
-`payload` - optional data to be sent to the channel when joining.
+  - `payload` - optional data to be sent to the channel when joining.
 
 -}
 type alias JoinConfig =
@@ -238,135 +53,278 @@ type alias JoinConfig =
     }
 
 
-{-| A type alias representing the settings for pushing messages over a channel.
+{-| A type alias representing the `port` function required to communicate with
+the accompanying JS.
 
-`topic` - the channel topic id, for example: `Just "topic:subtopic"`.
-
-The `topic` is used to track the channels on the JS side. This allows for
-utilising multiple channels. Setting `topic = Nothing` will send the push over
-the last used channel, or the only channel you're using if using only one
-channel.
-
-`msg` - the msg to send to the channel.
-
-`timeout` - optional timeout, in ms, before retrying to push if the previous
-attempt failed.
-
-`payload` - the data to be sent.
+You will find this `port` function in the
+[Port](https://github.com/phollyer/elm-phoenix-websocket/tree/master/src/Ports)
+module.
 
 -}
-type alias PushConfig =
-    { topic : Maybe String
-    , msg : String
-    , timeout : Maybe Int
+type alias PortOut msg =
+    { msg : String
     , payload : Value
     }
+    -> Cmd msg
 
 
-{-| A type alias representing channel msgs that can be turned [On](#MsgOut)
-or [Off](#MsgOut).
+{-| Join a channel.
 
-`topic` - optional channel topic id, for example: `Just "topic:subtopic"`.
+    import Phoenix.Channel as Channel
+    import Port
 
-The `topic` is used to track the channels on the JS side. This allows for
-utilising multiple channels. Setting `topic = Nothing` will set the msg on
-the last used channel, or the only channel you're using if using only one
-channel.
-
-`msg` - the msg that you want to be turned [On](#MsgOut) or
-[Off](#MsgOut).
-
-In order to receive msg [Message](#EventIn)s, they need to be registered with
-an [On](#MsgOut) msg sent to the channel. So if your Phoenix Channel is
-going to `push` or `broadcast` a `new_msg` msg, it needs to be registered as
-follows:
-
-    import Channel
-    import Ports.Phoenix as Phx
-
-    Phx.sendMessage
-        |> Channel.send
-            (On
-                { topic = Just "topic:subtopic"
-                , msg = "new_msg"
-                }
-            )
-
-Now you will be able to receive `new_msg`s as follows:
-
-    import Channel exposing (EventIn(..))
-    import Ports.Phoenix as Phx
-
-    type Msg
-        = ChannelMsg Channel.EventIn
-
-    update : Msg -> Model -> (Model, Cmd Msg)
-    update msg model =
-        case msg of
-            ChannelMsg (Message "topic:subtopic" "new_msg" payload) ->
-                ...
-
-    subscriptions : Model -> Sub Msg
-    subscriptions _ =
-        Phx.channelReceiver
-            |> Channel.subscriptions
-                ChannelMsg
-
-**NB** you must set your [On](#MsgOut) msgs after you have joined the
-relevant channel.
+    Channel.join
+        { topic = "topic:subtopic"
+        , timeout = Nothing
+        , payload = Nothing
+        }
+        Port.pheonixSend
 
 -}
-type alias EventConfig =
-    { topic : Maybe String
-    , msg : String
-    }
+join : JoinConfig -> PortOut msg -> Cmd msg
+join { topic, payload, timeout } portOut =
+    let
+        payload_ =
+            JE.object
+                [ ( "topic", JE.string topic )
+                , ( "timeout"
+                  , case timeout of
+                        Just t ->
+                            JE.int t
+
+                        Nothing ->
+                            JE.null
+                  )
+                , ( "payload"
+                  , case payload of
+                        Just data ->
+                            data
+
+                        Nothing ->
+                            JE.null
+                  )
+                ]
+    in
+    portOut
+        { msg = "join"
+        , payload = payload_
+        }
 
 
-{-| A type alias representing the settings for leaving a channel.
+{-| A type alias representing the config for leaving a channel.
 
-`topic` - optional channel topic id, for example: `Just "topic:subtopic"`.
-
-The `topic` is used to track the channels on the JS side. This allows for
-utilising multiple channels. Setting `topic = Nothing` will leave the last used
-channel, or the only channel you're using if using only one channel.
-
-`timeout` - optional timeout, in ms, before retrying to leave if the previous
-attempt failed.
+  - `topic` - channel topic id, for example: `"topic:subtopic"`.
+  - `timeout` - optional timeout, in ms, before retrying to leave if the previous
+    attempt failed.
 
 -}
 type alias LeaveConfig =
-    { topic : Maybe String
+    { topic : String
     , timeout : Maybe Int
     }
 
 
+{-| Leave a channel.
 
--- Receiving
+    import Phoenix.Channel as Channel
+    import Port
+
+    Channel.leave
+        { topic = "topic:subtopic"
+        , timeout = Nothing
+        }
+        Port.pheonixSend
+
+-}
+leave : LeaveConfig -> PortOut msg -> Cmd msg
+leave { topic, timeout } portOut =
+    let
+        payload_ =
+            JE.object
+                [ ( "topic", JE.string topic )
+                , ( "timeout"
+                  , case timeout of
+                        Just t ->
+                            JE.int t
+
+                        Nothing ->
+                            JE.null
+                  )
+                ]
+    in
+    portOut
+        { msg = "leave"
+        , payload = payload_
+        }
 
 
-{-| Subscribe to receive incoming channel msgs.
+{-| A type alias representing the config for pushing messages to a channel.
 
-    import Channel
-    import Ports.Phoenix as Phx
+  - `topic` - the channel topic id, for example: `"topic:subtopic"`.
+
+  - `msg` - the msg to send to the channel.
+
+  - `payload` - the data to be sent.
+
+  - `timeout` - optional timeout, in ms, before retrying to push if the previous
+    attempt failed.
+
+-}
+type alias PushConfig =
+    { topic : String
+    , msg : String
+    , payload : Value
+    , timeout : Maybe Int
+    }
+
+
+{-| Push a message to a channel.
+
+    import Json.Encode as JE
+    import Phoenix.Channel as Channel
+    import Port
+
+    Channel.push
+        { topic = "topic:subtopic"
+        , msg = "new_msg"
+        , payload = JE.object [("msg", JE.string "Hello World")]
+        , timeout = Nothing
+        }
+        Port.pheonixSend
+
+-}
+push : PushConfig -> PortOut msg -> Cmd msg
+push { topic, msg, payload, timeout } portOut =
+    let
+        payload_ =
+            JE.object
+                [ ( "topic", JE.string topic )
+                , ( "msg", JE.string msg )
+                , ( "payload", payload )
+                , ( "timeout"
+                  , case timeout of
+                        Just t ->
+                            JE.int t
+
+                        Nothing ->
+                            JE.null
+                  )
+                ]
+    in
+    portOut
+        { msg = "push"
+        , payload = payload_
+        }
+
+
+{-| A type alias representing the `port` function required to receive
+the [Msg](#Msg) from the socket.
+
+You will find this `port` function in the
+[Port](https://github.com/phollyer/elm-phoenix-websocket/tree/master/src/Ports)
+module.
+
+-}
+type alias PortIn msg =
+    ({ topic : String
+     , msg : String
+     , payload : JE.Value
+     }
+     -> msg
+    )
+    -> Sub msg
+
+
+{-| A type alias representing the channel topic that a [Msg](#Msg) is received
+from.
+-}
+type alias Topic =
+    String
+
+
+{-| A type alias representing a [push](#push) to a channel. Use this to
+identify which [push](#push) a [Msg](#Msg) relates to.
+
+So, if you sent the following [push](#push):
+
+    import Json.Encode as JE
+    import Phoenix.Channel as Channel
+    import Port
+
+    Channel.push
+        { topic = "topic:subtopic"
+        , msg = "new_msg"
+        , payload = JE.object [("msg", JE.string "Hello World")]
+        , timeout = Nothing
+        }
+        Port.pheonixSend
+
+`OriginalPushMsg` would be equal to `"new_msg"`.
+
+-}
+type alias OriginalPushMsg =
+    String
+
+
+{-| A type alias representing a msg `push`ed or `broadcast` from a channel.
+-}
+type alias NewPushMsg =
+    String
+
+
+{-| All of the msgs you can receive from the channel.
+
+  - `Topic` - is the channel topic that the message came from.
+  - `OriginalPushMsg` - is the original `msg` that was [push](#push)ed to the
+    channel.
+  - `NewPushMsg` - is a `msg` that has been `push`ed or `broadcast` from a
+    channel.
+  - `Value` - is the payload received from the channel, with the exception of
+    `JoinTimout` and `PushTimeout` where it will be the original payload.
+
+`InvalidEvent` means that a msg has been received from the accompanying JS
+that cannot be handled. This should not happen, if it does, please raise an
+[issue](https://github.com/phollyer/elm-phoenix-websocket/issues).
+
+-}
+type Msg
+    = JoinOk Topic Value
+    | JoinError Topic Value
+    | JoinTimeout Topic Value
+    | PushOk Topic OriginalPushMsg Value
+    | PushError Topic OriginalPushMsg Value
+    | PushTimeout Topic OriginalPushMsg Value
+    | Message Topic NewPushMsg Value
+    | Error Topic Value
+    | LeaveOk Topic
+    | Closed Topic
+    | InvalidEvent Topic String Value
+
+
+{-| Subscribe to receive incoming channel [Msg](#Msg)s.
+
+    import Phoenix.Channel as Channel
+    import Port
 
     type Msg
-      = ChannelMsg Channel.EventIn
+      = ChannelMsg Channel.Msg
       | ...
 
 
     subscriptions : Model -> Sub Msg
     subscriptions _ =
-        Phx.channelReceiver
-          |> Channel.subscriptions
+        Channel.subscriptions
             ChannelMsg
+            Port.channelReceiver
 
 -}
-subscriptions : (EventIn -> msg) -> PortIn msg -> Sub msg
+subscriptions : (Msg -> msg) -> PortIn msg -> Sub msg
 subscriptions msg portIn =
-    portIn (handleIn msg)
+    portIn <|
+        handleIn msg
 
 
-handleIn : (EventIn -> msg) -> PackageIn -> msg
+handleIn : (Msg -> msg) -> { topic : String, msg : String, payload : JE.Value } -> msg
 handleIn toMsg { topic, msg, payload } =
     case msg of
         "JoinOk" ->
@@ -477,155 +435,3 @@ handleIn toMsg { topic, msg, payload } =
 
         _ ->
             toMsg (InvalidEvent topic msg payload)
-
-
-{-| A type alias representing the data received from a channel. You will not
-use this directly.
--}
-type alias PackageIn =
-    { topic : String
-    , msg : String
-    , payload : JE.Value
-    }
-
-
-{-| A type alias representing the `port` function required to receive
-the [EventIn](#EventIn) from the channel.
-
-You could write this yourself, if you do, it needs to be named
-`channelReceiver`, although you may find it simpler to just add
-[this port module](https://github.com/phollyer/elm-phoenix-websocket/blob/master/src/Ports/Phoenix.elm)
-to your `src` - it includes all the necessary `port` functions.
-
--}
-type alias PortIn msg =
-    (PackageIn -> msg) -> Sub msg
-
-
-{-| All of the msgs you can receive from the channel.
-
-If you are using more than one channel, then you can check `Topic` to determine
-which channel the [EventIn](#EventIn) relates to. If you are only using a single
-channel, you can ignore `Topic`.
-
-`InvalidEvent` means that an msg has been received from the accompanying JS
-that cannot be handled. This should not happen, if it does, please raise an
-[issue](https://github.com/phollyer/elm-phoenix-websocket/issues).
-
--}
-type EventIn
-    = JoinOk Topic Value
-    | JoinError Topic Value
-    | JoinTimeout Topic Value
-    | PushOk Topic PushEvent Value
-    | PushError Topic PushEvent Value
-    | PushTimeout Topic PushEvent Value
-    | Message Topic PushEvent Value
-    | Error Topic Value
-    | LeaveOk Topic
-    | Closed Topic
-    | InvalidEvent Topic String Value
-
-
-{-| A type alias representing the channel topic. Use this to identify the
-channel an [EventIn](#EventIn) relates to.
-
-If you are only using one channel, you can ignore this.
-
--}
-type alias Topic =
-    String
-
-
-{-| A type alias representing a [Push](#MsgOut) to a channel. Use this to
-identify which [Push](#MsgOut) an [EventIn](#EventIn) relates to.
--}
-type alias PushEvent =
-    String
-
-
-
--- Helpers
-
-
-{-| Set up all the incoming msgs from the channel.
-
-This needs to used after joining the channel.
-
-    import Channel
-    import Ports.Phoenix as Phx
-
-    Phx.sendMessage
-        |> Channel.msgsOn
-            (Just "topic:subtopic")
-            [ "msg1"
-            , "msg2"
-            , "msg3"
-            ]
-
-
-    Phx.sendMessage
-        |> Channel.msgsOn
-            Nothing  -- Will use the last used channel, or the only channel if only using one
-            [ "msg1"
-            , "msg2"
-            , "msg3"
-            ]
-
--}
-msgsOn : Maybe Topic -> List String -> PortOut msg -> Cmd msg
-msgsOn maybeTopic msgs portOut =
-    msgs
-        |> List.map
-            (batchEvent
-                On
-                portOut
-                maybeTopic
-            )
-        |> Cmd.batch
-
-
-{-| Stop receiving specifc incoming msgs from the channel.
-
-    import Channel
-    import Ports.Phoenix as Phx
-
-    Phx.sendMessage
-        |> Channel.msgsOn
-            (Just "topic:subtopic")
-            [ "msg1"
-            , "msg2"
-            , "msg3"
-            ]
-
-    Phx.sendMessage
-        |> Channel.msgsOff
-            (Just "topic:subtopic")
-            [ "msg1"
-            , "msg2"
-            ]
-
-    -- "msg3" will still be received.
-
--}
-msgsOff : Maybe Topic -> List String -> PortOut msg -> Cmd msg
-msgsOff maybeTopic msgs portOut =
-    msgs
-        |> List.map
-            (batchEvent
-                Off
-                portOut
-                maybeTopic
-            )
-        |> Cmd.batch
-
-
-batchEvent : (EventConfig -> MsgOut) -> PortOut msg -> Maybe Topic -> String -> Cmd msg
-batchEvent msgFun portOut maybeTopic msg =
-    portOut
-        |> send
-            (msgFun
-                { topic = maybeTopic
-                , msg = msg
-                }
-            )

@@ -220,7 +220,7 @@ type alias Topic =
 
 {-| -}
 type Msg
-    = ChannelMsg Channel.EventIn
+    = ChannelMsg Channel.Msg
     | PresenceMsg Presence.EventIn
     | SocketMsg Socket.MsgIn
     | TimeoutTick Time.Posix
@@ -731,13 +731,11 @@ dropChannelBeingJoined topic (Model model) =
 
 join : Topic -> ({ msg : String, payload : JE.Value } -> Cmd msg) -> Cmd msg
 join topic portOut =
-    Channel.send
-        (Channel.Join
-            { payload = Nothing
-            , topic = topic
-            , timeout = Nothing
-            }
-        )
+    Channel.join
+        { payload = Nothing
+        , topic = topic
+        , timeout = Nothing
+        }
         portOut
 
 
@@ -753,7 +751,7 @@ joinChannels channelTopics portOut =
 {- Pushes -}
 
 
-handlePushError : Channel.Topic -> Channel.PushEvent -> JE.Value -> Model msg -> ( Model msg, Cmd msg )
+handlePushError : Channel.Topic -> Channel.OriginalPushMsg -> JE.Value -> Model msg -> ( Model msg, Cmd msg )
 handlePushError topic msg payload model =
     let
         queued =
@@ -775,7 +773,7 @@ handlePushError topic msg payload model =
     )
 
 
-handlePushOk : Channel.Topic -> Channel.PushEvent -> JE.Value -> Model msg -> ( Model msg, Cmd msg )
+handlePushOk : Channel.Topic -> Channel.OriginalPushMsg -> JE.Value -> Model msg -> ( Model msg, Cmd msg )
 handlePushOk topic msg payload model =
     let
         queued =
@@ -797,7 +795,7 @@ handlePushOk topic msg payload model =
     )
 
 
-handlePushTimeout : Channel.Topic -> Channel.PushEvent -> JE.Value -> Model msg -> ( Model msg, Cmd msg )
+handlePushTimeout : Channel.Topic -> Channel.OriginalPushMsg -> JE.Value -> Model msg -> ( Model msg, Cmd msg )
 handlePushTimeout topic msg payload model =
     let
         queued =
@@ -832,14 +830,12 @@ handlePushTimeout topic msg payload model =
 
 send : Topic -> EventOut -> JE.Value -> ({ msg : String, payload : JE.Value } -> Cmd msg) -> Cmd msg
 send topic msg payload portOut =
-    Channel.send
-        (Channel.Push
-            { topic = Just topic
-            , msg = msg
-            , timeout = Nothing
-            , payload = payload
-            }
-        )
+    Channel.push
+        { topic = topic
+        , msg = msg
+        , payload = payload
+        , timeout = Nothing
+        }
         portOut
 
 
