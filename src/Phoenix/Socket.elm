@@ -1,8 +1,7 @@
 module Phoenix.Socket exposing
     ( send, EventOut(..)
     , PortOut, PackageOut
-    , connectOptions
-    , ConnectOptions
+    , ConnectOption(..)
     , subscriptions, EventIn(..), MessageConfig
     , PortIn, PackageIn
     )
@@ -25,8 +24,6 @@ Once you have connected to the socket, you will then need to
 This enables finer control over the socket if you want to adjust the default
 settings.
 
-@docs connectOptions
-
 _Not all options are available on all versions of_
 _[PhoenixJS](https://hexdocs.pm/phoenix/js), so check the docs at <https://hexdocs.pm/phoenix/{vesion}/js>_
 _if something isn't working as expected._
@@ -35,7 +32,7 @@ And please raise an
 [issue](https://github.com/phollyer/elm-phoenix-websocket/issues) if you find
 that an option doesn't behave as it should.
 
-@docs ConnectOptions
+@docs ConnectOption
 
 
 # Receiving Messages
@@ -100,26 +97,9 @@ type alias PortOut msg =
 send : EventOut -> PortOut msg -> Cmd msg
 send msgOut portOut =
     case msgOut of
-        Connect maybeValue ->
-            case maybeValue of
-                Just value ->
-                    value
-                        |> package
-                            "connect"
-                        |> portOut
-
-                Nothing ->
-                    JE.null
-                        |> package
-                            "connect"
-                        |> portOut
-
-        ConnectWithOptions options maybeValue ->
-            maybeValue
-                |> connectWithOptions
-                    options
-                |> package
-                    "connect"
+        Connect options maybeValue ->
+            encodeConnectOptionsAndParams options maybeValue
+                |> package "connect"
                 |> portOut
 
         Disconnect ->
@@ -188,42 +168,15 @@ package event value =
     }
 
 
-
--- Connect With Options
-
-
-{-| A helper function to return a [ConnectOptions](#ConnectOptions) record with
-`Nothing` set on everything. Use it as a starting point for setting just the
-options you want.
-
-    { connectOptions | timeout = Just 10000 }
-
--}
-connectOptions : ConnectOptions
-connectOptions =
-    { transport = Nothing
-    , timeout = Nothing
-    , heartbeatIntervalMs = Nothing
-    , reconnectAfterMs = Nothing
-    , reconnectMaxBackOff = Nothing
-    , reconnectSteppedBackoff = Nothing
-    , rejoinAfterMs = Nothing
-    , rejoinMaxBackOff = Nothing
-    , rejoinSteppedBackoff = Nothing
-    , longpollerTimeout = Nothing
-    , binaryType = Nothing
-    }
-
-
-{-| A type alias representing the options that can be set on the socket when
-instantiating a `new Socket(url, options)` on the JS side.
+{-| The options that can be set on the socket when instantiating a
+`new Socket(url, options)` on the JS side.
 
 See <https://hexdocs.pm/phoenix/js/#socket> for more info on the options and
 the effect they have. All the option types are `Maybe`'s of the equivalent
 JS types, with two exceptions:
 
-1.  reconnectAfterMS
-2.  rejoinAfterMs
+1.  ReconnectAfterMillis
+2.  RejoinAfterMillis
 
 On the JS side, these take an `Int` or a `function` that returns an `Int`. But
 because we can't send functions through ports, you can set the `...MaxBackOff`
@@ -246,44 +199,66 @@ On the JS side, this results in:
     { rejoinAfterMs: function(tries){ return [1000, 2000, 5000][tries - 1] || 10000 }}
 
 -}
-type alias ConnectOptions =
-    { transport : Maybe String
-    , timeout : Maybe Int
-    , heartbeatIntervalMs : Maybe Int
-    , reconnectAfterMs : Maybe Int
-    , reconnectMaxBackOff : Maybe Int
-    , reconnectSteppedBackoff : Maybe (List Int)
-    , rejoinAfterMs : Maybe Int
-    , rejoinMaxBackOff : Maybe Int
-    , rejoinSteppedBackoff : Maybe (List Int)
-    , longpollerTimeout : Maybe Int
-    , binaryType : Maybe String
-    }
+type ConnectOption
+    = BinaryType String
+    | HeartbeatIntervalMillis Int
+    | LongpollerTimeout Int
+    | ReconnectAfterMillis Int
+    | ReconnectMaxBackoff Int
+    | ReconnectSteppedBackoff (List Int)
+    | RejoinAfterMillis Int
+    | RejoinMaxBackoff Int
+    | RejoinSteppedBackoff (List Int)
+    | Timeout Int
+    | Transport String
 
 
-connectWithOptions : ConnectOptions -> Maybe Value -> Value
-connectWithOptions options maybeParams =
-    let
-        opts =
-            List.filter
-                (\( _, value ) -> value /= JE.null)
-                [ ( "transport", maybe JE.string options.transport )
-                , ( "timeout", maybe JE.int options.timeout )
-                , ( "binaryType", maybe JE.string options.binaryType )
-                , ( "heartbeatIntervalMs", maybe JE.int options.heartbeatIntervalMs )
-                , ( "reconnectAfterMs", maybe JE.int options.reconnectAfterMs )
-                , ( "reconnectMaxBackOff", maybe JE.int options.reconnectMaxBackOff )
-                , ( "reconnectSteppedBackoff", maybe (JE.list JE.int) options.reconnectSteppedBackoff )
-                , ( "rejoinAfterMs", maybe JE.int options.rejoinAfterMs )
-                , ( "rejoinMaxBackOff", maybe JE.int options.rejoinMaxBackOff )
-                , ( "rejoinSteppedBackoff", maybe (JE.list JE.int) options.rejoinSteppedBackoff )
-                , ( "longpollerTimeout", maybe JE.int options.rejoinMaxBackOff )
-                ]
-    in
+encodeConnectOptionsAndParams : List ConnectOption -> Maybe Value -> Value
+encodeConnectOptionsAndParams options maybeParams =
     JE.object
-        [ ( "options", JE.object opts )
+        [ ( "options"
+          , JE.object <|
+                List.map encodeConnectOption options
+          )
         , ( "params", Maybe.withDefault JE.null maybeParams )
         ]
+
+
+encodeConnectOption : ConnectOption -> ( String, Value )
+encodeConnectOption option =
+    case option of
+        BinaryType binaryType ->
+            ( "binaryType", JE.string binaryType )
+
+        HeartbeatIntervalMillis interval ->
+            ( "heartbeatIntervalMs", JE.int interval )
+
+        LongpollerTimeout timeout ->
+            ( "longpollerTimeout", JE.int timeout )
+
+        ReconnectAfterMillis millis ->
+            ( "reconnectAfterMs", JE.int millis )
+
+        ReconnectMaxBackoff num ->
+            ( "reconnectMaxBackOff", JE.int num )
+
+        ReconnectSteppedBackoff list ->
+            ( "reconnectSteppedBackoff", JE.list JE.int list )
+
+        RejoinAfterMillis millis ->
+            ( "rejoinAfterMs", JE.int millis )
+
+        RejoinMaxBackoff num ->
+            ( "rejoinMaxBackOff", JE.int num )
+
+        RejoinSteppedBackoff list ->
+            ( "rejoinSteppedBackoff", JE.list JE.int list )
+
+        Timeout millis ->
+            ( "timeout", JE.int millis )
+
+        Transport transport ->
+            ( "transport", JE.string transport )
 
 
 
@@ -302,8 +277,7 @@ more info on these please read the API
 
 -}
 type EventOut
-    = Connect (Maybe JE.Value)
-    | ConnectWithOptions ConnectOptions (Maybe JE.Value)
+    = Connect (List ConnectOption) (Maybe JE.Value)
     | Disconnect
     | ConnectionState
     | EndPointURL

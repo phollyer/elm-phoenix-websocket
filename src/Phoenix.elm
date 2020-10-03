@@ -109,7 +109,7 @@ type Model msg
         { channelsBeingJoined : List Topic
         , channelsJoined : List Topic
         , connectionState : Maybe String
-        , connectOptions : Maybe Socket.ConnectOptions
+        , connectOptions : List Socket.ConnectOption
         , connectParams : Maybe JE.Value
         , decoderErrors : List DecoderError
         , endpointURL : Maybe String
@@ -133,7 +133,7 @@ type Model msg
 
 {-| Init
 -}
-init : (PackageOut -> Cmd msg) -> Maybe Socket.ConnectOptions -> Maybe JE.Value -> Model msg
+init : (PackageOut -> Cmd msg) -> List Socket.ConnectOption -> Maybe JE.Value -> Model msg
 init portOut connectOptions connectParams =
     Model
         { channelsBeingJoined = []
@@ -162,9 +162,9 @@ init portOut connectOptions connectParams =
 
 
 {-| -}
-setConnectOptions : Socket.ConnectOptions -> Model msg -> Model msg
+setConnectOptions : List Socket.ConnectOption -> Model msg -> Model msg
 setConnectOptions options model =
-    updateConnectOptions (Just options) model
+    updateConnectOptions options model
 
 
 {-| -}
@@ -624,18 +624,11 @@ dropQueuedEvent queued (Model model) =
 {- Socket -}
 
 
-connect : (PackageOut -> Cmd msg) -> Maybe JE.Value -> Maybe Socket.ConnectOptions -> Cmd msg
-connect portOut params maybeOptions =
-    case maybeOptions of
-        Just options ->
-            Socket.send
-                (Socket.ConnectWithOptions options params)
-                portOut
-
-        Nothing ->
-            Socket.send
-                (Socket.Connect params)
-                portOut
+connect : (PackageOut -> Cmd msg) -> List Socket.ConnectOption -> Maybe JE.Value -> Cmd msg
+connect portOut options params =
+    Socket.send
+        (Socket.Connect options params)
+        portOut
 
 
 sendToSocket : Socket.EventOut -> Model msg -> Cmd msg
@@ -890,8 +883,8 @@ sendIfConnected topic event payload (Model model) =
                 |> updateSocketState Opening
             , connect
                 model.portOut
-                model.connectParams
                 model.connectOptions
+                model.connectParams
             )
 
 
@@ -1007,7 +1000,7 @@ updateConnectionState connectionState (Model model) =
         }
 
 
-updateConnectOptions : Maybe Socket.ConnectOptions -> Model msg -> Model msg
+updateConnectOptions : List Socket.ConnectOption -> Model msg -> Model msg
 updateConnectOptions options (Model model) =
     Model
         { model
