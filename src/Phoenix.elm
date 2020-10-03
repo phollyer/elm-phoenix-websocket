@@ -28,11 +28,16 @@ configuring this module is as simple as this:
     import Phoenix
     import Port
 
+
+    -- Add the Phoenix Model to your Model
+
     type alias Model =
         { phoenix : Phoenix.Model Phoenix.Msg
         ...
         }
 
+
+    -- Initialize the Phoenix Model
 
     init : Model
     init =
@@ -44,9 +49,15 @@ configuring this module is as simple as this:
         ...
         }
 
+
+    -- Add a Phoenix Msg
+
     type Msg
         = PhoenixMsg Phoenix.Msg
         | ...
+
+
+    -- Handle Phoenix Msgs
 
     update : Msg -> Model -> (Model Cmd Msg)
     update msg model =
@@ -60,6 +71,9 @@ configuring this module is as simple as this:
                 , Cmd.map PhoenixMsg phoenixCmd
                 )
             ...
+
+
+    -- Subscribe to receive Phoenix Msgs
 
     subscriptions : Model -> Sub Msg
     subscriptions model =
