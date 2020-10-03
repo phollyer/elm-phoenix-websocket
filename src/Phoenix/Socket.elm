@@ -97,75 +97,71 @@ type alias PortOut msg =
 send : EventOut -> PortOut msg -> Cmd msg
 send msgOut portOut =
     case msgOut of
-        Connect options maybeValue ->
-            encodeConnectOptionsAndParams options maybeValue
-                |> package "connect"
-                |> portOut
+        Connect options maybeParams ->
+            let
+                payload =
+                    encodeConnectOptionsAndParams options maybeParams
+            in
+            portOut <|
+                package "connect" (Just payload)
 
         Disconnect ->
-            JE.null
-                |> package
-                    "disconnect"
-                |> portOut
+            portOut <|
+                package "disconnect" Nothing
 
         ConnectionState ->
-            JE.null
-                |> package
-                    "connectionState"
-                |> portOut
+            portOut <|
+                package "connectionState" Nothing
 
         Info ->
-            JE.null
-                |> package
-                    "info"
-                |> portOut
+            portOut <|
+                package "info" Nothing
 
         IsConnected ->
-            JE.null
-                |> package
-                    "isConnected"
-                |> portOut
+            portOut <|
+                package "isConnected" Nothing
 
         EndPointURL ->
-            JE.null
-                |> package
-                    "endPointURL"
-                |> portOut
+            portOut <|
+                package "endPointURL" Nothing
 
         HasLogger ->
-            JE.null
-                |> package
-                    "hasLogger"
-                |> portOut
+            portOut <|
+                package "hasLogger" Nothing
 
         MakeRef ->
-            JE.null
-                |> package
-                    "makeRef"
-                |> portOut
+            portOut <|
+                package "makeRef" Nothing
 
         Protocol ->
-            JE.null
-                |> package
-                    "protocol"
-                |> portOut
+            portOut <|
+                package "protocol" Nothing
 
         Log { kind, msg, data } ->
-            [ ( "kind", JE.string kind )
-            , ( "msg", JE.string msg )
-            , ( "data", data )
-            ]
-                |> JE.object
-                |> package
-                    "log"
-                |> portOut
+            let
+                payload =
+                    JE.object
+                        [ ( "kind", JE.string kind )
+                        , ( "msg", JE.string msg )
+                        , ( "data", data )
+                        ]
+            in
+            portOut <|
+                package "log" (Just payload)
 
 
-package : String -> JE.Value -> PackageOut
-package event value =
-    { event = event
-    , payload = value
-    }
+package : String -> Maybe JE.Value -> PackageOut
+package event maybePayload =
+    case maybePayload of
+        Just payload ->
+            { event = event
+            , payload = payload
+            }
+
+        Nothing ->
+            { event = event
+            , payload = JE.null
+            }
 
 
 {-| The options that can be set on the socket when instantiating a
