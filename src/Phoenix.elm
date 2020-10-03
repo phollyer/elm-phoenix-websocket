@@ -221,7 +221,7 @@ type alias Topic =
 {-| -}
 type Msg
     = ChannelMsg Channel.Msg
-    | PresenceMsg Presence.EventIn
+    | PresenceMsg Presence.Msg
     | SocketMsg Socket.MsgIn
     | TimeoutTick Time.Posix
 
@@ -283,7 +283,7 @@ update msg (Model model) =
         PresenceMsg (Presence.Diff _ _) ->
             ( Model model, Cmd.none )
 
-        PresenceMsg (Presence.InvalidEvent _ _) ->
+        PresenceMsg (Presence.InvalidMsg _ _) ->
             ( Model model, Cmd.none )
 
         PresenceMsg (Presence.Join _ _) ->
