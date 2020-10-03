@@ -8,7 +8,7 @@ module Phoenix.Socket exposing
 {-| Use this module to work directly with the socket.
 
 After connecting to the socket, you can then join one or more
-[channel](Channel)s and start sending and receiving messages from your
+[channel](Channel)s and start sending and receiving messages to and from your
 channel(s).
 
 
@@ -60,7 +60,7 @@ functions is to also use the `...SteppedBackoff` counterparts:
     , RejoinSteppedBackoff [ 1000, 2000, 5000 ]
     ]
 
-On the JS side, this results in:
+On the JS side, the above options results in:
 
     { reconnectAfterMs: function(tries){ return [10, 20, 50, 100, 500][tries - 1] || 1000 },
       rejoinAfterMs: function(tries){ return [1000, 2000, 5000][tries - 1] || 10000 }
@@ -193,7 +193,7 @@ The JS API provides for a callback function and additional params to be passed
 in to the `disconnect` function. In the context of using Elm, this doesn't make
 sense as there is nothing to callback to, and so this isn't supported.
 
-If you need to callback to some other JS you have, you will need to adjust the
+If you need to callback to some other JS you have, you will need to edit the
 accompanying JS file accordingly.
 
 -}
