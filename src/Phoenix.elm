@@ -380,9 +380,36 @@ update msg (Model model) =
 {-
    Public API
 -}
---
---
---
+
+
+{-| Send a message to a Channel.
+
+In order for the message to be sent:
+
+    * the Socket must be open, and
+    * the Channel Topic must have been joined
+
+If either of these processes have not been completed, the message will be
+queued until the Channel has been joined - at which point, all queued messages
+will be sent.
+
+Connecting to the Socket, and joining the Channel Topic is handled internally
+when the first message is sent.
+
+If the Socket is open, and the Channel Topic joined, the message will be sent
+immediately.
+
+-}
+sendMessage : Topic -> EventOut -> JE.Value -> Model msg -> ( Model msg, Cmd msg )
+sendMessage topic event payload model =
+    sendIfConnected
+        topic
+        event
+        payload
+        model
+
+
+
 {- Request information about the Socket -}
 
 
@@ -439,24 +466,6 @@ requestSocketInfo : Model msg -> Cmd msg
 requestSocketInfo model =
     sendToSocket
         Socket.Info
-        model
-
-
-
-{- Send a message to a Channel
-
-   If the socket is not open we attempt to connect to it.
-
-   If we have not joined the Channel Topic we attempt to Join.
--}
-
-
-sendMessage : Topic -> EventOut -> JE.Value -> Model msg -> ( Model msg, Cmd msg )
-sendMessage topic event payload model =
-    sendIfConnected
-        topic
-        event
-        payload
         model
 
 
