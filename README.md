@@ -1,9 +1,11 @@
 # Elm 0.19.x package for Phoenix WebSockets
 
-In order for your Elm program to talk to
-[PhoenixJS](https://hexdocs.pm/phoenix/js), you will need to add a very small
-Port module to your Elm `src` files, and a JavaScript file to your Phoenix
-project.
+A very simple to use Package that provides your Elm program access to the
+PhoenixJS API.
+
+In order for your Elm program to talk to PhoenixJS, you will need to add a
+JavaScript file to your Phoenix project and a very small Port module to your
+Elm `src` files.
 
 ## Set up JavaScript
 
@@ -21,7 +23,7 @@ The Port module you need, and set up instructions are
 
 ## Further Reading
 
-Package [docs](https://package.elm-lang.org/packages/phollyer/elm-phoenix-websocket/latest/)
+Package [docs](https://package.elm-lang.org/packages/phollyer/elm-phoenix-websocket/latest/).
 
 For more information about Phoenix WebSockets see
 [Phoenix.Channel](https://hexdocs.pm/phoenix/1.5.3/Phoenix.Channel.html#content)
