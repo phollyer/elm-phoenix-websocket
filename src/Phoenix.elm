@@ -12,12 +12,66 @@ module Phoenix exposing
 {-| This module is a wrapper around the [Socket](Phoenix.Socket),
 [Channel](Phoenix.Channel) and [Presence](Phoenix.Presence) modules. It handles
 all the low level stuff with a simple API, automates a few processes, and
-generally simplifies working with Phoenix WebSockets without losing any
-functionality.
+generally simplifies working with Phoenix WebSockets.
 
 You can use the [Socket](Phoenix.Socket), [Channel](Phoenix.Channel) and
 [Presence](Phoenix.Presence) modules directly, but it is probably unlikely you
-will need to do so.
+will need to do so. The benefit(?) of using these modules directly, is that
+they do not carry any state, and so do not need to be attached to your model.
+
+In order for this module to provide the benefits that it does, it is required
+to add it to your model so that it can carry it's own state and internal logic.
+So, once you have installed the package, and followed the simple setup instructions
+[here](https://package.elm-lang.org/packages/phollyer/elm-phoenix-websocket/latest/),
+configuring this module is as simple as this:
+
+    import Phoenix
+    import Port
+
+    type alias Model =
+        { phoenix : Phoenix.Model Phoenix.Msg
+        ...
+        }
+
+
+    init : Model
+    init =
+        { phoenix =
+            Phoenix.init
+                Port.phoenixSend
+                Nothing
+                Nothing
+        ...
+        }
+
+    type Msg
+        = PhoenixMsg Phoenix.Msg
+        | ...
+
+    update : Msg -> Model -> (Model Cmd Msg)
+    update msg model =
+        case msg of
+            PhoenixMsg subMsg ->
+                let
+                    (phoenix, phoenixCmd) =
+                        Phoenix.update subMsg model.phoenix
+                in
+                ( { model | phoenix = phoenix}
+                , Cmd.map PhoenixMsg phoenixCmd
+                )
+            ...
+
+    subscriptions : Model -> Sub Msg
+    subscriptions model =
+        Sub.map PhoenixMsg <|
+            Phoenix.subscriptions
+                Port.socketReceiver
+                Port.channelReceiver
+                Port.presenceReceiver
+                model.phoenix
+
+
+# API
 
 @docs Model
 
@@ -45,7 +99,10 @@ import Phoenix.Socket as Socket
 import Time
 
 
-{-| Model
+{-| The model that carries the internal state.
+
+This is an opaque type, so use the provided API to access its fields.
+
 -}
 type Model msg
     = Model
@@ -503,8 +560,8 @@ requestSocketInfo model =
 
 {-| Subscriptions
 -}
-subscriptions : Socket.PortIn Msg -> Channel.PortIn Msg -> Maybe (Channel.PortIn Msg) -> Model msg -> Sub Msg
-subscriptions socketReceiver channelReceiver maybePeresenceReceiver (Model model) =
+subscriptions : Socket.PortIn Msg -> Channel.PortIn Msg -> Channel.PortIn Msg -> Model msg -> Sub Msg
+subscriptions socketReceiver channelReceiver presenceReceiver (Model model) =
     Sub.batch
         [ Channel.subscriptions
             ChannelMsg
@@ -512,14 +569,9 @@ subscriptions socketReceiver channelReceiver maybePeresenceReceiver (Model model
         , Socket.subscriptions
             SocketMsg
             socketReceiver
-        , case maybePeresenceReceiver of
-            Just presenceReceiver ->
-                Presence.subscriptions
-                    PresenceMsg
-                    presenceReceiver
-
-            Nothing ->
-                Sub.none
+        , Presence.subscriptions
+            PresenceMsg
+            presenceReceiver
         , if (model.timeoutEvents |> List.length) > 0 then
             Time.every 1000 TimeoutTick
 
