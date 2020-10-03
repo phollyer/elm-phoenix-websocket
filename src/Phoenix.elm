@@ -3,14 +3,14 @@ module Phoenix exposing
     , Model
     , Msg
     , PushResponse(..)
-    , getConnectionState
-    , getEndpointURL
-    , getHasLogger
-    , getIsConnected
-    , getNextRef
-    , getProtocol
-    , getSocketInfo
     , init
+    , requestConnectionState
+    , requestEndpointURL
+    , requestHasLogger
+    , requestIsConnected
+    , requestMakeRef
+    , requestProtocol
+    , requestSocketInfo
     , sendMessage
     , setConnectOptions
     , setConnectParams
@@ -377,7 +377,78 @@ update msg (Model model) =
 
 
 
-{- Public API -}
+{-
+   Public API
+-}
+--
+--
+--
+{- Request information about the Socket -}
+
+
+{-| -}
+requestConnectionState : Model msg -> Cmd msg
+requestConnectionState model =
+    sendToSocket
+        Socket.ConnectionState
+        model
+
+
+{-| -}
+requestEndpointURL : Model msg -> Cmd msg
+requestEndpointURL model =
+    sendToSocket
+        Socket.EndPointURL
+        model
+
+
+{-| -}
+requestHasLogger : Model msg -> Cmd msg
+requestHasLogger model =
+    sendToSocket
+        Socket.HasLogger
+        model
+
+
+{-| -}
+requestIsConnected : Model msg -> Cmd msg
+requestIsConnected model =
+    sendToSocket
+        Socket.IsConnected
+        model
+
+
+{-| -}
+requestMakeRef : Model msg -> Cmd msg
+requestMakeRef model =
+    sendToSocket
+        Socket.MakeRef
+        model
+
+
+{-| -}
+requestProtocol : Model msg -> Cmd msg
+requestProtocol model =
+    sendToSocket
+        Socket.Protocol
+        model
+
+
+{-| -}
+requestSocketInfo : Model msg -> Cmd msg
+requestSocketInfo model =
+    sendToSocket
+        Socket.Info
+        model
+
+
+
+{- Send a message to a Channel
+
+   If the socket is not open we attempt to connect to it.
+
+   If we have not joined the Channel Topic we attempt to Join.
+-}
 
 
 sendMessage : Topic -> EventOut -> JE.Value -> Model msg -> ( Model msg, Cmd msg )
@@ -484,55 +555,6 @@ connect portOut params maybeOptions =
             Socket.send
                 (Socket.Connect params)
                 portOut
-
-
-getConnectionState : Model msg -> Cmd msg
-getConnectionState model =
-    sendToSocket
-        Socket.ConnectionState
-        model
-
-
-getEndpointURL : Model msg -> Cmd msg
-getEndpointURL model =
-    sendToSocket
-        Socket.EndPointURL
-        model
-
-
-getHasLogger : Model msg -> Cmd msg
-getHasLogger model =
-    sendToSocket
-        Socket.HasLogger
-        model
-
-
-getIsConnected : Model msg -> Cmd msg
-getIsConnected model =
-    sendToSocket
-        Socket.IsConnected
-        model
-
-
-getNextRef : Model msg -> Cmd msg
-getNextRef model =
-    sendToSocket
-        Socket.MakeRef
-        model
-
-
-getProtocol : Model msg -> Cmd msg
-getProtocol model =
-    sendToSocket
-        Socket.Protocol
-        model
-
-
-getSocketInfo : Model msg -> Cmd msg
-getSocketInfo model =
-    sendToSocket
-        Socket.Info
-        model
 
 
 sendToSocket : Socket.EventOut -> Model msg -> Cmd msg
