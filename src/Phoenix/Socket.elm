@@ -1,38 +1,24 @@
 module Phoenix.Socket exposing
-    ( send, EventOut(..)
-    , PortOut, PackageOut
-    , ConnectOption(..)
+    ( ConnectOption(..), Params, PortOut, connect
+    , EventOut(..), send
     , subscriptions, EventIn(..), MessageConfig
     , PortIn, PackageIn
     )
 
-{-| This module is for working directly with the socket.
+{-| Use this module to work directly with the socket.
 
-Once you have connected to the socket, you will then need to
-[join a channel](Channel).
+After connecting to the socket, you can then [join a channel](Channel) and
+start sending and receiving messages from your channels.
+
+
+# Connecting
+
+@docs ConnectOption, Params, PortOut, connect
 
 
 # Sending Messages
 
-@docs send, EventOut
-
-@docs PortOut, PackageOut
-
-
-# Connecting With Options
-
-This enables finer control over the socket if you want to adjust the default
-settings.
-
-_Not all options are available on all versions of_
-_[PhoenixJS](https://hexdocs.pm/phoenix/js), so check the docs at <https://hexdocs.pm/phoenix/{vesion}/js>_
-_if something isn't working as expected._
-
-And please raise an
-[issue](https://github.com/phollyer/elm-phoenix-websocket/issues) if you find
-that an option doesn't behave as it should.
-
-@docs ConnectOption
+@docs EventOut, send
 
 
 # Receiving Messages
@@ -49,62 +35,159 @@ import Json.Encode as JE exposing (Value)
 import Json.Encode.Extra exposing (maybe)
 
 
+{-| The options that can be set on the socket when instantiating a
+`new Socket(url, options)` on the JS side.
 
-{- Sending And Receiving -}
--- Sending
+See <https://hexdocs.pm/phoenix/js/#socket> for more info on the options and
+the effect they have.
 
+However, there are two potential instances where we have to work around the
+inability to send functions through `ports`. This is if you wish to employ a
+backoff strategy that increases the time interval between repeated attempts to
+reconnect or rejoin.
 
-{-| A type alias representing the data sent out through the `port` to the socket.
-You will not use this directly.
--}
-type alias PackageOut =
-    { event : String
-    , payload : JE.Value
+To do this on the JS side, you would provide a function that returns an `Int`.
+But because we can't send functions through ports, the way to create these
+functions is to also use the `...SteppedBackoff` counterparts:
+
+    [ ReconnectAfterMillis 1000
+    , ReconnectSteppedBackoff [ 10, 20, 50, 100, 500 ]
+    , RejoinAfterMillis 10000
+    , RejoinSteppedBackoff [ 1000, 2000, 5000 ]
+    ]
+
+On the JS side, this results in:
+
+    { reconnectAfterMs: function(tries){ return [10, 20, 50, 100, 500][tries - 1] || 1000 },
+      rejoinAfterMs: function(tries){ return [1000, 2000, 5000][tries - 1] || 10000 }
     }
 
+For a consistent time interval simply ignore the `...SteppedBackoff` options:
 
-{-| A type alias representing the `port` function required to send the
-[EventOut](#EventOut) to the socket.
+    [ ReconnectAfterMillis 1000
+    , RejoinAfterMillis 10000
+    ]
 
-You could write this yourself, if you do, it needs to be named
-`sendMessage`, although you may find it simpler to just add
-[this port module](https://github.com/phollyer/elm-phoenix-websocket/blob/master/src/Ports/Phoenix.elm)
-to your `src` - it includes all the necessary `port` functions.
+-}
+type ConnectOption
+    = BinaryType String
+    | HeartbeatIntervalMillis Int
+    | LongpollerTimeout Int
+    | ReconnectAfterMillis Int
+    | ReconnectSteppedBackoff (List Int)
+    | RejoinAfterMillis Int
+    | RejoinSteppedBackoff (List Int)
+    | Timeout Int
+    | Transport String
+
+
+{-| A type alias repesenting the params to be sent when connecting, usually
+authentication params such as username and password.
+-}
+type alias Params =
+    Value
+
+
+{-| A type alias representing the `port` function required to communicate with
+the accompanying JS.
+
+You will find this `port` function in the
+[Port](https://github.com/phollyer/elm-phoenix-websocket/tree/master/src/Ports)
+module.
 
 -}
 type alias PortOut msg =
-    PackageOut -> Cmd msg
+    { event : String
+    , payload : Value
+    }
+    -> Cmd msg
+
+
+{-| Connect to the socket, providing any required
+[ConnectOption](#ConnectOption)s and `Params` as well as the `port` function
+to use.
+
+    import Json.Encode as JE
+    import Port
+
+    -- A simple connection
+
+    connect [] Nothing Port.phoenixSend
+
+    -- A connection with options and auth params
+
+    options =
+        [ HeartbeatIntervalMillis 500
+        , Timeout 10000
+        ]
+
+    params =
+        JE.object
+            [ ("username", JE.string "Joe Bloggs")
+            , ("password", JE.string "password")
+            ]
+
+    connect options (Just params) Port.phoenixSend
+
+-}
+connect : List ConnectOption -> Maybe Params -> PortOut msg -> Cmd msg
+connect options maybeParams portOut =
+    let
+        payload =
+            encodeConnectOptionsAndParams options maybeParams
+    in
+    portOut <|
+        package "connect" (Just payload)
+
+
+{-| All of the events you can send to the socket.
+
+You will probably be most interested in `Connect` and `Disconnect`.
+
+These events correspond to the instance members of the socket as described
+[here](https://hexdocs.pm/phoenix/js/index.html#socket). Currently, the
+following instance members are not supported:
+
+  - `off(refs, null-null)`
+  - `channel(topic, chanParams)`
+  - `push(data)`
+
+Also, `disconnect` is called without any of the optional parameters.
+
+-}
+type EventOut
+    = Disconnect
+    | ConnectionState
+    | EndPointURL
+    | HasLogger
+    | Info
+    | IsConnected
+    | MakeRef
+    | Protocol
+    | Log { kind : String, msg : String, data : JD.Value }
 
 
 {-| Send an [EventOut](#EventOut) to the socket.
 
-    import Ports.Phoenix as Phx
-    import Socket exposing (EventOut(..))
+    import Port
+    import Socket
 
     -- Connect to the Socket
 
-    Phx.sendMessage
-      |> Socket.send
-        (Connect Nothing)
+    Socket.send
+        (Socket.Connect [] Nothing)
+        Port.phoenixSend
 
     -- Disconnect from the Socket
 
-    Phx.sendMessage
-      |> Socket.send
-        Disconnect
+    Socket.send
+        Socket.Disconnect
+        Port.phoenixSend
 
 -}
 send : EventOut -> PortOut msg -> Cmd msg
 send msgOut portOut =
     case msgOut of
-        Connect options maybeParams ->
-            let
-                payload =
-                    encodeConnectOptionsAndParams options maybeParams
-            in
-            portOut <|
-                package "connect" (Just payload)
-
         Disconnect ->
             portOut <|
                 package "disconnect" Nothing
@@ -150,7 +233,7 @@ send msgOut portOut =
                 package "log" (Just payload)
 
 
-package : String -> Maybe JE.Value -> PackageOut
+package : String -> Maybe JE.Value -> { event : String, payload : JE.Value }
 package event maybePayload =
     case maybePayload of
         Just payload ->
@@ -162,51 +245,6 @@ package event maybePayload =
             { event = event
             , payload = JE.null
             }
-
-
-{-| The options that can be set on the socket when instantiating a
-`new Socket(url, options)` on the JS side.
-
-See <https://hexdocs.pm/phoenix/js/#socket> for more info on the options and
-the effect they have. All the option types are `Maybe`'s of the equivalent
-JS types, with two exceptions:
-
-1.  ReconnectAfterMillis
-2.  RejoinAfterMillis
-
-On the JS side, these take an `Int` or a `function` that returns an `Int`. But
-because we can't send functions through ports, you can set the `...MaxBackOff`
-and `...SteppedBackOff` values as follows:
-
-    { connectOptions
-        | reconnectSteppedBackOff = [ 10, 20, 50, 100, 500 ]
-        , reconnectMaxBackOff = 1000
-    }
-
-    { connectOptions
-        | rejoinSteppedBackOff = [ 1000, 2000, 5000 ]
-        , rejoinMaxBackOff = 10000
-    }
-
-On the JS side, this results in:
-
-    { reconnectAfterMs: function(tries){ return [10, 20, 50, 100, 500][tries - 1] || 1000 }}
-
-    { rejoinAfterMs: function(tries){ return [1000, 2000, 5000][tries - 1] || 10000 }}
-
--}
-type ConnectOption
-    = BinaryType String
-    | HeartbeatIntervalMillis Int
-    | LongpollerTimeout Int
-    | ReconnectAfterMillis Int
-    | ReconnectMaxBackoff Int
-    | ReconnectSteppedBackoff (List Int)
-    | RejoinAfterMillis Int
-    | RejoinMaxBackoff Int
-    | RejoinSteppedBackoff (List Int)
-    | Timeout Int
-    | Transport String
 
 
 encodeConnectOptionsAndParams : List ConnectOption -> Maybe Value -> Value
@@ -235,17 +273,11 @@ encodeConnectOption option =
         ReconnectAfterMillis millis ->
             ( "reconnectAfterMs", JE.int millis )
 
-        ReconnectMaxBackoff num ->
-            ( "reconnectMaxBackOff", JE.int num )
-
         ReconnectSteppedBackoff list ->
             ( "reconnectSteppedBackoff", JE.list JE.int list )
 
         RejoinAfterMillis millis ->
             ( "rejoinAfterMs", JE.int millis )
-
-        RejoinMaxBackoff num ->
-            ( "rejoinMaxBackOff", JE.int num )
 
         RejoinSteppedBackoff list ->
             ( "rejoinSteppedBackoff", JE.list JE.int list )
@@ -255,34 +287,6 @@ encodeConnectOption option =
 
         Transport transport ->
             ( "transport", JE.string transport )
-
-
-
--- Events
-
-
-{-| All of the events you can send to the socket.
-
-You will probably be most interested in `Connect`,
-`ConnectWithOptions` and `Disconnect`.
-
-Each of these [EventOut](#EventOut) messages corresponds to the equivalent function
-in the [PhoenixJS API](https://hexdocs.pm/phoenix/js/index.html#socket). For
-more info on these please read the API
-[docs](https://hexdocs.pm/phoenix/js/index.html#socket).
-
--}
-type EventOut
-    = Connect (List ConnectOption) (Maybe JE.Value)
-    | Disconnect
-    | ConnectionState
-    | EndPointURL
-    | HasLogger
-    | Info
-    | IsConnected
-    | MakeRef
-    | Protocol
-    | Log { kind : String, msg : String, data : JD.Value }
 
 
 

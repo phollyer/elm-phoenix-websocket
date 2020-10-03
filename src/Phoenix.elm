@@ -624,11 +624,9 @@ dropQueuedEvent queued (Model model) =
 {- Socket -}
 
 
-connect : (PackageOut -> Cmd msg) -> List Socket.ConnectOption -> Maybe JE.Value -> Cmd msg
-connect portOut options params =
-    Socket.send
-        (Socket.Connect options params)
-        portOut
+connect : List Socket.ConnectOption -> Maybe JE.Value -> (PackageOut -> Cmd msg) -> Cmd msg
+connect options params portOut =
+    Socket.connect options params portOut
 
 
 sendToSocket : Socket.EventOut -> Model msg -> Cmd msg
@@ -882,9 +880,9 @@ sendIfConnected topic event payload (Model model) =
                     }
                 |> updateSocketState Opening
             , connect
-                model.portOut
                 model.connectOptions
                 model.connectParams
+                model.portOut
             )
 
 

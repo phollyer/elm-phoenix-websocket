@@ -250,10 +250,10 @@ let ElmPhoenixWebSocket = {
                     case "reconnectAfterMs":
 
                         // Check to see if a backoff function is required for the socket.
-                        if(options.reconnectSteppedBackoff && options.reconnectMaxBackOff) {
+                        if(options.reconnectSteppedBackoff) {
 
                             // Create the backoff function the socket uses when trying to reconnect.
-                            params.reconnectAfterMs = function(tries) { return options.reconnectSteppedBackoff[ tries - 1] || options.reconnectMaxBackOff }
+                            params.reconnectAfterMs = function(tries) { return options.reconnectSteppedBackoff[ tries - 1] || options.reconnectAfterMs }
                         } else {
                             if(options.reconnectAfterMs) {
 
@@ -266,10 +266,10 @@ let ElmPhoenixWebSocket = {
                     case "rejoinAfterMs":
 
                         // Check to see if a backoff function is required for the channels.
-                        if(options.rejoinSteppedBackoff && options.rejoinMaxBackOff) {
+                        if(options.rejoinSteppedBackoff) {
 
                             // Create the backoff function the channels use when trying to rejoin.
-                            params.rejoinAfterMs = function(tries) { return options.rejoinSteppedBackoff[ tries - 1] || options.rejoinMaxBackOff }
+                            params.rejoinAfterMs = function(tries) { return options.rejoinSteppedBackoff[ tries - 1] || options.rejoinAfterMs }
                         } else {
                             if(options.rejoinAfterMs) {
 

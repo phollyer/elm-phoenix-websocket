@@ -7,3 +7,7 @@ the module name accordingly.
 If you already have a `port` module in use, you can just copy the module code
 into your existing `port` module.
 
+Please see the comments in the module, and read the package
+[docs](https://package.elm-lang.org/packages/phollyer/elm-phoenix-websocket/latest/)
+to see how and when they are used.
+
