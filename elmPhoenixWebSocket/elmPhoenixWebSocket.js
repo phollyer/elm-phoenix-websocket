@@ -51,7 +51,7 @@ let ElmPhoenixWebSocket = {
     */
     init(ports, socket, presence) {
         this.elmPorts = ports
-        this.elmPorts.phoenixSend.subscribe( params => this[params.event](params.payload))
+        this.elmPorts.phoenixSend.subscribe( params => this[params.msg](params.payload))
 
         this.phoenixSocket = socket
         this.phoenixPresence = presence
@@ -300,13 +300,13 @@ let ElmPhoenixWebSocket = {
             any errors to the console.
 
             Paramters:
-                event <string> - The message to send through the port.
+                msg <string> - The message to send through the port.
                 payload <json>|<elm comparable> - The data to send.
 
     */
-    socketSend(event, payload) {
+    socketSend(msg, payload) {
         this.elmPorts.socketReceiver.send(
-            {event: event,
+            {msg: msg,
              payload: payload
             }
         )
@@ -322,7 +322,7 @@ let ElmPhoenixWebSocket = {
             Parameters:
                 params <object>
                     topic <string> - The topic of the channel.
-                    events <list string> - The events expected to come from the channel.
+                    msgs <list string> - The msgs expected to come from the channel.
                     msg <object> - Any data to be sent to the channel, such as authentication params.
 
                 socket <object> - The Phx Socket.
@@ -377,7 +377,7 @@ let ElmPhoenixWebSocket = {
 
             Parameters:
                 params <object>
-                    event <string> - The event to send to the channel.
+                    msg <string> - The msg to send to the channel.
                     payload <object> - The data to send.
                     topic <maybe string> - The topic of the channel to push to.
                     timeout <maybe int> - The timeout before retrying.
@@ -391,47 +391,47 @@ let ElmPhoenixWebSocket = {
 
         let push = {}
 
-        // Push the event and payload to the server, with or without a custom timeout.
+        // Push the msg and payload to the server, with or without a custom timeout.
         if(params.timeout) {
-            push = channel.push(params.event, params.payload, params.timeout)
+            push = channel.push(params.msg, params.payload, params.timeout)
         } else {
-            push = channel.push(params.event, params.payload)
+            push = channel.push(params.msg, params.payload)
         }
 
         push
-            .receive("ok", (payload) => self.channelSend(params.topic, "PushOk", {event: params.event, payload: payload}))
-            .receive("error", (payload) => self.channelSend(params.topic, "PushError", {event: params.event, payload: payload}))
-            .receive("timeout", () => self.channelSend(params.topic, "PushTimeout", {event: params.event, payload: params.payload}))
+            .receive("ok", (payload) => self.channelSend(params.topic, "PushOk", {msg: params.msg, payload: payload}))
+            .receive("error", (payload) => self.channelSend(params.topic, "PushError", {msg: params.msg, payload: payload}))
+            .receive("timeout", () => self.channelSend(params.topic, "PushTimeout", {msg: params.msg, payload: params.payload}))
     },
 
     /* on/1
 
-            Subscribe to a channel event.
+            Subscribe to a channel msg.
 
             Parameters:
                 params <object>
                     topic <maybe string> - The topic of the channel to subscribe to.
-                    event <string> - The event to subscribe to.
+                    msg <string> - The msg to subscribe to.
     */
     on(params) {
         self = this
         this.find(params.topic)
-            .on(params.event, payload => self.channelSend(params.topic, "Message", {event: params.event, payload: payload}))
+            .on(params.msg, payload => self.channelSend(params.topic, "Message", {msg: params.msg, payload: payload}))
     },
 
 
     /* off/1
 
-            Turn off a subscribption to a channel event.
+            Turn off a subscribption to a channel msg.
 
             Parameters:
                 params <object>
                     topic <maybe string> - The topic of the channel to unsubscribe to.
-                    event <string> - The event to unsubscribe to.
+                    msg <string> - The msg to unsubscribe to.
     */
     off(params) {
         this.find(params.topic)
-            .off(params.event)
+            .off(params.msg)
     },
 
 
@@ -491,14 +491,14 @@ let ElmPhoenixWebSocket = {
 
             Paramters:
                 topic <string> - The channel topic.
-                event <string> - The message to send through the port.
+                msg <string> - The message to send through the port.
                 payload <json>|<elm comparable> - The data to send.
 
     */
-    channelSend(topic, event, payload) {
+    channelSend(topic, msg, payload) {
         this.elmPorts.channelReceiver.send(
             {topic: topic,
-             event: event,
+             msg: msg,
              payload: payload
             }
         )
@@ -600,15 +600,15 @@ let ElmPhoenixWebSocket = {
 
             Paramters:
                 topic <string> - The channel topic.
-                event <string> - The message to send through the port.
+                msg <string> - The message to send through the port.
                 payload <json>|<elm comparable> - The data to send.
 
     */
-    presenceSend(topic, event, payload) {
+    presenceSend(topic, msg, payload) {
         if(this.elmPorts.presenceReceiver) {
             this.elmPorts.presenceReceiver.send(
                 {topic: topic,
-                 event: event,
+                 msg: msg,
                  payload: payload
                 }
             )
