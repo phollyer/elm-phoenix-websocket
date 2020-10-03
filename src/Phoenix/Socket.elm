@@ -8,7 +8,7 @@ module Phoenix.Socket exposing
 {-| Use this module to work directly with the socket.
 
 After connecting to the socket, you can then join one or more
-[channel](Channel)s and start sending and receiving messages to and from your
+[channel](Phoenix.Channel)s and start sending and receiving messages to and from your
 channel(s).
 
 
@@ -356,7 +356,7 @@ If you are using multiple channels, you will also need to check the `topic` to
 identify the channel that sent the `msg`.
 
 **NB** You won't need this if you choose to handle messages over
-[Channel](Channel#MsgIn)s.
+[Channel](Phoenix.Channel#MsgIn)s.
 
 -}
 type alias MessageConfig =
