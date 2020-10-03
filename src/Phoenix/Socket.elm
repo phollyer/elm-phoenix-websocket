@@ -1,5 +1,6 @@
 module Phoenix.Socket exposing
     ( ConnectOption(..), Params, PortOut, connect
+    , disconnect
     , EventOut(..), send
     , subscriptions, EventIn(..), MessageConfig
     , PortIn, PackageIn
@@ -14,6 +15,11 @@ start sending and receiving messages from your channels.
 # Connecting
 
 @docs ConnectOption, Params, PortOut, connect
+
+
+# Disconnecting
+
+@docs disconnect
 
 
 # Sending Messages
@@ -140,6 +146,22 @@ connect options maybeParams portOut =
         package "connect" (Just payload)
 
 
+{-| Disconnect the socket.
+
+The JS API provides for a callback function and additional params to be passed
+in to the `disconnect` function. In the context of using Elm, this doesn't make
+sense as there is nothing to callback to, and so this isn't supported.
+
+If you need to callback to some other JS you have, you will need to adjust the
+accompanying JS file accordingly.
+
+-}
+disconnect : PortOut msg -> Cmd msg
+disconnect portOut =
+    portOut <|
+        package "disconnect" Nothing
+
+
 {-| All of the events you can send to the socket.
 
 You will probably be most interested in `Connect` and `Disconnect`.
@@ -156,8 +178,7 @@ Also, `disconnect` is called without any of the optional parameters.
 
 -}
 type EventOut
-    = Disconnect
-    | ConnectionState
+    = ConnectionState
     | EndPointURL
     | HasLogger
     | Info
@@ -188,10 +209,6 @@ type EventOut
 send : EventOut -> PortOut msg -> Cmd msg
 send msgOut portOut =
     case msgOut of
-        Disconnect ->
-            portOut <|
-                package "disconnect" Nothing
-
         ConnectionState ->
             portOut <|
                 package "connectionState" Nothing
