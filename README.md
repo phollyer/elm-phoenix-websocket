@@ -10,7 +10,7 @@ Elm `src` files.
 ## Set up JavaScript
 
 The JS file you need, and set up instructions are
-[`here`](https://github.com/phollyer/elm-phoenix-websocket/tree/master/elmPhoenixWebSocket).
+[`here`](https://github.com/phollyer/elm-phoenix-websocket/tree/master/js).
 
 ## Add the Port module
 
