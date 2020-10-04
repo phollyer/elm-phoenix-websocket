@@ -1,6 +1,6 @@
 module Phoenix exposing
     ( Model
-    , init
+    , PortConfig, init
     , setConnectOptions, setConnectParams
     , sendMessage
     , subscriptions
@@ -89,7 +89,7 @@ configuring this module is as simple as this:
 
 @docs Model
 
-@docs init
+@docs PortConfig, init
 
 @docs setConnectOptions, setConnectParams
 
@@ -134,7 +134,7 @@ type Model msg
         , lastInvalidSocketEvent : Maybe String
         , lastSocketMessage : Maybe Socket.MessageConfig
         , nextMessageRef : Maybe String
-        , portOut : { msg : String, payload : JE.Value } -> Cmd msg
+        , portConfig : PortConfig msg
         , protocol : Maybe String
         , pushResponse : Maybe PushResponse
         , queuedEvents : List QueuedEvent
@@ -145,10 +145,43 @@ type Model msg
         }
 
 
+{-| -}
+type alias PortConfig msg =
+    { phoenixSend :
+        { msg : String
+        , payload : JE.Value
+        }
+        -> Cmd msg
+    , socketReceiver :
+        ({ msg : String
+         , payload : JE.Value
+         }
+         -> Msg
+        )
+        -> Sub Msg
+    , channelReceiver :
+        ({ topic : String
+         , msg : String
+         , payload : JE.Value
+         }
+         -> Msg
+        )
+        -> Sub Msg
+    , presenceReceiver :
+        ({ topic : String
+         , msg : String
+         , payload : JE.Value
+         }
+         -> Msg
+        )
+        -> Sub Msg
+    }
+
+
 {-| Init
 -}
-init : ({ msg : String, payload : JE.Value } -> Cmd msg) -> List Socket.ConnectOption -> Maybe JE.Value -> Model msg
-init portOut connectOptions connectParams =
+init : PortConfig msg -> List Socket.ConnectOption -> Maybe JE.Value -> Model msg
+init portConfig connectOptions connectParams =
     Model
         { channelsBeingJoined = []
         , channelsJoined = []
@@ -164,7 +197,7 @@ init portOut connectOptions connectParams =
         , lastInvalidSocketEvent = Nothing
         , lastSocketMessage = Nothing
         , nextMessageRef = Nothing
-        , portOut = portOut
+        , portConfig = portConfig
         , protocol = Nothing
         , pushResponse = Nothing
         , queuedEvents = []
@@ -260,7 +293,7 @@ update msg (Model model) =
             ( Model model
                 |> addJoinedChannel topic
                 |> dropChannelBeingJoined topic
-            , model.portOut
+            , model.portConfig.phoenixSend
                 |> sendQueuedEvents topic model.queuedEvents
             )
 
@@ -449,7 +482,7 @@ update msg (Model model) =
                         |> updateSocketState Open
                     , joinChannels
                         model.channelsBeingJoined
-                        model.portOut
+                        model.portConfig.phoenixSend
                     )
 
                 Socket.ProtocolReply result ->
@@ -568,18 +601,18 @@ requestSocketInfo model =
 
 {-| Subscriptions
 -}
-subscriptions : Socket.PortIn Msg -> Channel.PortIn Msg -> Channel.PortIn Msg -> Model msg -> Sub Msg
-subscriptions socketReceiver channelReceiver presenceReceiver (Model model) =
+subscriptions : Model msg -> Sub Msg
+subscriptions (Model model) =
     Sub.batch
         [ Channel.subscriptions
             ChannelMsg
-            channelReceiver
+            model.portConfig.channelReceiver
         , Socket.subscriptions
             SocketMsg
-            socketReceiver
+            model.portConfig.socketReceiver
         , Presence.subscriptions
             PresenceMsg
-            presenceReceiver
+            model.portConfig.presenceReceiver
         , if (model.timeoutEvents |> List.length) > 0 then
             Time.every 1000 TimeoutTick
 
@@ -641,7 +674,7 @@ sendToSocket : Socket.MsgOut -> Model msg -> Cmd msg
 sendToSocket msg (Model model) =
     Socket.send
         msg
-        model.portOut
+        model.portConfig.phoenixSend
 
 
 
@@ -901,7 +934,7 @@ sendIfConnected topic msg payload (Model model) =
             , connect
                 model.connectOptions
                 model.connectParams
-                model.portOut
+                model.portConfig.phoenixSend
             )
 
 
@@ -913,7 +946,7 @@ sendIfJoined topic msg payload (Model model) =
             topic
             msg
             payload
-            model.portOut
+            model.portConfig.phoenixSend
         )
 
     else if model.channelsBeingJoined |> List.member topic then
@@ -934,7 +967,7 @@ sendIfJoined topic msg payload (Model model) =
                 , payload = payload
                 , topic = topic
                 }
-        , join topic model.portOut
+        , join topic model.portConfig.phoenixSend
         )
 
 
