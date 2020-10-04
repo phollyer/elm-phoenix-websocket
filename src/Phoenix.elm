@@ -280,12 +280,19 @@ init portConfig connectOptions =
 -}
 connect : Model -> ( Model, Cmd Msg )
 connect (Model model) =
-    ( Model model
-    , Socket.connect
-        model.connectOptions
-        (Just model.connectParams)
-        model.portConfig.phoenixSend
-    )
+    case model.socketState of
+        Closed ->
+            ( Model model
+            , Socket.connect
+                model.connectOptions
+                (Just model.connectParams)
+                model.portConfig.phoenixSend
+            )
+
+        _ ->
+            ( Model model
+            , Cmd.none
+            )
 
 
 {-| Add some [ConnectOption](Phoenix.Socket#ConnectOption)s to set on the
