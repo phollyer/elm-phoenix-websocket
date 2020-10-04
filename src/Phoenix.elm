@@ -1,27 +1,27 @@
 module Phoenix exposing
     ( Model
     , PortConfig, init
-    , setConnectOptions, setConnectParams
-    , sendMessage
-    , subscriptions
+    , connect, addConnectOptions, setConnectOptions, setConnectParams
+    , PushConfig, push, subscriptions
     , Msg, update
-    , DecoderError(..), PushResponse(..)
+    , DecoderError(..), PushResponse(..), MsgOut
     , requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
     )
 
 {-| This module is a wrapper around the [Socket](Phoenix.Socket),
 [Channel](Phoenix.Channel) and [Presence](Phoenix.Presence) modules. It handles
-all the low level stuff with a simple API, automates a few processes, and
-generally simplifies working with Phoenix WebSockets.
+all the low level stuff with a simple, but extensive API. It automates a few
+processes, and generally simplifies working with Phoenix WebSockets.
+
+In order for this module to provide the benefits that it does, it is required
+to add it to your model so that it can carry its own state and internal logic.
 
 You can use the [Socket](Phoenix.Socket), [Channel](Phoenix.Channel) and
 [Presence](Phoenix.Presence) modules directly, but it is probably unlikely you
 will need to do so. The benefit(?) of using these modules directly, is that
 they do not carry any state, and so do not need to be attached to your model.
 
-In order for this module to provide the benefits that it does, it is required
-to add it to your model so that it can carry its own state and internal logic.
-So, once you have installed the package, and followed the simple setup instructions
+Once you have installed the package, and followed the simple setup instructions
 [here](https://package.elm-lang.org/packages/phollyer/elm-phoenix-websocket/latest/),
 configuring this module is as simple as this:
 
@@ -48,8 +48,7 @@ configuring this module is as simple as this:
                 , channelReceiver = Port.channelReceiver
                 , presenceReceiver = Port.presenceReceiver
                 }
-                Nothing
-                Nothing
+                []
         ...
         }
 
@@ -92,15 +91,31 @@ configuring this module is as simple as this:
 
 @docs PortConfig, init
 
-@docs setConnectOptions, setConnectParams
 
-@docs sendMessage
+# Connecting to the Socket
 
-@docs subscriptions
+Connecting to the Socket is automatic on the first [push](#push) to a Channel.
+However, if you want to connect before hand, you can use the
+[connect](#connect) function.
+
+If you want to set any [ConnectOption](Phoenix.Socket#ConnectOption)s on the
+socket you can do so when you [init](#init) the [Model](#Model), or use the
+[addConnectOptions](#addConnectOptions) or
+[setConnectOptions](#setConnectOptions) functions.
+
+If you want to send any params to the socket when it connects at the Elixir end
+you can use the [setConnectParams](#setConnectParams) function.
+
+@docs connect, addConnectOptions, setConnectOptions, setConnectParams
+
+
+# Talking to Channels
+
+@docs PushConfig, push, subscriptions
 
 @docs Msg, update
 
-@docs DecoderError, PushResponse
+@docs DecoderError, PushResponse, MsgOut
 
 @docs requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
 
@@ -108,6 +123,7 @@ configuring this module is as simple as this:
 
 import Json.Decode as JD
 import Json.Encode as JE
+import List.Unique
 import Phoenix.Channel as Channel
 import Phoenix.Presence as Presence
 import Phoenix.Socket as Socket
@@ -116,7 +132,7 @@ import Time
 
 {-| The model that carries the internal state.
 
-This is an opaque type, so use the provided API to access its fields.
+This is an opaque type, so use the provided API to interact with it.
 
 -}
 type Model
@@ -125,7 +141,7 @@ type Model
         , channelsJoined : List Topic
         , connectionState : Maybe String
         , connectOptions : List Socket.ConnectOption
-        , connectParams : Maybe JE.Value
+        , connectParams : JE.Value
         , decoderErrors : List DecoderError
         , endpointURL : Maybe String
         , hasLogger : Maybe Bool
@@ -184,16 +200,35 @@ type alias PortConfig =
     }
 
 
-{-| Initialize the [Model](#Model).
+{-| Initialize the [Model](#Model), providing the [PortConfig](#PortConfig) and
+any [ConnectOption](Phoenix.Socket#ConnectOption)s you want to set on the socket.
+
+    import Phoenix
+    import Phoenix.Socket as Socket
+    import Port
+
+    init : Model
+    init =
+        { phoenix =
+            Phoenix.init
+                { phoenixSend = Port.phoenixSend
+                , socketReceiver = Port.socketReceiver
+                , channelReceiver = Port.channelReceiver
+                , presenceReceiver = Port.presenceReceiver
+                }
+                [ Socket.Timeout 10000 ]
+        ...
+        }
+
 -}
-init : PortConfig -> List Socket.ConnectOption -> Maybe JE.Value -> Model
-init portConfig connectOptions connectParams =
+init : PortConfig -> List Socket.ConnectOption -> Model
+init portConfig connectOptions =
     Model
         { channelsBeingJoined = []
         , channelsJoined = []
         , connectionState = Nothing
         , connectOptions = connectOptions
-        , connectParams = connectParams
+        , connectParams = JE.null
         , decoderErrors = []
         , endpointURL = Nothing
         , hasLogger = Nothing
@@ -214,16 +249,167 @@ init portConfig connectOptions connectParams =
         }
 
 
-{-| -}
+
+{- Connecting to the Socket -}
+
+
+{-| Connect to the Socket.
+-}
+connect : Model -> ( Model, Cmd Msg )
+connect (Model model) =
+    ( Model model
+    , Socket.connect
+        model.connectOptions
+        (Just model.connectParams)
+        model.portConfig.phoenixSend
+    )
+
+
+{-| Add some [ConnectOption](Phoenix.Socket#ConnectOption)s to set on the
+Socket when connecting.
+
+**Note:** If a [ConnectOption](Phoenix.Socket.ConnectOption) has already been
+set, it will be overwritten if provided again here.
+
+-}
+addConnectOptions : List Socket.ConnectOption -> Model -> Model
+addConnectOptions connectOptions (Model model) =
+    let
+        options =
+            connectOptions
+                |> List.append model.connectOptions
+                |> List.Unique.filterDuplicates
+    in
+    updateConnectOptions options (Model model)
+
+
+{-| Provide some [ConnectOption](Phoenix.Socket#ConnectOption)s to set on the
+Socket when connecting.
+
+**Note:** This will overwrite any current
+[ConnectOption](Phoenix.Socket.ConnectOption)s that have already been set.
+
+-}
 setConnectOptions : List Socket.ConnectOption -> Model -> Model
 setConnectOptions options model =
     updateConnectOptions options model
 
 
-{-| -}
+{-| Provide some params to send to the Socket when connecting at the Elixir
+end.
+
+    import Json.Encode as JE
+
+    setConnectParams
+        JE.object
+            [ ("username", JE.string "username")
+            , ("password", JE.string "password")
+            ]
+        model
+
+-}
 setConnectParams : JE.Value -> Model -> Model
 setConnectParams params model =
-    updateConnectParams (Just params) model
+    updateConnectParams params model
+
+
+
+{- Talking to Channels -}
+
+
+{-| A type alias representing the config for pushing a message to a Channel.
+-}
+type alias PushConfig =
+    { topic : String
+    , msg : String
+    , payload : JE.Value
+    }
+
+
+{-| Push a message to a Channel.
+
+In order for the message to be sent:
+
+  - the Socket must be open, and
+  - the Channel Topic must have been joined
+
+If either of these processes have not been completed, the message will be
+queued until the Socket has connected and the Channel has been joined.
+
+No need to worry though, connecting to the Socket and joining the Channel are
+both handled automatically when the first message is sent.
+
+    import Json.Encode as JE
+    import Phoenix
+
+    Phoenix.push
+        { topic = "post:elm_phoenix_websocket"
+        , msg = "new_comment"
+        , payload =
+            JE.object
+                [ ("comment", JE.string "Wow, this is great.")
+                , ("post_id", JE.string "1")
+                ]
+        }
+        model.phoenix
+
+-}
+push : PushConfig -> Model -> ( Model, Cmd Msg )
+push { topic, msg, payload } model =
+    sendIfConnected
+        topic
+        msg
+        payload
+        model
+
+
+{-| Receive messages from the Socket, Channels and Pheonix Presence.
+
+    import Phoenix
+
+    type Msg
+        = PhoenixMsg Phoenix.Msg
+        | ...
+
+    update : Msg -> Model -> (Model, Cmd Msg)
+    update msg model =
+        case msg of
+            PhoenixMsg subMsg ->
+                let
+                    (phoenix, phoenixCmd) =
+                        Phoenix.update subMsg model.phoenix
+                in
+                ( { model | phoenix = phoenix}
+                , Cmd.map PhoenixMsg phoenixCmd
+                )
+
+            ...
+
+    subscriptions : Model -> Sub Msg
+    subscriptions model =
+        Sub.map PhoenixMsg <|
+            Phoenix.subscriptions
+                model.phoenix
+
+-}
+subscriptions : Model -> Sub Msg
+subscriptions (Model model) =
+    Sub.batch
+        [ Channel.subscriptions
+            ChannelMsg
+            model.portConfig.channelReceiver
+        , Socket.subscriptions
+            SocketMsg
+            model.portConfig.socketReceiver
+        , Presence.subscriptions
+            PresenceMsg
+            model.portConfig.presenceReceiver
+        , if (model.timeoutEvents |> List.length) > 0 then
+            Time.every 1000 TimeoutTick
+
+          else
+            Sub.none
+        ]
 
 
 {-| -}
@@ -231,19 +417,20 @@ type DecoderError
     = Socket JD.Error
 
 
-type alias EventOut =
+{-| -}
+type alias MsgOut =
     String
 
 
 {-| -}
 type PushResponse
-    = PushOk Topic EventOut JE.Value
-    | PushError Topic EventOut JE.Value
-    | PushTimeout Topic EventOut
+    = PushOk Topic MsgOut JE.Value
+    | PushError Topic MsgOut JE.Value
+    | PushTimeout Topic MsgOut
 
 
 type alias QueuedEvent =
-    { msg : EventOut
+    { msg : MsgOut
     , payload : JE.Value
     , topic : Topic
     }
@@ -256,7 +443,7 @@ type SocketState
 
 
 type alias TimeoutEvent =
-    { msg : EventOut
+    { msg : MsgOut
     , payload : JE.Value
     , timeUntilRetry : Int
     , topic : Topic
@@ -512,40 +699,6 @@ update msg (Model model) =
 
 
 
-{-
-   Public API
--}
-
-
-{-| Send a message to a Channel.
-
-In order for the message to be sent:
-
-  - the Socket must be open, and
-  - the Channel Topic must have been joined
-
-If either of these processes have not been completed, the message will be
-queued until the Channel has been joined - at which point, all queued messages
-will be sent.
-
-Connecting to the Socket, and joining the Channel Topic is handled internally
-when the first message is sent, so you don't need to worry about these
-processes.
-
-If the Socket is open, and the Channel Topic joined, the message will be sent
-immediately.
-
--}
-sendMessage : Topic -> EventOut -> JE.Value -> Model -> ( Model, Cmd Msg )
-sendMessage topic msg payload model =
-    sendIfConnected
-        topic
-        msg
-        payload
-        model
-
-
-
 {- Request information about the Socket -}
 
 
@@ -605,28 +758,6 @@ requestSocketInfo model =
         model
 
 
-{-| Subscriptions
--}
-subscriptions : Model -> Sub Msg
-subscriptions (Model model) =
-    Sub.batch
-        [ Channel.subscriptions
-            ChannelMsg
-            model.portConfig.channelReceiver
-        , Socket.subscriptions
-            SocketMsg
-            model.portConfig.socketReceiver
-        , Presence.subscriptions
-            PresenceMsg
-            model.portConfig.presenceReceiver
-        , if (model.timeoutEvents |> List.length) > 0 then
-            Time.every 1000 TimeoutTick
-
-          else
-            Sub.none
-        ]
-
-
 
 {- Decoder Errors -}
 
@@ -669,11 +800,6 @@ dropQueuedEvent queued (Model model) =
 
 
 {- Socket -}
-
-
-connect : List Socket.ConnectOption -> Maybe JE.Value -> ({ msg : String, payload : JE.Value } -> Cmd Msg) -> Cmd Msg
-connect options params portOut =
-    Socket.connect options params portOut
 
 
 sendToSocket : Socket.MsgOut -> Model -> Cmd Msg
@@ -809,21 +935,21 @@ handlePushError topic msgResult payloadResult model =
     case ( msgResult, payloadResult ) of
         ( Ok msg, Ok payload ) ->
             let
-                queued =
+                queuedEvent =
                     { msg = msg
                     , payload = payload
                     , topic = topic
                     }
 
-                push =
+                pushError =
                     PushError
-                        queued.topic
-                        queued.msg
-                        queued.payload
+                        queuedEvent.topic
+                        queuedEvent.msg
+                        queuedEvent.payload
             in
             ( model
-                |> dropQueuedEvent queued
-                |> updatePushResponse push
+                |> dropQueuedEvent queuedEvent
+                |> updatePushResponse pushError
             , Cmd.none
             )
 
@@ -836,21 +962,21 @@ handlePushOk topic msgResult payloadResult model =
     case ( msgResult, payloadResult ) of
         ( Ok msg, Ok payload ) ->
             let
-                queued =
+                queuedEvent =
                     { msg = msg
                     , payload = payload
                     , topic = topic
                     }
 
-                push =
+                pushOk =
                     PushOk
-                        queued.topic
-                        queued.msg
-                        queued.payload
+                        queuedEvent.topic
+                        queuedEvent.msg
+                        queuedEvent.payload
             in
             ( model
-                |> dropQueuedEvent queued
-                |> updatePushResponse push
+                |> dropQueuedEvent queuedEvent
+                |> updatePushResponse pushOk
             , Cmd.none
             )
 
@@ -863,28 +989,28 @@ handlePushTimeout topic msgResult payloadResult model =
     case ( msgResult, payloadResult ) of
         ( Ok msg, Ok payload ) ->
             let
-                queued =
+                queuedEvent =
                     { msg = msg
                     , payload = payload
                     , topic = topic
                     }
 
-                push =
+                pushTimeout =
                     PushTimeout
-                        queued.topic
-                        queued.msg
+                        queuedEvent.topic
+                        queuedEvent.msg
 
-                timeout =
-                    { msg = queued.msg
+                timeoutEvent =
+                    { msg = queuedEvent.msg
                     , payload = payload
                     , timeUntilRetry = 5
-                    , topic = queued.topic
+                    , topic = queuedEvent.topic
                     }
             in
             ( model
-                |> addTimeoutEvent timeout
-                |> dropQueuedEvent queued
-                |> updatePushResponse push
+                |> addTimeoutEvent timeoutEvent
+                |> dropQueuedEvent queuedEvent
+                |> updatePushResponse pushTimeout
             , Cmd.none
             )
 
@@ -896,7 +1022,7 @@ handlePushTimeout topic msgResult payloadResult model =
 {- Server Requests - Private API -}
 
 
-send : Topic -> EventOut -> JE.Value -> ({ msg : String, payload : JE.Value } -> Cmd Msg) -> Cmd Msg
+send : Topic -> MsgOut -> JE.Value -> ({ msg : String, payload : JE.Value } -> Cmd Msg) -> Cmd Msg
 send topic msg payload portOut =
     Channel.push
         { topic = topic
@@ -907,7 +1033,7 @@ send topic msg payload portOut =
         portOut
 
 
-sendIfConnected : Topic -> EventOut -> JE.Value -> Model -> ( Model, Cmd Msg )
+sendIfConnected : Topic -> MsgOut -> JE.Value -> Model -> ( Model, Cmd Msg )
 sendIfConnected topic msg payload (Model model) =
     case model.socketState of
         Open ->
@@ -937,14 +1063,14 @@ sendIfConnected topic msg payload (Model model) =
                     , topic = topic
                     }
                 |> updateSocketState Opening
-            , connect
+            , Socket.connect
                 model.connectOptions
-                model.connectParams
+                (Just model.connectParams)
                 model.portConfig.phoenixSend
             )
 
 
-sendIfJoined : Topic -> EventOut -> JE.Value -> Model -> ( Model, Cmd Msg )
+sendIfJoined : Topic -> MsgOut -> JE.Value -> Model -> ( Model, Cmd Msg )
 sendIfJoined topic msg payload (Model model) =
     if model.channelsJoined |> List.member topic then
         ( Model model
@@ -1064,7 +1190,7 @@ updateConnectOptions options (Model model) =
         }
 
 
-updateConnectParams : Maybe JE.Value -> Model -> Model
+updateConnectParams : JE.Value -> Model -> Model
 updateConnectParams params (Model model) =
     Model
         { model
