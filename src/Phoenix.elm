@@ -32,7 +32,7 @@ configuring this module is as simple as this:
     -- Add the Phoenix Model to your Model
 
     type alias Model =
-        { phoenix : Phoenix.Model Phoenix.Msg
+        { phoenix : Phoenix.Model
         ...
         }
 
@@ -43,7 +43,11 @@ configuring this module is as simple as this:
     init =
         { phoenix =
             Phoenix.init
-                Port.phoenixSend
+                { phoenixSend = Port.phoenixSend
+                , socketReceiver = Port.socketReceiver
+                , channelReceiver = Port.channelReceiver
+                , presenceReceiver = Port.presenceReceiver
+                }
                 Nothing
                 Nothing
         ...
@@ -79,9 +83,6 @@ configuring this module is as simple as this:
     subscriptions model =
         Sub.map PhoenixMsg <|
             Phoenix.subscriptions
-                Port.socketReceiver
-                Port.channelReceiver
-                Port.presenceReceiver
                 model.phoenix
 
 
@@ -145,7 +146,8 @@ type Model
         }
 
 
-{-| -}
+{-| The ports to be used to communicate with JS.
+-}
 type alias PortConfig =
     { phoenixSend :
         { msg : String
