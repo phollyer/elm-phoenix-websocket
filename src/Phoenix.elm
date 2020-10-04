@@ -3,7 +3,8 @@ module Phoenix exposing
     , PortConfig, init
     , connect, addConnectOptions, setConnectOptions, setConnectParams
     , Topic, join, JoinConfig, addJoinConfig
-    , PushConfig, push, subscriptions
+    , PushConfig, push, pushAll
+    , subscriptions
     , Msg, update
     , DecoderError(..), PushResponse(..), MsgOut
     , requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
@@ -132,7 +133,15 @@ messages will be sent in a batch.
 If the Socket is open and the Channel joined, the message will be sent
 immediately.
 
-@docs PushConfig, push, subscriptions
+
+## Pushing Messages
+
+@docs PushConfig, push, pushAll
+
+
+## Receiving Messages
+
+@docs subscriptions
 
 @docs Msg, update
 
