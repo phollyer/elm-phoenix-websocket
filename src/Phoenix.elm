@@ -2,6 +2,7 @@ module Phoenix exposing
     ( Model
     , PortConfig, init
     , connect, addConnectOptions, setConnectOptions, setConnectParams
+    , join
     , PushConfig, push, subscriptions
     , Msg, update
     , DecoderError(..), PushResponse(..), MsgOut
@@ -109,6 +110,11 @@ you can use the [setConnectParams](#setConnectParams) function.
 @docs connect, addConnectOptions, setConnectOptions, setConnectParams
 
 
+# Joining a Channel
+
+@docs join
+
+
 # Talking to Channels
 
 @docs PushConfig, push, subscriptions
@@ -123,6 +129,7 @@ you can use the [setConnectParams](#setConnectParams) function.
 
 import Json.Decode as JD
 import Json.Encode as JE
+import List.Extra
 import List.Unique
 import Phoenix.Channel as Channel
 import Phoenix.Presence as Presence
@@ -137,7 +144,7 @@ This is an opaque type, so use the provided API to interact with it.
 -}
 type Model
     = Model
-        { channelsBeingJoined : List Topic
+        { channelsBeingJoined : List JoinConfig
         , channelsJoined : List Topic
         , connectionState : Maybe String
         , connectOptions : List Socket.ConnectOption
@@ -311,6 +318,37 @@ end.
 setConnectParams : JE.Value -> Model -> Model
 setConnectParams params model =
     updateConnectParams params model
+
+
+
+{- Joining a Channel -}
+
+
+{-| A type alias representing the config for joining a channel.
+
+  - `topic` - the channel topic id, for example: `"topic:subtopic"`.
+
+  - `payload` - optional data to be sent to the channel when joining.
+
+  - `timeout` - optional timeout, in ms, before retrying to join if the previous
+    attempt failed.
+
+-}
+type alias JoinConfig =
+    { topic : String
+    , payload : Maybe JE.Value
+    , timeout : Maybe Int
+    }
+
+
+{-| -}
+join : JoinConfig -> Model -> ( Model, Cmd Msg )
+join config (Model model) =
+    ( Model model
+    , Channel.join
+        config
+        model.portConfig.phoenixSend
+    )
 
 
 
@@ -873,14 +911,14 @@ timeoutTick (Model model) =
 {- Channels -}
 
 
-addChannelBeingJoined : Topic -> Model -> Model
-addChannelBeingJoined topic (Model model) =
-    if model.channelsBeingJoined |> List.member topic then
+addChannelBeingJoined : JoinConfig -> Model -> Model
+addChannelBeingJoined config (Model model) =
+    if model.channelsBeingJoined |> List.member config then
         Model model
 
     else
         updateChannelsBeingJoined
-            (topic :: model.channelsBeingJoined)
+            (config :: model.channelsBeingJoined)
             (Model model)
 
 
@@ -901,21 +939,11 @@ dropChannelBeingJoined topic (Model model) =
         channelsBeingJoined =
             model.channelsBeingJoined
                 |> List.filter
-                    (\channelTopic -> channelTopic /= topic)
+                    (\joinConfig -> joinConfig.topic /= topic)
     in
     updateChannelsBeingJoined
         channelsBeingJoined
         (Model model)
-
-
-join : Topic -> ({ msg : String, payload : JE.Value } -> Cmd Msg) -> Cmd Msg
-join topic portOut =
-    Channel.join
-        { payload = Nothing
-        , topic = topic
-        , timeout = Nothing
-        }
-        portOut
 
 
 joinChannels : List Topic -> ({ msg : String, payload : JE.Value } -> Cmd Msg) -> Cmd Msg
@@ -1081,26 +1109,28 @@ sendIfJoined topic msg payload (Model model) =
             model.portConfig.phoenixSend
         )
 
-    else if model.channelsBeingJoined |> List.member topic then
-        ( addEventToQueue
-            { msg = msg
-            , payload = payload
-            , topic = topic
-            }
-            (Model model)
-        , Cmd.none
-        )
-
     else
-        ( Model model
-            |> addChannelBeingJoined topic
-            |> addEventToQueue
-                { msg = msg
-                , payload = payload
-                , topic = topic
-                }
-        , join topic model.portConfig.phoenixSend
-        )
+        case List.Extra.find (\config -> config.topic == topic) model.channelsBeingJoined of
+            Just config ->
+                ( Model model
+                    |> addChannelBeingJoined topic
+                    |> addEventToQueue
+                        { msg = msg
+                        , payload = payload
+                        , topic = topic
+                        }
+                , join config model
+                )
+
+            Nothing ->
+                ( addEventToQueue
+                    { msg = msg
+                    , payload = payload
+                    , topic = topic
+                    }
+                    (Model model)
+                , Cmd.none
+                )
 
 
 sendQueuedEvents : Topic -> List QueuedEvent -> ({ msg : String, payload : JE.Value } -> Cmd Msg) -> Cmd Msg
@@ -1158,7 +1188,7 @@ sendTimeoutEvents timeoutEvents model =
 {- Update Model Fields -}
 
 
-updateChannelsBeingJoined : List Topic -> Model -> Model
+updateChannelsBeingJoined : List JoinConfig -> Model -> Model
 updateChannelsBeingJoined channelsBeingJoined (Model model) =
     Model
         { model
