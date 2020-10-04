@@ -15,7 +15,7 @@ The JS file you need, and set up instructions are
 ## Add the Port module
 
 The Port module you need, and set up instructions are
-[`here`](https://github.com/phollyer/elm-phoenix-websocket/tree/master/src/Ports).
+[`here`](https://github.com/phollyer/elm-phoenix-websocket/tree/master/ports).
 
 ## Install the package.
 
