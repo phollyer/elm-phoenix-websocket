@@ -51,7 +51,7 @@ let ElmPhoenixWebSocket = {
     */
     init(ports, socket, presence) {
         this.elmPorts = ports
-        this.elmPorts.sendMessage.subscribe( params => this[params.event](params.payload))
+        this.elmPorts.phoenixSend.subscribe( params => this[params.msg](params.payload))
 
         this.phoenixSocket = socket
         this.phoenixPresence = presence
@@ -155,6 +155,37 @@ let ElmPhoenixWebSocket = {
     protocol() { this.socketSend("Protocol", this.socket.protocol()) },
 
 
+    /* info/0
+
+        Retrieve the socket info and send it back to Elm as a String.
+
+    */
+    info() {
+        var hasLogger
+
+        // In Phoenix v1.3.2 the hasLogger function does not exist,
+        // so check it exists before calling it.
+        if( this.socket.hasLogger ) {
+            hasLogger = this.socket.hasLogger()
+        } else {
+            // The function does not exist so send back null to signify we could not test for a logger.
+            hasLogger = null
+        }
+
+        var info =
+            { connectionState: this.socket.connectionState(),
+              endPointURL: this.socket.endPointURL(),
+              hasLogger: hasLogger,
+              isConnected: this.socket.isConnected(),
+              nextMessageRef: this.socket.makeRef(),
+              protocol: this.socket.protocol()
+            }
+
+
+        this.socketSend("Info", info )
+    },
+
+
     /* isConnected/0
 
         Retrieve whether the socket is currently connected and send it back to Elm as a Bool.
@@ -219,10 +250,10 @@ let ElmPhoenixWebSocket = {
                     case "reconnectAfterMs":
 
                         // Check to see if a backoff function is required for the socket.
-                        if(options.reconnectSteppedBackoff && options.reconnectMaxBackOff) {
+                        if(options.reconnectSteppedBackoff) {
 
                             // Create the backoff function the socket uses when trying to reconnect.
-                            params.reconnectAfterMs = function(tries) { return options.reconnectSteppedBackoff[ tries - 1] || options.reconnectMaxBackOff }
+                            params.reconnectAfterMs = function(tries) { return options.reconnectSteppedBackoff[ tries - 1] || options.reconnectAfterMs }
                         } else {
                             if(options.reconnectAfterMs) {
 
@@ -235,10 +266,10 @@ let ElmPhoenixWebSocket = {
                     case "rejoinAfterMs":
 
                         // Check to see if a backoff function is required for the channels.
-                        if(options.rejoinSteppedBackoff && options.rejoinMaxBackOff) {
+                        if(options.rejoinSteppedBackoff) {
 
                             // Create the backoff function the channels use when trying to rejoin.
-                            params.rejoinAfterMs = function(tries) { return options.rejoinSteppedBackoff[ tries - 1] || options.rejoinMaxBackOff }
+                            params.rejoinAfterMs = function(tries) { return options.rejoinSteppedBackoff[ tries - 1] || options.rejoinAfterMs }
                         } else {
                             if(options.rejoinAfterMs) {
 
@@ -269,13 +300,13 @@ let ElmPhoenixWebSocket = {
             any errors to the console.
 
             Paramters:
-                event <string> - The message to send through the port.
+                msg <string> - The message to send through the port.
                 payload <json>|<elm comparable> - The data to send.
 
     */
-    socketSend(event, payload) {
+    socketSend(msg, payload) {
         this.elmPorts.socketReceiver.send(
-            {event: event,
+            {msg: msg,
              payload: payload
             }
         )
@@ -291,7 +322,7 @@ let ElmPhoenixWebSocket = {
             Parameters:
                 params <object>
                     topic <string> - The topic of the channel.
-                    events <list string> - The events expected to come from the channel.
+                    msgs <list string> - The msgs expected to come from the channel.
                     msg <object> - Any data to be sent to the channel, such as authentication params.
 
                 socket <object> - The Phx Socket.
@@ -302,7 +333,7 @@ let ElmPhoenixWebSocket = {
 
         this.channel = this.socket.channel(params.topic, params.payload)
         this.channel.onClose( () => self.channelSend(params.topic, "Closed", {}))
-        this.channel.onError( (error) => self.channelSend(params.topic, "Error", {msg: error}))
+        this.channel.onError( () => self.channelSend(params.topic, "Error", {}))
 
         this.channel.on("presence_diff", diff => self.onDiff(params.topic, diff))
         this.channel.on("presence_state", state => self.onState(params.topic, state))
@@ -346,7 +377,7 @@ let ElmPhoenixWebSocket = {
 
             Parameters:
                 params <object>
-                    event <string> - The event to send to the channel.
+                    msg <string> - The msg to send to the channel.
                     payload <object> - The data to send.
                     topic <maybe string> - The topic of the channel to push to.
                     timeout <maybe int> - The timeout before retrying.
@@ -360,47 +391,47 @@ let ElmPhoenixWebSocket = {
 
         let push = {}
 
-        // Push the event and payload to the server, with or without a custom timeout.
+        // Push the msg and payload to the server, with or without a custom timeout.
         if(params.timeout) {
-            push = channel.push(params.event, params.payload, params.timeout)
+            push = channel.push(params.msg, params.payload, params.timeout)
         } else {
-            push = channel.push(params.event, params.payload)
+            push = channel.push(params.msg, params.payload)
         }
 
         push
-            .receive("ok", (payload) => self.channelSend(params.topic, "PushOk", {event: params.event, payload: payload}))
-            .receive("error", (payload) => self.channelSend(params.topic, "PushError", {event: params.event, payload: payload}))
-            .receive("timeout", () => self.channelSend(params.topic, "PushTimeout", {event: params.event, payload: params.payload}))
+            .receive("ok", (payload) => self.channelSend(params.topic, "PushOk", {msg: params.msg, payload: payload}))
+            .receive("error", (payload) => self.channelSend(params.topic, "PushError", {msg: params.msg, payload: payload}))
+            .receive("timeout", () => self.channelSend(params.topic, "PushTimeout", {msg: params.msg, payload: params.payload}))
     },
 
     /* on/1
 
-            Subscribe to a channel event.
+            Subscribe to a channel msg.
 
             Parameters:
                 params <object>
                     topic <maybe string> - The topic of the channel to subscribe to.
-                    event <string> - The event to subscribe to.
+                    msg <string> - The msg to subscribe to.
     */
     on(params) {
         self = this
         this.find(params.topic)
-            .on(params.event, payload => self.channelSend(params.topic, "Message", {event: params.event, payload: payload}))
+            .on(params.msg, payload => self.channelSend(params.topic, "Message", {msg: params.msg, payload: payload}))
     },
 
 
     /* off/1
 
-            Turn off a subscribption to a channel event.
+            Turn off a subscribption to a channel msg.
 
             Parameters:
                 params <object>
                     topic <maybe string> - The topic of the channel to unsubscribe to.
-                    event <string> - The event to unsubscribe to.
+                    msg <string> - The msg to unsubscribe to.
     */
     off(params) {
         this.find(params.topic)
-            .off(params.event)
+            .off(params.msg)
     },
 
 
@@ -460,14 +491,14 @@ let ElmPhoenixWebSocket = {
 
             Paramters:
                 topic <string> - The channel topic.
-                event <string> - The message to send through the port.
+                msg <string> - The message to send through the port.
                 payload <json>|<elm comparable> - The data to send.
 
     */
-    channelSend(topic, event, payload) {
+    channelSend(topic, msg, payload) {
         this.elmPorts.channelReceiver.send(
             {topic: topic,
-             event: event,
+             msg: msg,
              payload: payload
             }
         )
@@ -569,15 +600,15 @@ let ElmPhoenixWebSocket = {
 
             Paramters:
                 topic <string> - The channel topic.
-                event <string> - The message to send through the port.
+                msg <string> - The message to send through the port.
                 payload <json>|<elm comparable> - The data to send.
 
     */
-    presenceSend(topic, event, payload) {
+    presenceSend(topic, msg, payload) {
         if(this.elmPorts.presenceReceiver) {
             this.elmPorts.presenceReceiver.send(
                 {topic: topic,
-                 event: event,
+                 msg: msg,
                  payload: payload
                 }
             )
@@ -589,3 +620,6 @@ let ElmPhoenixWebSocket = {
 }
 
 export default ElmPhoenixWebSocket
+
+
+

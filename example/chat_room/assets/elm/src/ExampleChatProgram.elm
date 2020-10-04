@@ -59,10 +59,10 @@ import Html.Attributes as Attr
 import Json.Decode as JD
 import Json.Decode.Extra exposing (andMap)
 import Json.Encode as JE
-import Phoenix.Channel as Channel exposing (EventIn(..), EventOut(..))
-import Phoenix.Presence as Presence exposing (EventIn(..), Presence, PresenceState)
-import Phoenix.Socket as Socket exposing (EventIn(..), EventOut(..))
-import Ports.Phoenix as Phx
+import Phoenix.Channel as Channel
+import Phoenix.Presence as Presence
+import Phoenix.Socket as Socket
+import Ports as Port
 import Task
 
 
@@ -82,23 +82,23 @@ init _ =
 
 
 {-| `id` - is created by Phoenix when the user joins the channel. It is
-received as the payload with the [Channel.JoinOk](Channel#EventIn) event.
+received as the payload with the [Channel.JoinOk](Channel#MsgIn) msg.
 
 `users` - are the list of users currently active, and are received as the
-payload with the [Presence.State](Presence#EventIn) event. The payload is of
-the type [PresenceState](Presence#PresenceState), and it is updated
+payload with the [Presence.State](Presence#MsgIn) msg. The payload is of
+the type [Presence.PresenceState](Presence#Presence.PresenceState), and it is updated
 automatically by Phoenix as users come and go; we just need to
 [subscribe](#subscriptions) to receive incoming
-[Presence events](Presence#EventIn) and update the model with each new list.
+[Presence msgs](Presence#MsgIn) and update the model with each new list.
 
 `messages` - are the list of individual [Message](#Message)s received by the
-[Channel.Message](Channel#EventIn) `new_msg` event.
+[Channel.Message](Channel#MsgIn) `new_msg` msg.
 
 -}
 type alias Model =
     { id : UserId
     , username : String
-    , users : PresenceState
+    , users : Presence.PresenceState
     , message : MessageText
     , messages : List Message
     , messageState : MessageState
@@ -147,19 +147,19 @@ type alias Message =
 deleted.
 
 `Typing` - the text box has focus and some text has been entered by the user.
-When entering this state, a [Channel.Push](Channel#EventOut) `is_typing` event
+When entering this state, a [Channel.Push](Channel#Msg) `is_typing` msg
 is **sent** to all clients who then **receive** a
-[Channel.Message](Channel#EventIn) `is_typing` event with the users name and
+[Channel.Message](Channel#MsgIn) `is_typing` msg with the users name and
 id as the payload in the format `name:id` (Json encoded). This then causes the
 users name in the sidebar to turn green. When exiting this state, the same
-process happens but with a `stopped_typing` event which causes the users name
+process happens but with a `stopped_typing` msg which causes the users name
 in the sidebar to revert to being blue for all connected clients.
 
 `Sending` - we enter this state when the user clicks the send message button
 and there is content to send. When this happens, we **send** a
-[Channel.Push](Channel#EventOut) `new_msg` event with the [Message](#Message)
+[Channel.Push](Channel#Msg) `new_msg` msg with the [Message](#Message)
 as the payload (Json encoded). This is then **received** by all clients as a
-[Channel.Message](Channel#EventIn) `new_msg` event with the [Message](#Message)
+[Channel.Message](Channel#MsgIn) `new_msg` msg with the [Message](#Message)
 as the payload (Json encoded).
 
 -}
@@ -174,29 +174,29 @@ type MessageState
 `NotJoined` - the user has not yet tried to join.
 
 `Joining` - the user has entered their name and clicked the join button. This
-causes the [Socket.Connect](Socket#EventOut) event to be **sent**, and, if
-successful, then the [Socket.Opened](Socket#EventIn) event is **received**. If
-unsuccessful, then a [Socket.Error](Socket#EventIn) event is **received**.
+causes the [Socket.Connect](Socket#Msg) msg to be **sent**, and, if
+successful, then the [Socket.Opened](Socket#MsgIn) msg is **received**. If
+unsuccessful, then a [Socket.Error](Socket#MsgIn) msg is **received**.
 
 Once the socket has been opened, we can join the channel by **sending** the
-[Channel.Join](Channel#EventOut) event. The channel then sends back the
-[Channel.JoinOk](Channel#EventIn) event which is **received** with the user
+[Channel.Join](Channel#Msg) msg. The channel then sends back the
+[Channel.JoinOk](Channel#MsgIn) msg which is **received** with the user
 `id` as the payload and we enter the `Joined` state.
 
 In the real world you probably want to also handle the
-[Channel.JoinError](Channel#EventIn) and [Channel.JoinTimeout](Channel#EventIn)
-events too. There is no need to worry about them for this example as there is
+[Channel.JoinError](Channel#MsgIn) and [Channel.JoinTimeout](Channel#MsgIn)
+msgs too. There is no need to worry about them for this example as there is
 no authentication when joining the channel, and the local connection means
 there will be no timeout.
 
-`Joined` - When we enter this state, we prepare to receive the incoming events
-by sending the required [Channel.On](Channel.EventOut) events to the channel.
+`Joined` - When we enter this state, we prepare to receive the incoming msgs
+by sending the required [Channel.On](Channel.Msg) msgs to the channel.
 This does not send anything over the wire, but simply sets up the channel JS to
-route the events back to Elm as they arrive from Phoenix.
+route the msgs back to Elm as they arrive from Phoenix.
 
-_You will only **receive** [Channel.Message](Channel#EventIn) events for the
-[Channel.On](Channel.EventOut) events that are setup and
-[Channel.On](Channel.EventOut) events can only be set up **after** a channel
+_You will only **receive** [Channel.Message](Channel#MsgIn) msgs for the
+[Channel.On](Channel.Msg) msgs that are setup and
+[Channel.On](Channel.Msg) msgs can only be set up **after** a channel
 has been joined. _
 
 -}
@@ -216,7 +216,7 @@ topic =
     "room:public"
 
 
-{-| The event that is sent to and from Phoenix to signify a new message.
+{-| The msg that is sent to and from Phoenix to signify a new message.
 
 Returns `"new_msg"`.
 
@@ -226,7 +226,7 @@ newMsgEvent =
     "new_msg"
 
 
-{-| The event that is sent to and from Phoenix to signify a user is typing.
+{-| The msg that is sent to and from Phoenix to signify a user is typing.
 
 Returns `"is_typing"`.
 
@@ -236,7 +236,7 @@ isTypingEvent =
     "is_typing"
 
 
-{-| The event that is sent to and from Phoenix to signify a user has stopped
+{-| The msg that is sent to and from Phoenix to signify a user has stopped
 typing.
 
 Returns `"stopped_typing"`.
@@ -258,9 +258,9 @@ type Msg
     | SendMessage
     | MsgTextFocusedIn
     | MsgTextFocusedOut
-    | SocketMsg Socket.EventIn
-    | ChannelMsg Channel.EventIn
-    | PresenceMsg Presence.EventIn
+    | SocketMsg Socket.MsgIn
+    | ChannelMsg Channel.Msg
+    | PresenceMsg Presence.Msg
     | NoOp
 
 
@@ -301,7 +301,7 @@ update msg model =
 
         -- Socket was opened successfully
         -- Join the channel
-        SocketMsg Opened ->
+        SocketMsg Socket.Opened ->
             ( model
             , model.username
                 |> encodeUsername
@@ -309,8 +309,8 @@ update msg model =
             )
 
         -- Channel was joined successfully
-        -- Maybe setup incoming events
-        ChannelMsg (JoinOk _ payload) ->
+        -- Maybe setup incoming msgs
+        ChannelMsg (Channel.JoinOk _ payload) ->
             case JD.decodeValue (JD.field "id" JD.string) payload of
                 Ok id ->
                     ( { model
@@ -369,7 +369,7 @@ update msg model =
         -- Send either isTypingEvent or stoppedTypingEvent to connected clients
         ChangedMessage message ->
             let
-                ( messageState, event ) =
+                ( messageState, msg_ ) =
                     if String.trim message == "" then
                         ( Waiting, stoppedTypingEvent )
 
@@ -383,7 +383,7 @@ update msg model =
             , model.id
                 |> encodeId
                 |> push
-                    event
+                    msg_
             )
 
         -- Send the message to all connected clients
@@ -398,7 +398,7 @@ update msg model =
             )
 
         -- Message was sent successfully
-        ChannelMsg (PushOk _ _ _) ->
+        ChannelMsg (Channel.PushOk _ _ _) ->
             ( { model
                 | message = ""
                 , messageState = Waiting
@@ -406,64 +406,70 @@ update msg model =
             , Cmd.none
             )
 
-        {- Incoming events -}
+        {- Incoming msgs -}
         --
         --
         -- Receive a message from another user
         -- Scroll the viewport so that the message is displayed
-        ChannelMsg (Channel.Message _ "new_msg" payload) ->
-            ( { model
-                | messages =
-                    case decodeMessage payload of
-                        Ok message ->
-                            model.messages
-                                ++ [ message ]
+        ChannelMsg (Channel.Message _ msgResult payloadResult) ->
+            case ( msgResult, payloadResult ) of
+                ( Ok "new_msg", Ok payload ) ->
+                    ( { model
+                        | messages =
+                            case decodeMessage payload of
+                                Ok message ->
+                                    model.messages
+                                        ++ [ message ]
 
-                        Err _ ->
-                            model.messages
-              }
-            , Dom.getViewportOf "messages"
-                |> Task.andThen
-                    (\{ scene } ->
-                        Dom.setViewportOf "messages" 0 scene.height
+                                Err _ ->
+                                    model.messages
+                      }
+                    , Dom.getViewportOf "messages"
+                        |> Task.andThen
+                            (\{ scene } ->
+                                Dom.setViewportOf "messages" 0 scene.height
+                            )
+                        |> Task.attempt
+                            (\_ -> NoOp)
                     )
-                |> Task.attempt
-                    (\_ -> NoOp)
-            )
 
-        -- A user is typing
-        -- Tag that user to identify them in the sidebar
-        ChannelMsg (Channel.Message _ "is_typing" payload) ->
-            ( { model
-                | users =
-                    model.users
-                        |> tagUser
-                            payload
-              }
-            , Cmd.none
-            )
+                ( Ok "is_typing", Ok payload ) ->
+                    ( { model
+                        | users =
+                            model.users
+                                |> tagUser
+                                    payload
+                      }
+                    , Cmd.none
+                    )
 
-        -- A user has stopped typing
-        -- Untag them to reset them in the sidebar
-        ChannelMsg (Channel.Message _ "stopped_typing" payload) ->
-            ( { model
-                | users =
-                    model.users
-                        |> unTagUser
-                            payload
-              }
-            , Cmd.none
-            )
+                ( Ok "stopped_typing", Ok payload ) ->
+                    ( { model
+                        | users =
+                            model.users
+                                |> unTagUser
+                                    payload
+                      }
+                    , Cmd.none
+                    )
+
+                _ ->
+                    ( model, Cmd.none )
 
         -- Receive the Presence State
-        PresenceMsg (State _ users) ->
-            ( { model
-                | users =
-                    users
-                        |> List.sortBy .id
-              }
-            , Cmd.none
-            )
+        PresenceMsg (Presence.State _ usersResult) ->
+            case usersResult of
+                Ok users ->
+                    ( { model
+                        | users =
+                            users
+                                |> List.sortBy .id
+                      }
+                    , Cmd.none
+                    )
+
+                _ ->
+                    ( model, Cmd.none )
 
         {- Catch Alls -}
         --
@@ -487,30 +493,26 @@ update msg model =
 -- Outgoing Events
 
 
-{-| Send the [Socket.Connect](Socket#EventOut) event out through the `port`.
+{-| Send the [Socket.Connect](Socket#Msg) msg out through the `port`.
 -}
 connectToSocket : Cmd Msg
 connectToSocket =
-    Phx.sendMessage
-        |> Socket.send
-            (Connect Nothing)
+    Socket.connect [] Nothing Port.phoenixSend
 
 
-{-| Send the [Channel.Join](Channel#EventOut) event out through the `port`.
+{-| Send the [Channel.Join](Channel#Msg) msg out through the `port`.
 -}
 joinChannel : JE.Value -> Cmd Msg
 joinChannel payload =
-    Phx.sendMessage
-        |> Channel.send
-            (Channel.Join
-                { topic = topic
-                , timeout = Nothing
-                , payload = Just payload
-                }
-            )
+    Channel.join
+        { topic = topic
+        , timeout = Nothing
+        , payload = Just payload
+        }
+        Port.phoenixSend
 
 
-{-| Send a [Channel.Push](Channel#EventOut) event out through the `port`.
+{-| Send a [Channel.Push](Channel#Msg) msg out through the `port`.
 
 The first `String` parameter will be one of [newMsgEvent](#newMsgEvent),
 [isTypingEvent](#isTypingEvent) or [stoppedTypingEvent](#stoppedTypingEvent).
@@ -519,54 +521,53 @@ The second `Value` parameter is the payload.
 
 -}
 push : String -> JE.Value -> Cmd Msg
-push event payload =
-    Phx.sendMessage
-        |> Channel.send
-            (Push
-                { topic = Just topic
-                , event = event
-                , timeout = Nothing
-                , payload = payload
-                }
-            )
+push msg payload =
+    Channel.push
+        { topic = topic
+        , msg = msg
+        , timeout = Nothing
+        , payload = payload
+        }
+        Port.phoenixSend
 
 
 
 -- Incoming Events
 
 
-incomingEvents : List String
-incomingEvents =
+incomingMsgs : List String
+incomingMsgs =
     [ newMsgEvent
     , isTypingEvent
     , stoppedTypingEvent
     ]
 
 
-{-| Setup all the incoming events that we need to be able to receive from the
+{-| Setup all the incoming msgs that we need to be able to receive from the
 channel. This needs to be invoked **after** we receive the
-[Channel.JoinOk](Channel#EventIn) event.
+[Channel.JoinOk](Channel#MsgIn) msg.
 -}
 setupIncomingEvents : Cmd Msg
 setupIncomingEvents =
-    Phx.sendMessage
-        |> Channel.eventsOn
-            (Just topic)
-            incomingEvents
+    Channel.on
+        { topic = topic
+        , msgs = incomingMsgs
+        }
+        Port.phoenixSend
 
 
-{-| This is where we subscribe to incoming Socket, Channel and Presence events.
+{-| This is where we subscribe to incoming Socket, Channel and Presence msgs.
 -}
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ Phx.socketReceiver
+        [ Port.socketReceiver
             |> Socket.subscriptions
                 SocketMsg
-        , Phx.channelReceiver
+        , Port.channelReceiver
             |> Channel.subscriptions
                 ChannelMsg
-        , Phx.presenceReceiver
+        , Port.presenceReceiver
             |> Presence.subscriptions
                 PresenceMsg
         ]
@@ -631,7 +632,7 @@ encodeUsername username =
 -- Remote User Interaction
 
 
-tagUser : JE.Value -> PresenceState -> PresenceState
+tagUser : JE.Value -> Presence.PresenceState -> Presence.PresenceState
 tagUser payload users =
     let
         id =
@@ -651,7 +652,7 @@ tagUser payload users =
             )
 
 
-unTagUser : JE.Value -> PresenceState -> PresenceState
+unTagUser : JE.Value -> Presence.PresenceState -> Presence.PresenceState
 unTagUser payload users =
     let
         id =
@@ -859,14 +860,14 @@ messageFormButton model =
 -- Users View
 
 
-viewNames : PresenceState -> List (Element Msg)
+viewNames : Presence.PresenceState -> List (Element Msg)
 viewNames users =
     users
         |> List.map
             viewName
 
 
-viewName : Presence -> Element Msg
+viewName : Presence.Presence -> Element Msg
 viewName user =
     El.el
         [ Font.color (selectColor user.id) ]
