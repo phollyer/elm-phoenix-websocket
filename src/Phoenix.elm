@@ -479,6 +479,17 @@ push { topic, msg, payload } model =
         model
 
 
+{-| Push a list of messages together.
+
+The messages will batched and the order in which they reach their respective
+Channels is unknown.
+
+-}
+pushAll : List PushConfig -> Model -> ( Model, Cmd Msg )
+pushAll configs model =
+    ( model, Cmd.none )
+
+
 {-| Receive messages from the Socket, Channels and Pheonix Presence.
 
     import Phoenix
