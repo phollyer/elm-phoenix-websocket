@@ -60,7 +60,7 @@ functions is to also use the `...SteppedBackoff` counterparts:
     , RejoinSteppedBackoff [ 1000, 2000, 5000 ]
     ]
 
-On the JS side, the above options results in:
+On the JS side, the above options result in:
 
     { reconnectAfterMs: function(tries){ return [10, 20, 50, 100, 500][tries - 1] || 1000 },
       rejoinAfterMs: function(tries){ return [1000, 2000, 5000][tries - 1] || 10000 }

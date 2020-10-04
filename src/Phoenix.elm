@@ -146,7 +146,11 @@ type Model
         }
 
 
-{-| The ports to be used to communicate with JS.
+{-| A type alias representing the ports to be used to communicate with JS.
+
+You can find the `port` module
+[here](https://github.com/phollyer/elm-phoenix-websocket/tree/master/ports).
+
 -}
 type alias PortConfig =
     { phoenixSend :
@@ -180,7 +184,7 @@ type alias PortConfig =
     }
 
 
-{-| Init
+{-| Initialize the [Model](#Model).
 -}
 init : PortConfig -> List Socket.ConnectOption -> Maybe JE.Value -> Model
 init portConfig connectOptions connectParams =
