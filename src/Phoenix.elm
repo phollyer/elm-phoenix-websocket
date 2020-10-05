@@ -125,13 +125,16 @@ you can use the [addJoinConfig](#addJoinConfig) function.
 
 # Talking to Channels
 
-When pushing a message to a Channel, the Socket will connect, and the Channel
-will be joined if so required, and the message will be queued until the
-[JoinOk](Phoenix.Channel#Msg) `Msg` is received. At which point, any queued
-messages will be sent in a batch.
+When pushing a message to a Channel, opening the Socket, and joining the
+Channel is handled automatically. Pushes will be queued until the Channel has
+been joined, at which point, any queued pushes will be sent in a batch.
 
-If the Socket is open and the Channel joined, the message will be sent
+If the Socket is open and the Channel already joined, the push will be sent
 immediately.
+
+See [Connecting to the Socket](#connecting-to-the-socket) and
+[Joining a Channel](#joining-a-channel) for details on setting any required
+options and params prior to pushing.
 
 
 ## Pushing Messages
