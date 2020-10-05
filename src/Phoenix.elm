@@ -489,6 +489,9 @@ type alias PushConfig =
                 [ ("comment", JE.string "Wow, this is great.")
                 , ("post_id", JE.int 1)
                 ]
+        , timeout = Nothing
+        , retrySecs = Nothing
+        , ref = 0
         }
         model.phoenix
 
