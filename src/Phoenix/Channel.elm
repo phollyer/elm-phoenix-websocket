@@ -40,6 +40,7 @@ you first need to connect to a [socket](Phoenix.Socket), and join the channels.
 
 import Json.Decode as JD
 import Json.Encode as JE exposing (Value)
+import Json.Encode.Extra exposing (maybe)
 
 
 {-| A type alias representing the config for joining a channel.
@@ -180,6 +181,7 @@ type alias PushConfig =
     { topic : String
     , msg : String
     , payload : Value
+    , ref : Maybe String
     , timeout : Maybe Int
     }
 
@@ -200,21 +202,15 @@ type alias PushConfig =
 
 -}
 push : PushConfig -> PortOut msg -> Cmd msg
-push { topic, msg, payload, timeout } portOut =
+push { topic, msg, payload, ref, timeout } portOut =
     let
         payload_ =
             JE.object
                 [ ( "topic", JE.string topic )
                 , ( "msg", JE.string msg )
                 , ( "payload", payload )
-                , ( "timeout"
-                  , case timeout of
-                        Just t ->
-                            JE.int t
-
-                        Nothing ->
-                            JE.null
-                  )
+                , ( "ref", maybe JE.string ref )
+                , ( "timeout", maybe JE.int timeout )
                 ]
     in
     portOut
