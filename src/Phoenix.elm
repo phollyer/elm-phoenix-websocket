@@ -448,14 +448,28 @@ replace compareFunc newItem list =
 
 
 {-| A type alias representing the config for pushing a message to a Channel.
+
+  - `topic` - The Channel topic to send the push to.
+  - `msg` - The message to send to the Channel.
+  - `payload` - The params to send with the message. If you don't need to
+    send any params, set this to
+    [Json.Encode.null](https://package.elm-lang.org/packages/elm/json/latest/Json-Encode#null) .
+  - `timeout` - Optional timeout in milliseconds to set on the push request.
+  - `retrySecs` - Optional time in seconds before retrying to send the push
+    after a timeout. A value of `Nothing` will prevent any automatic retries.
+  - `ref` - A unique reference to be used to identify the push. If you set this
+    yourself to anything other than 0, be sure that it is unique or you might
+    see some unexpected behaviour. Setting it to 0 will allow the internal
+    logic to manage the value.
+
 -}
 type alias PushConfig =
     { topic : Topic
     , msg : String
     , payload : JE.Value
-    , ref : Int
     , timeout : Maybe Int
     , retrySecs : Maybe Int
+    , ref : Int
     }
 
 
