@@ -194,8 +194,31 @@ type Model
         , socketError : String
         , socketMessages : List Socket.MessageConfig
         , socketState : SocketState
-        , timeoutPushes : List InternalPush
+        , timeoutPushes : Dict Int InternalPush
         }
+
+
+{-| -}
+type DecoderError
+    = Socket JD.Error
+
+
+{-| -}
+type alias MsgOut =
+    String
+
+
+{-| -}
+type PushResponse
+    = PushOk Topic MsgOut JE.Value Int
+    | PushError Topic MsgOut JE.Value Int
+    | PushTimeout Topic MsgOut JE.Value Int
+
+
+type SocketState
+    = Open
+    | Opening
+    | Closed
 
 
 {-| A type alias representing the ports to be used to communicate with JS.
@@ -283,7 +306,7 @@ init portConfig connectOptions =
         , socketError = ""
         , socketMessages = []
         , socketState = Closed
-        , timeoutPushes = []
+        , timeoutPushes = Dict.empty
         }
 
 
@@ -460,10 +483,8 @@ replace compareFunc newItem list =
   - `timeout` - Optional timeout in milliseconds to set on the push request.
   - `retrySecs` - Optional time in seconds before retrying to send the push
     after a timeout. A value of `Nothing` will prevent any automatic retries.
-  - `ref` - A unique reference to be used to identify the push. If you set this
-    yourself to anything other than 0, be sure that it is unique or you might
-    see some unexpected behaviour. Setting it to 0 will allow the internal
-    logic to manage the value.
+  - `ref` - Optional reference you can provide that you can use to identify the
+    response to a push if you're sending lots of the same `msg`s.
 
 -}
 type alias Push =
@@ -472,7 +493,7 @@ type alias Push =
     , payload : JE.Value
     , timeout : Maybe Int
     , retrySecs : Maybe Int
-    , ref : String
+    , ref : Maybe String
     }
 
 
@@ -503,20 +524,20 @@ type alias InternalPush =
 
 -}
 push : Push -> Model -> ( Model, Cmd Msg )
-push config (Model model) =
+push pushConfig (Model model) =
     let
         pushRef =
             model.pushCount + 1
 
-        config_ =
-            { push = config
+        internalConfig =
+            { push = pushConfig
             , ref = pushRef
             }
     in
     Model model
-        |> addPushToQueue config_
+        |> addPushToQueue internalConfig
         |> updatePushCount pushRef
-        |> pushIfJoined config_
+        |> pushIfJoined internalConfig
 
 
 {-| Push a list of messages together.
@@ -577,6 +598,57 @@ pushIfConnected config (Model model) =
             )
 
 
+sendQueuedPushes : Topic -> Model -> ( Model, Cmd Msg )
+sendQueuedPushes topic model =
+    let
+        ( toGo, toKeep ) =
+            model
+                |> queuedPushes
+                |> Dict.partition
+                    (\_ internalConfig -> internalConfig.push.topic == topic)
+    in
+    model
+        |> updateQueuedPushes toKeep
+        |> sendAllPushes toGo
+
+
+sendTimeoutPushes : Model -> ( Model, Cmd Msg )
+sendTimeoutPushes model =
+    let
+        ( toGo, toKeep ) =
+            model
+                |> timeoutPushes
+                |> Dict.partition
+                    (\_ internalConfig -> internalConfig.push.retrySecs == Just 0)
+    in
+    model
+        |> updateTimeoutPushes toKeep
+        |> sendAllPushes toGo
+
+
+sendAllPushes : Dict Int InternalPush -> Model -> ( Model, Cmd Msg )
+sendAllPushes pushConfigs model =
+    pushConfigs
+        |> Dict.toList
+        |> List.map Tuple.second
+        |> List.foldl
+            batchPush
+            ( model, Cmd.none )
+
+
+batchPush : InternalPush -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+batchPush pushConfig ( model, cmd ) =
+    let
+        ( model_, cmd_ ) =
+            pushIfConnected
+                pushConfig
+                model
+    in
+    ( model_
+    , Cmd.batch [ cmd, cmd_ ]
+    )
+
+
 {-| Receive messages from the Socket, Channels and Pheonix Presence.
 
     import Phoenix
@@ -618,35 +690,12 @@ subscriptions (Model model) =
         , Presence.subscriptions
             PresenceMsg
             model.portConfig.presenceReceiver
-        , if (model.timeoutPushes |> List.length) > 0 then
-            Time.every 1000 TimeoutTick
+        , if Dict.isEmpty model.timeoutPushes then
+            Sub.none
 
           else
-            Sub.none
+            Time.every 1000 TimeoutTick
         ]
-
-
-{-| -}
-type DecoderError
-    = Socket JD.Error
-
-
-{-| -}
-type alias MsgOut =
-    String
-
-
-{-| -}
-type PushResponse
-    = PushOk Topic MsgOut JE.Value Int
-    | PushError Topic MsgOut JE.Value Int
-    | PushTimeout Topic MsgOut JE.Value Int
-
-
-type SocketState
-    = Open
-    | Opening
-    | Closed
 
 
 
@@ -678,12 +727,10 @@ update msg (Model model) =
             ( Model model, Cmd.none )
 
         ChannelMsg (Channel.JoinOk topic _) ->
-            ( Model model
+            Model model
                 |> addJoinedChannel topic
                 |> dropChannelBeingJoined topic
-            , model.portConfig.phoenixSend
-                |> sendPushes topic model.queuedPushes
-            )
+                |> sendQueuedPushes topic
 
         ChannelMsg (Channel.JoinTimeout _ _) ->
             ( Model model, Cmd.none )
@@ -912,7 +959,7 @@ update msg (Model model) =
         TimeoutTick _ ->
             Model model
                 |> timeoutTick
-                |> retryTimeoutPushs
+                |> sendTimeoutPushes
 
 
 
@@ -1043,36 +1090,19 @@ addSocketMessage message (Model model) =
 
 addTimeoutPush : InternalPush -> Model -> Model
 addTimeoutPush pushConfig (Model model) =
-    if model.timeoutPushes |> List.member pushConfig then
-        Model model
-
-    else
-        updateTimeoutPushes
-            (pushConfig :: model.timeoutPushes)
-            (Model model)
-
-
-retryTimeoutPushs : Model -> ( Model, Cmd Msg )
-retryTimeoutPushs (Model model) =
-    let
-        ( pushesToSend, pushesStillTicking ) =
-            List.partition
-                (\pushConfig -> pushConfig.push.retrySecs == Just 0)
-                model.timeoutPushes
-    in
-    Model model
-        |> updateTimeoutPushes pushesStillTicking
-        |> sendTimeoutPushes pushesToSend
+    updateTimeoutPushes
+        (Dict.insert pushConfig.ref pushConfig model.timeoutPushes)
+        (Model model)
 
 
 timeoutTick : Model -> Model
 timeoutTick (Model model) =
     updateTimeoutPushes
-        (List.map
-            (\internalPushConfig ->
-                { internalPushConfig
-                    | push = countdownPushRetry internalPushConfig.push
-                }
+        (Dict.map
+            (\_ internalPushConfig ->
+                updatePush
+                    (countdownPushRetry internalPushConfig.push)
+                    internalPushConfig
             )
             model.timeoutPushes
         )
@@ -1143,60 +1173,17 @@ joinChannels topics model =
 
 
 
-{- Server Requests - Private API -}
+{- Access Model Fields -}
 
 
-sendPushes : Topic -> Dict Int InternalPush -> ({ msg : String, payload : JE.Value } -> Cmd Msg) -> Cmd Msg
-sendPushes topic queuedPushes portOut =
-    queuedPushes
-        |> Dict.values
-        |> List.filterMap
-            (\pushConfig ->
-                if pushConfig.push.topic /= topic then
-                    Nothing
-
-                else
-                    Just (sendPush pushConfig portOut)
-            )
-        |> Cmd.batch
+queuedPushes : Model -> Dict Int InternalPush
+queuedPushes (Model model) =
+    model.queuedPushes
 
 
-sendPush : InternalPush -> ({ msg : String, payload : JE.Value } -> Cmd Msg) -> Cmd Msg
-sendPush pushConfig portOut =
-    Channel.push
-        pushConfig.push
-        portOut
-
-
-sendTimeoutPush : InternalPush -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-sendTimeoutPush config ( Model model, cmd ) =
-    case Dict.get config.ref model.queuedPushes of
-        Just pushConfig ->
-            let
-                ( model_, cmd_ ) =
-                    pushIfConnected
-                        pushConfig
-                        (Model model)
-            in
-            ( model_
-            , Cmd.batch [ cmd, cmd_ ]
-            )
-
-        Nothing ->
-            ( Model model, Cmd.none )
-
-
-sendTimeoutPushes : List InternalPush -> Model -> ( Model, Cmd Msg )
-sendTimeoutPushes pushConfigs model =
-    case pushConfigs of
-        [] ->
-            ( model, Cmd.none )
-
-        _ ->
-            List.foldl
-                sendTimeoutPush
-                ( model, Cmd.none )
-                pushConfigs
+timeoutPushes : Model -> Dict Int InternalPush
+timeoutPushes (Model model) =
+    model.timeoutPushes
 
 
 
@@ -1331,6 +1318,13 @@ updateProtocol protocol (Model model) =
         }
 
 
+updatePush : Push -> InternalPush -> InternalPush
+updatePush pushConfig internalPushConfig =
+    { internalPushConfig
+        | push = pushConfig
+    }
+
+
 updatePushCount : Int -> Model -> Model
 updatePushCount count (Model model) =
     Model
@@ -1348,10 +1342,10 @@ updatePushResponse response (Model model) =
 
 
 updateQueuedPushes : Dict Int InternalPush -> Model -> Model
-updateQueuedPushes queuedPushes (Model model) =
+updateQueuedPushes queuedPushes_ (Model model) =
     Model
         { model
-            | queuedPushes = queuedPushes
+            | queuedPushes = queuedPushes_
         }
 
 
@@ -1386,7 +1380,7 @@ updateSocketState state (Model model) =
         }
 
 
-updateTimeoutPushes : List InternalPush -> Model -> Model
+updateTimeoutPushes : Dict Int InternalPush -> Model -> Model
 updateTimeoutPushes pushConfig (Model model) =
     Model
         { model
