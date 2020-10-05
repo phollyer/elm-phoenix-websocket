@@ -184,6 +184,7 @@ type Model
         , nextMessageRef : Maybe String
         , portConfig : PortConfig
         , protocol : Maybe String
+        , pushCount : Int
         , pushResponse : Maybe PushResponse
         , queuedPushes : List PushConfig
         , socketError : String
@@ -272,6 +273,7 @@ init portConfig connectOptions =
         , nextMessageRef = Nothing
         , portConfig = portConfig
         , protocol = Nothing
+        , pushCount = 0
         , pushResponse = Nothing
         , queuedPushes = []
         , socketError = ""
@@ -450,7 +452,7 @@ type alias PushConfig =
     { topic : Topic
     , msg : String
     , payload : JE.Value
-    , ref : Maybe String
+    , ref : Maybe Int
     , timeout : Maybe Int
     }
 
@@ -473,10 +475,20 @@ type alias PushConfig =
 
 -}
 push : PushConfig -> Model -> ( Model, Cmd Msg )
-push config model =
-    pushIfJoined
-        config
-        model
+push config (Model model) =
+    let
+        pushCount =
+            model.pushCount + 1
+
+        config_ =
+            { config
+                | ref = Just (Maybe.withDefault pushCount config.ref)
+            }
+    in
+    Model model
+        |> addPushToQueue config_
+        |> updatePushCount pushCount
+        |> pushIfJoined config_
 
 
 {-| Push a list of messages together.
@@ -500,17 +512,13 @@ pushIfJoined config (Model model) =
         )
 
     else if model.channelsBeingJoined |> List.member config.topic then
-        ( addPushToQueue
-            config
-            (Model model)
+        ( Model model
         , Cmd.none
         )
 
     else
         Model model
             |> addChannelBeingJoined config.topic
-            |> addPushToQueue
-                config
             |> join config.topic
 
 
@@ -602,9 +610,9 @@ type alias MsgOut =
 
 {-| -}
 type PushResponse
-    = PushOk Topic MsgOut JE.Value
-    | PushError Topic MsgOut JE.Value
-    | PushTimeout Topic MsgOut
+    = PushOk Topic MsgOut JE.Value Int
+    | PushError Topic MsgOut JE.Value Int
+    | PushTimeout Topic MsgOut JE.Value Int
 
 
 type SocketState
@@ -614,10 +622,8 @@ type SocketState
 
 
 type alias TimeoutPush =
-    { msg : MsgOut
-    , payload : JE.Value
-    , timeUntilRetry : Int
-    , topic : Topic
+    { timeUntilRetry : Int
+    , ref : Int
     }
 
 
@@ -666,45 +672,42 @@ update msg (Model model) =
         ChannelMsg (Channel.Message _ _ _) ->
             ( Model model, Cmd.none )
 
-        ChannelMsg (Channel.PushError topic msgResult payloadResult) ->
-            case ( msgResult, payloadResult ) of
-                ( Ok msg_, Ok payload ) ->
+        ChannelMsg (Channel.PushError topic msgResult payloadResult refResult) ->
+            case ( msgResult, payloadResult, refResult ) of
+                ( Ok msg_, Ok payload, Ok ref ) ->
                     ( Model model
-                        |> dropQueuedPush topic msg_
-                        |> updatePushResponse (PushError topic msg_ payload)
+                        |> dropQueuedPush ref
+                        |> updatePushResponse (PushError topic msg_ payload ref)
                     , Cmd.none
                     )
 
                 _ ->
                     ( Model model, Cmd.none )
 
-        ChannelMsg (Channel.PushOk topic msgResult payloadResult) ->
-            case ( msgResult, payloadResult ) of
-                ( Ok msg_, Ok payload ) ->
+        ChannelMsg (Channel.PushOk topic msgResult payloadResult refResult) ->
+            case ( msgResult, payloadResult, refResult ) of
+                ( Ok msg_, Ok payload, Ok ref ) ->
                     ( Model model
-                        |> dropQueuedPush topic msg_
-                        |> updatePushResponse (PushOk topic msg_ payload)
+                        |> dropQueuedPush ref
+                        |> updatePushResponse (PushOk topic msg_ payload ref)
                     , Cmd.none
                     )
 
                 _ ->
                     ( Model model, Cmd.none )
 
-        ChannelMsg (Channel.PushTimeout topic msgResult payloadResult) ->
-            case ( msgResult, payloadResult ) of
-                ( Ok msg_, Ok payload ) ->
+        ChannelMsg (Channel.PushTimeout topic msgResult payloadResult refResult) ->
+            case ( msgResult, payloadResult, refResult ) of
+                ( Ok msg_, Ok payload, Ok ref ) ->
                     let
-                        timeoutEvent =
-                            { msg = msg_
-                            , payload = payload
-                            , timeUntilRetry = 5
-                            , topic = topic
+                        timeoutPush =
+                            { timeUntilRetry = 5
+                            , ref = ref
                             }
                     in
                     ( Model model
-                        |> addTimeoutPush timeoutEvent
-                        |> dropQueuedPush topic msg_
-                        |> updatePushResponse (PushTimeout topic msg_)
+                        |> addTimeoutPush timeoutPush
+                        |> updatePushResponse (PushTimeout topic msg_ payload ref)
                     , Cmd.none
                     )
 
@@ -977,12 +980,12 @@ addPushToQueue msg (Model model) =
             (Model model)
 
 
-dropQueuedPush : Topic -> MsgOut -> Model -> Model
-dropQueuedPush topic msg (Model model) =
+dropQueuedPush : Int -> Model -> Model
+dropQueuedPush ref (Model model) =
     updateQueuedPushes
         (model.queuedPushes
             |> List.filter
-                (\pushConfig -> pushConfig.topic /= topic && pushConfig.msg /= msg)
+                (\pushConfig -> pushConfig.ref /= Just ref)
         )
         (Model model)
 
@@ -1115,15 +1118,10 @@ joinChannels topics model =
 {- Server Requests - Private API -}
 
 
-send : Topic -> MsgOut -> JE.Value -> ({ msg : String, payload : JE.Value } -> Cmd Msg) -> Cmd Msg
-send topic msg payload portOut =
+send : PushConfig -> ({ msg : String, payload : JE.Value } -> Cmd Msg) -> Cmd Msg
+send pushConfig portOut =
     Channel.push
-        { topic = topic
-        , msg = msg
-        , payload = payload
-        , ref = Nothing
-        , timeout = Nothing
-        }
+        pushConfig
         portOut
 
 
@@ -1142,30 +1140,28 @@ sendPushConfigs topic queuedPushes portOut =
 
 
 sendPushConfig : PushConfig -> ({ msg : String, payload : JE.Value } -> Cmd Msg) -> Cmd Msg
-sendPushConfig { msg, payload, topic } portOut =
-    send
-        topic
-        msg
-        payload
+sendPushConfig pushConfig portOut =
+    Channel.push
+        pushConfig
         portOut
 
 
 sendTimeoutPush : TimeoutPush -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-sendTimeoutPush timeoutEvent ( model, cmd ) =
-    let
-        ( model_, cmd_ ) =
-            pushIfConnected
-                { topic = timeoutEvent.topic
-                , msg = timeoutEvent.msg
-                , payload = timeoutEvent.payload
-                , ref = Nothing
-                , timeout = Nothing
-                }
-                model
-    in
-    ( model_
-    , Cmd.batch [ cmd, cmd_ ]
-    )
+sendTimeoutPush timeoutPush ( Model model, cmd ) =
+    case List.Extra.find (\pushConfig -> pushConfig.ref == Just timeoutPush.ref) model.queuedPushes of
+        Just pushConfig ->
+            let
+                ( model_, cmd_ ) =
+                    pushIfConnected
+                        pushConfig
+                        (Model model)
+            in
+            ( model_
+            , Cmd.batch [ cmd, cmd_ ]
+            )
+
+        Nothing ->
+            ( Model model, Cmd.none )
 
 
 sendTimeoutPushes : List TimeoutPush -> Model -> ( Model, Cmd Msg )
@@ -1310,6 +1306,14 @@ updateProtocol protocol (Model model) =
     Model
         { model
             | protocol = protocol
+        }
+
+
+updatePushCount : Int -> Model -> Model
+updatePushCount count (Model model) =
+    Model
+        { model
+            | pushCount = count
         }
 
 

@@ -181,7 +181,7 @@ type alias PushConfig =
     { topic : String
     , msg : String
     , payload : Value
-    , ref : Maybe String
+    , ref : Maybe Int
     , timeout : Maybe Int
     }
 
@@ -209,7 +209,7 @@ push { topic, msg, payload, ref, timeout } portOut =
                 [ ( "topic", JE.string topic )
                 , ( "msg", JE.string msg )
                 , ( "payload", payload )
-                , ( "ref", maybe JE.string ref )
+                , ( "ref", maybe JE.int ref )
                 , ( "timeout", maybe JE.int timeout )
                 ]
     in
@@ -293,9 +293,9 @@ type Msg
     = JoinOk Topic Value
     | JoinError Topic Value
     | JoinTimeout Topic Value
-    | PushOk Topic (Result JD.Error OriginalPushMsg) (Result JD.Error Value)
-    | PushError Topic (Result JD.Error OriginalPushMsg) (Result JD.Error Value)
-    | PushTimeout Topic (Result JD.Error OriginalPushMsg) (Result JD.Error Value)
+    | PushOk Topic (Result JD.Error OriginalPushMsg) (Result JD.Error Value) (Result JD.Error Int)
+    | PushError Topic (Result JD.Error OriginalPushMsg) (Result JD.Error Value) (Result JD.Error Int)
+    | PushTimeout Topic (Result JD.Error OriginalPushMsg) (Result JD.Error Value) (Result JD.Error Int)
     | Message Topic (Result JD.Error NewPushMsg) (Result JD.Error Value)
     | Error Topic
     | LeaveOk Topic
@@ -349,8 +349,13 @@ handleIn toMsg { topic, msg, payload } =
                     JD.decodeValue
                         (JD.field "payload" JD.value)
                         payload
+
+                ref =
+                    JD.decodeValue
+                        (JD.field "ref" JD.int)
+                        payload
             in
-            toMsg (PushOk topic msg_ payload_)
+            toMsg (PushOk topic msg_ payload_ ref)
 
         "PushError" ->
             let
@@ -363,8 +368,13 @@ handleIn toMsg { topic, msg, payload } =
                     JD.decodeValue
                         (JD.field "payload" JD.value)
                         payload
+
+                ref =
+                    JD.decodeValue
+                        (JD.field "ref" JD.int)
+                        payload
             in
-            toMsg (PushError topic msg_ payload_)
+            toMsg (PushError topic msg_ payload_ ref)
 
         "PushTimeout" ->
             let
@@ -377,8 +387,13 @@ handleIn toMsg { topic, msg, payload } =
                     JD.decodeValue
                         (JD.field "payload" JD.value)
                         payload
+
+                ref =
+                    JD.decodeValue
+                        (JD.field "ref" JD.int)
+                        payload
             in
-            toMsg (PushTimeout topic msg_ payload_)
+            toMsg (PushTimeout topic msg_ payload_ ref)
 
         "Message" ->
             let
