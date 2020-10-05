@@ -3,7 +3,7 @@ module Phoenix exposing
     , PortConfig, init
     , connect, addConnectOptions, setConnectOptions, setConnectParams
     , Topic, join, JoinConfig, addJoinConfig
-    , Push, push, pushAll
+    , Push, TimeoutStrategy(..), push, pushAll
     , subscriptions
     , Msg, update
     , DecoderError(..), PushResponse(..), MsgOut
@@ -139,7 +139,7 @@ options and params prior to pushing.
 
 ## Pushing Messages
 
-@docs Push, push, pushAll
+@docs Push, TimeoutStrategy, push, pushAll
 
 
 ## Receiving Messages
@@ -481,11 +481,9 @@ replace compareFunc newItem list =
     send any params, set this to
     [Json.Encode.null](https://package.elm-lang.org/packages/elm/json/latest/Json-Encode#null) .
   - `timeout` - Optional timeout in milliseconds to set on the push request.
-  - `retrySecs` - Optional time in seconds before retrying to send the push
-    again after a timeout. A value of `Nothing` will prevent any automatic
-    retries.
-  - `ref` - Optional reference you can provide that you can use to identify the
-    response to a push if you're sending lots of the same `msg`s.
+  - `timeoutStrategy` - The retry strategy to use when a push times out.
+  - `ref` - Optional reference you can provide that you can later use to
+    identify the response to a push if you're sending lots of the same `msg`s.
 
 -}
 type alias Push =
@@ -493,14 +491,41 @@ type alias Push =
     , msg : String
     , payload : JE.Value
     , timeout : Maybe Int
-    , retrySecs : Maybe Int
+    , timeoutStrategy : TimeoutStrategy
     , ref : Maybe String
     }
+
+
+{-| The retry strategy to use when a push times out.
+
+  - `Drop` - Drop the push and don't try again.
+
+  - `Every second` - The number of seconds to wait between retries.
+
+  - `Backoff [List seconds] max` - A backoff strategy so you can increase the
+    delay between retries. When the list has been exhausted, `max` will be used
+    for each subsequent attempt.
+
+        Backoff [ 1, 5, 10, 20 ] 30
+
+    An empty list will use the `max` value and is equivalent to `Every second`.
+
+        -- Backoff [] 10 == Every 10
+
+
+
+-}
+type TimeoutStrategy
+    = Drop
+    | Every Int
+    | Backoff (List Int) Int
 
 
 type alias InternalPush =
     { push : Push
     , ref : Int
+    , timeoutStrategy : TimeoutStrategy
+    , timeoutTick : Int
     }
 
 
@@ -517,9 +542,9 @@ type alias InternalPush =
                 [ ("comment", JE.string "Wow, this is great.")
                 , ("post_id", JE.int 1)
                 ]
-        , timeout = Nothing
-        , retrySecs = Nothing
-        , ref = 0
+        , timeout = Just 5000
+        , timeoutStrategy = Every 5
+        , ref = Just "my_ref"
         }
         model.phoenix
 
@@ -533,6 +558,8 @@ push pushConfig (Model model) =
         internalConfig =
             { push = pushConfig
             , ref = pushRef
+            , timeoutStrategy = pushConfig.timeoutStrategy
+            , timeoutTick = 0
             }
     in
     Model model
@@ -620,7 +647,39 @@ sendTimeoutPushes model =
             model
                 |> timeoutPushes
                 |> Dict.partition
-                    (\_ internalConfig -> internalConfig.push.retrySecs == Just 0)
+                    (\_ internalConfig ->
+                        case internalConfig.timeoutStrategy of
+                            Every secs ->
+                                internalConfig.timeoutTick == secs
+
+                            Backoff (head :: _) _ ->
+                                internalConfig.timeoutTick == head
+
+                            Backoff [] max ->
+                                internalConfig.timeoutTick == max
+
+                            Drop ->
+                                -- This branch should never match because
+                                -- pushes with a Drop strategy should never
+                                -- end up in this list.
+                                False
+                    )
+                |> Tuple.mapFirst
+                    (\outgoing ->
+                        Dict.map
+                            (\_ internalConfig ->
+                                case internalConfig.timeoutStrategy of
+                                    Backoff (_ :: next :: tail) max ->
+                                        internalConfig
+                                            |> updateTimeoutStrategy
+                                                (Backoff (next :: tail) max)
+                                            |> updateTimeoutTick 0
+
+                                    _ ->
+                                        updateTimeoutTick 0 internalConfig
+                            )
+                            outgoing
+                    )
     in
     model
         |> updateTimeoutPushes toKeep
@@ -769,20 +828,27 @@ update msg (Model model) =
         ChannelMsg (Channel.PushTimeout topic msgResult payloadResult refResult) ->
             case ( msgResult, payloadResult, refResult ) of
                 ( Ok msg_, Ok payload, Ok ref ) ->
-                    case Dict.get ref model.queuedPushes of
-                        Just pushConfig ->
-                            ( Model model
-                                |> maybeAddTimeoutPush pushConfig
-                                |> updatePushResponse (PushTimeout topic msg_ payload ref)
-                            , Cmd.none
-                            )
-
-                        Nothing ->
-                            ( updatePushResponse
+                    let
+                        responseModel =
+                            updatePushResponse
                                 (PushTimeout topic msg_ payload ref)
                                 (Model model)
-                            , Cmd.none
-                            )
+                    in
+                    case Dict.get ref model.queuedPushes of
+                        Just pushConfig ->
+                            case pushConfig.push.timeoutStrategy of
+                                Drop ->
+                                    ( responseModel, Cmd.none )
+
+                                _ ->
+                                    ( updateTimeoutPushes
+                                        (Dict.insert pushConfig.ref pushConfig model.timeoutPushes)
+                                        responseModel
+                                    , Cmd.none
+                                    )
+
+                        Nothing ->
+                            ( responseModel, Cmd.none )
 
                 _ ->
                     ( Model model, Cmd.none )
@@ -1089,39 +1155,18 @@ addSocketMessage message (Model model) =
 {- Timeout Events -}
 
 
-maybeAddTimeoutPush : InternalPush -> Model -> Model
-maybeAddTimeoutPush pushConfig (Model model) =
-    if pushConfig.push.retrySecs == Nothing then
-        Model model
-
-    else
-        updateTimeoutPushes
-            (Dict.insert pushConfig.ref pushConfig model.timeoutPushes)
-            (Model model)
-
-
 timeoutTick : Model -> Model
 timeoutTick (Model model) =
     updateTimeoutPushes
         (Dict.map
             (\_ internalPushConfig ->
-                updatePush
-                    (countdownPushRetry internalPushConfig.push)
+                updateTimeoutTick
+                    (internalPushConfig.timeoutTick + 1)
                     internalPushConfig
             )
             model.timeoutPushes
         )
         (Model model)
-
-
-countdownPushRetry : Push -> Push
-countdownPushRetry pushConfig =
-    updateRetrySecs
-        (Just <|
-            Maybe.withDefault 1 pushConfig.retrySecs
-                - 1
-        )
-        pushConfig
 
 
 
@@ -1323,13 +1368,6 @@ updateProtocol protocol (Model model) =
         }
 
 
-updatePush : Push -> InternalPush -> InternalPush
-updatePush pushConfig internalPushConfig =
-    { internalPushConfig
-        | push = pushConfig
-    }
-
-
 updatePushCount : Int -> Model -> Model
 updatePushCount count (Model model) =
     Model
@@ -1352,13 +1390,6 @@ updateQueuedPushes queuedPushes_ (Model model) =
         { model
             | queuedPushes = queuedPushes_
         }
-
-
-updateRetrySecs : Maybe Int -> Push -> Push
-updateRetrySecs retrySecs pushConfig =
-    { pushConfig
-        | retrySecs = retrySecs
-    }
 
 
 updateSocketError : String -> Model -> Model
@@ -1391,3 +1422,17 @@ updateTimeoutPushes pushConfig (Model model) =
         { model
             | timeoutPushes = pushConfig
         }
+
+
+updateTimeoutStrategy : TimeoutStrategy -> InternalPush -> InternalPush
+updateTimeoutStrategy timeoutStrategy pushConfig =
+    { pushConfig
+        | timeoutStrategy = timeoutStrategy
+    }
+
+
+updateTimeoutTick : Int -> InternalPush -> InternalPush
+updateTimeoutTick tick internalPushConfig =
+    { internalPushConfig
+        | timeoutTick = tick
+    }
