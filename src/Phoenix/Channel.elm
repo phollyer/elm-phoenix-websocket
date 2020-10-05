@@ -1,7 +1,7 @@
 module Phoenix.Channel exposing
     ( JoinConfig, PortOut, join
     , LeaveConfig, leave
-    , PushConfig, push
+    , PushConfig, push, pushWithRef
     , PortIn, Topic, OriginalPushMsg, NewPushMsg, Msg(..), subscriptions
     , on, off
     )
@@ -24,7 +24,7 @@ you first need to connect to a [socket](Phoenix.Socket), and join the channels.
 
 # Pushing
 
-@docs PushConfig, push
+@docs PushConfig, push, pushWithRef
 
 
 # Receiving
@@ -181,8 +181,8 @@ type alias PushConfig =
     { topic : String
     , msg : String
     , payload : Value
-    , ref : Int
     , timeout : Maybe Int
+    , ref : Int
     }
 
 
@@ -201,16 +201,49 @@ type alias PushConfig =
         Port.pheonixSend
 
 -}
-push : { a | topic : String, msg : String, payload : Value, ref : String, timeout : Maybe Int } -> PortOut msg -> Cmd msg
-push { topic, msg, payload, ref, timeout } portOut =
+push : { a | topic : String, msg : String, payload : Value, timeout : Maybe Int } -> PortOut msg -> Cmd msg
+push { topic, msg, payload, timeout } portOut =
     let
         payload_ =
             JE.object
                 [ ( "topic", JE.string topic )
                 , ( "msg", JE.string msg )
                 , ( "payload", payload )
-                , ( "ref", JE.string ref )
                 , ( "timeout", maybe JE.int timeout )
+                ]
+    in
+    portOut
+        { msg = "push"
+        , payload = payload_
+        }
+
+
+{-| Push a message to a channel with a ref number to identify the response.
+
+    import Json.Encode as JE
+    import Phoenix.Channel as Channel
+    import Port
+
+    Channel.push
+        { topic = "topic:subtopic"
+        , msg = "new_msg"
+        , payload = JE.object [("msg", JE.string "Hello World")]
+        , timeout = Nothing
+        , ref = 1
+        }
+        Port.pheonixSend
+
+-}
+pushWithRef : { a | topic : String, msg : String, payload : Value, timeout : Maybe Int, ref : Int } -> PortOut msg -> Cmd msg
+pushWithRef { topic, msg, payload, timeout, ref } portOut =
+    let
+        payload_ =
+            JE.object
+                [ ( "topic", JE.string topic )
+                , ( "msg", JE.string msg )
+                , ( "payload", payload )
+                , ( "timeout", maybe JE.int timeout )
+                , ( "ref", JE.int ref )
                 ]
     in
     portOut
