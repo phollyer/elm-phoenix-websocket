@@ -3,7 +3,7 @@ module Phoenix exposing
     , PortConfig, init
     , connect, addConnectOptions, setConnectOptions, setConnectParams
     , Topic, join, JoinConfig, addJoinConfig
-    , Push, TimeoutStrategy(..), push, pushAll
+    , Push, RetryStrategy(..), push, pushAll
     , subscriptions
     , Msg, update
     , DecoderError(..), PushResponse(..), MsgOut
@@ -139,7 +139,7 @@ options and params prior to pushing.
 
 ## Pushing Messages
 
-@docs Push, TimeoutStrategy, push, pushAll
+@docs Push, RetryStrategy, push, pushAll
 
 
 ## Receiving Messages
@@ -481,7 +481,7 @@ replace compareFunc newItem list =
     send any params, set this to
     [Json.Encode.null](https://package.elm-lang.org/packages/elm/json/latest/Json-Encode#null) .
   - `timeout` - Optional timeout in milliseconds to set on the push request.
-  - `timeoutStrategy` - The retry strategy to use when a push times out.
+  - `retryStrategy` - The retry strategy to use when a push times out.
   - `ref` - Optional reference you can provide that you can later use to
     identify the response to a push if you're sending lots of the same `msg`s.
 
@@ -491,7 +491,7 @@ type alias Push =
     , msg : String
     , payload : JE.Value
     , timeout : Maybe Int
-    , timeoutStrategy : TimeoutStrategy
+    , retryStrategy : RetryStrategy
     , ref : Maybe String
     }
 
@@ -515,7 +515,7 @@ type alias Push =
 
 
 -}
-type TimeoutStrategy
+type RetryStrategy
     = Drop
     | Every Int
     | Backoff (List Int) Int
@@ -524,7 +524,7 @@ type TimeoutStrategy
 type alias InternalPush =
     { push : Push
     , ref : Int
-    , timeoutStrategy : TimeoutStrategy
+    , retryStrategy : RetryStrategy
     , timeoutTick : Int
     }
 
@@ -543,7 +543,7 @@ type alias InternalPush =
                 , ("post_id", JE.int 1)
                 ]
         , timeout = Just 5000
-        , timeoutStrategy = Every 5
+        , retryStrategy = Every 5
         , ref = Just "my_ref"
         }
         model.phoenix
@@ -558,7 +558,7 @@ push pushConfig (Model model) =
         internalConfig =
             { push = pushConfig
             , ref = pushRef
-            , timeoutStrategy = pushConfig.timeoutStrategy
+            , retryStrategy = pushConfig.retryStrategy
             , timeoutTick = 0
             }
     in
@@ -648,7 +648,7 @@ sendTimeoutPushes model =
                 |> timeoutPushes
                 |> Dict.partition
                     (\_ internalConfig ->
-                        case internalConfig.timeoutStrategy of
+                        case internalConfig.retryStrategy of
                             Every secs ->
                                 internalConfig.timeoutTick == secs
 
@@ -668,10 +668,10 @@ sendTimeoutPushes model =
                     (\outgoing ->
                         Dict.map
                             (\_ internalConfig ->
-                                case internalConfig.timeoutStrategy of
+                                case internalConfig.retryStrategy of
                                     Backoff (_ :: next :: tail) max ->
                                         internalConfig
-                                            |> updateTimeoutStrategy
+                                            |> updateRetryStrategy
                                                 (Backoff (next :: tail) max)
                                             |> updateTimeoutTick 0
 
@@ -836,7 +836,7 @@ update msg (Model model) =
                     in
                     case Dict.get ref model.queuedPushes of
                         Just pushConfig ->
-                            case pushConfig.push.timeoutStrategy of
+                            case pushConfig.push.retryStrategy of
                                 Drop ->
                                     ( responseModel, Cmd.none )
 
@@ -1424,10 +1424,10 @@ updateTimeoutPushes pushConfig (Model model) =
         }
 
 
-updateTimeoutStrategy : TimeoutStrategy -> InternalPush -> InternalPush
-updateTimeoutStrategy timeoutStrategy pushConfig =
+updateRetryStrategy : RetryStrategy -> InternalPush -> InternalPush
+updateRetryStrategy retryStrategy pushConfig =
     { pushConfig
-        | timeoutStrategy = timeoutStrategy
+        | retryStrategy = retryStrategy
     }
 
 
