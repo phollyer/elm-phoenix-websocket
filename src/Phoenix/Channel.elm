@@ -201,7 +201,7 @@ type alias PushConfig =
         Port.pheonixSend
 
 -}
-push : { a | topic : String, msg : String, payload : Value, ref : Int, timeout : Maybe Int } -> PortOut msg -> Cmd msg
+push : { a | topic : String, msg : String, payload : Value, ref : String, timeout : Maybe Int } -> PortOut msg -> Cmd msg
 push { topic, msg, payload, ref, timeout } portOut =
     let
         payload_ =
@@ -209,7 +209,7 @@ push { topic, msg, payload, ref, timeout } portOut =
                 [ ( "topic", JE.string topic )
                 , ( "msg", JE.string msg )
                 , ( "payload", payload )
-                , ( "ref", JE.int ref )
+                , ( "ref", JE.string ref )
                 , ( "timeout", maybe JE.int timeout )
                 ]
     in

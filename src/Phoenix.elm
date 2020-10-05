@@ -472,7 +472,7 @@ type alias Push =
     , payload : JE.Value
     , timeout : Maybe Int
     , retrySecs : Maybe Int
-    , ref : Int
+    , ref : String
     }
 
 
