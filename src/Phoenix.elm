@@ -15,14 +15,6 @@ module Phoenix exposing
 all the low level stuff with a simple, but extensive API. It automates a few
 processes, and generally simplifies working with Phoenix WebSockets.
 
-In order for this module to provide the benefits that it does, it is required
-to add it to your model so that it can carry its own state and internal logic.
-
-You can use the [Socket](Phoenix.Socket), [Channel](Phoenix.Channel) and
-[Presence](Phoenix.Presence) modules directly, but it is probably unlikely you
-will need to do so. The benefit(?) of using these modules directly, is that
-they do not carry any state, and so do not need to be attached to your model.
-
 Once you have installed the package, and followed the simple setup instructions
 [here](https://package.elm-lang.org/packages/phollyer/elm-phoenix-websocket/latest/),
 configuring this module is as simple as this:
@@ -87,9 +79,12 @@ configuring this module is as simple as this:
                 model.phoenix
 
 
-# API
+# Model
 
 @docs Model
+
+
+# Initialising the Model
 
 @docs PortConfig, init
 
@@ -385,6 +380,10 @@ type alias Topic =
 
 
 {-| Join a Channel referenced by the [Topic](#Topic).
+
+Connecting to the Socket is automatic if it has not already been opened. Once
+the Socket is open, the join will be attempted.
+
 -}
 join : Topic -> Model -> ( Model, Cmd Msg )
 join topic (Model model) =
