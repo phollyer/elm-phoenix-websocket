@@ -3,7 +3,7 @@ module Phoenix exposing
     , PortConfig, init
     , connect, addConnectOptions, setConnectOptions, setConnectParams
     , Topic, join, JoinConfig, addJoinConfig
-    , PushConfig, push, pushAll
+    , Push, push, pushAll
     , subscriptions
     , Msg, update
     , DecoderError(..), PushResponse(..), MsgOut
@@ -139,7 +139,7 @@ options and params prior to pushing.
 
 ## Pushing Messages
 
-@docs PushConfig, push, pushAll
+@docs Push, push, pushAll
 
 
 ## Receiving Messages
@@ -190,11 +190,11 @@ type Model
         , protocol : Maybe String
         , pushCount : Int
         , pushResponse : Maybe PushResponse
-        , queuedPushes : Dict Int PushConfig
+        , queuedPushes : Dict Int InternalPush
         , socketError : String
         , socketMessages : List Socket.MessageConfig
         , socketState : SocketState
-        , timeoutPushes : List PushConfig
+        , timeoutPushes : List InternalPush
         }
 
 
@@ -466,12 +466,18 @@ replace compareFunc newItem list =
     logic to manage the value.
 
 -}
-type alias PushConfig =
+type alias Push =
     { topic : Topic
     , msg : String
     , payload : JE.Value
     , timeout : Maybe Int
     , retrySecs : Maybe Int
+    , ref : Int
+    }
+
+
+type alias InternalPush =
+    { push : Push
     , ref : Int
     }
 
@@ -496,14 +502,16 @@ type alias PushConfig =
         model.phoenix
 
 -}
-push : PushConfig -> Model -> ( Model, Cmd Msg )
+push : Push -> Model -> ( Model, Cmd Msg )
 push config (Model model) =
     let
         pushRef =
             model.pushCount + 1
 
         config_ =
-            { config | ref = pushRef }
+            { push = config
+            , ref = pushRef
+            }
     in
     Model model
         |> addPushToQueue config_
@@ -517,32 +525,32 @@ The messages will batched and the order in which they reach their respective
 Channels is unknown.
 
 -}
-pushAll : List PushConfig -> Model -> ( Model, Cmd Msg )
+pushAll : List Push -> Model -> ( Model, Cmd Msg )
 pushAll _ model =
     ( model, Cmd.none )
 
 
-pushIfJoined : PushConfig -> Model -> ( Model, Cmd Msg )
+pushIfJoined : InternalPush -> Model -> ( Model, Cmd Msg )
 pushIfJoined config (Model model) =
-    if model.channelsJoined |> List.member config.topic then
+    if model.channelsJoined |> List.member config.push.topic then
         ( Model model
         , Channel.push
-            config
+            config.push
             model.portConfig.phoenixSend
         )
 
-    else if model.channelsBeingJoined |> List.member config.topic then
+    else if model.channelsBeingJoined |> List.member config.push.topic then
         ( Model model
         , Cmd.none
         )
 
     else
         Model model
-            |> addChannelBeingJoined config.topic
-            |> join config.topic
+            |> addChannelBeingJoined config.push.topic
+            |> join config.push.topic
 
 
-pushIfConnected : PushConfig -> Model -> ( Model, Cmd Msg )
+pushIfConnected : InternalPush -> Model -> ( Model, Cmd Msg )
 pushIfConnected config (Model model) =
     case model.socketState of
         Open ->
@@ -552,14 +560,14 @@ pushIfConnected config (Model model) =
 
         Opening ->
             ( Model model
-                |> addChannelBeingJoined config.topic
+                |> addChannelBeingJoined config.push.topic
                 |> addPushToQueue config
             , Cmd.none
             )
 
         Closed ->
             ( Model model
-                |> addChannelBeingJoined config.topic
+                |> addChannelBeingJoined config.push.topic
                 |> addPushToQueue config
                 |> updateSocketState Opening
             , Socket.connect
@@ -986,7 +994,7 @@ addDecoderError decoderError (Model model) =
 {- Queued Pushes -}
 
 
-addPushToQueue : PushConfig -> Model -> Model
+addPushToQueue : InternalPush -> Model -> Model
 addPushToQueue pushConfig (Model model) =
     updateQueuedPushes
         (Dict.insert pushConfig.ref pushConfig model.queuedPushes)
@@ -1033,7 +1041,7 @@ addSocketMessage message (Model model) =
 {- Timeout Events -}
 
 
-addTimeoutPush : PushConfig -> Model -> Model
+addTimeoutPush : InternalPush -> Model -> Model
 addTimeoutPush pushConfig (Model model) =
     if model.timeoutPushes |> List.member pushConfig then
         Model model
@@ -1049,9 +1057,7 @@ retryTimeoutPushs (Model model) =
     let
         ( pushesToSend, pushesStillTicking ) =
             List.partition
-                (\pushConfig ->
-                    pushConfig.retrySecs == Just 0 || pushConfig.retrySecs == Nothing
-                )
+                (\pushConfig -> pushConfig.push.retrySecs == Just 0)
                 model.timeoutPushes
     in
     Model model
@@ -1062,19 +1068,25 @@ retryTimeoutPushs (Model model) =
 timeoutTick : Model -> Model
 timeoutTick (Model model) =
     updateTimeoutPushes
-        (List.map countdownPushRetry model.timeoutPushes)
+        (List.map
+            (\internalPushConfig ->
+                { internalPushConfig
+                    | push = countdownPushRetry internalPushConfig.push
+                }
+            )
+            model.timeoutPushes
+        )
         (Model model)
 
 
-countdownPushRetry : PushConfig -> PushConfig
+countdownPushRetry : Push -> Push
 countdownPushRetry pushConfig =
-    { pushConfig
-        | retrySecs =
-            Just <|
-                Maybe.withDefault 1
-                    pushConfig.retrySecs
-                    - 1
-    }
+    updateRetrySecs
+        (Just <|
+            Maybe.withDefault 1 pushConfig.retrySecs
+                - 1
+        )
+        pushConfig
 
 
 
@@ -1134,13 +1146,13 @@ joinChannels topics model =
 {- Server Requests - Private API -}
 
 
-sendPushes : Topic -> Dict Int PushConfig -> ({ msg : String, payload : JE.Value } -> Cmd Msg) -> Cmd Msg
+sendPushes : Topic -> Dict Int InternalPush -> ({ msg : String, payload : JE.Value } -> Cmd Msg) -> Cmd Msg
 sendPushes topic queuedPushes portOut =
     queuedPushes
         |> Dict.values
         |> List.filterMap
             (\pushConfig ->
-                if pushConfig.topic /= topic then
+                if pushConfig.push.topic /= topic then
                     Nothing
 
                 else
@@ -1149,14 +1161,14 @@ sendPushes topic queuedPushes portOut =
         |> Cmd.batch
 
 
-sendPush : PushConfig -> ({ msg : String, payload : JE.Value } -> Cmd Msg) -> Cmd Msg
+sendPush : InternalPush -> ({ msg : String, payload : JE.Value } -> Cmd Msg) -> Cmd Msg
 sendPush pushConfig portOut =
     Channel.push
-        pushConfig
+        pushConfig.push
         portOut
 
 
-sendTimeoutPush : PushConfig -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+sendTimeoutPush : InternalPush -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 sendTimeoutPush config ( Model model, cmd ) =
     case Dict.get config.ref model.queuedPushes of
         Just pushConfig ->
@@ -1174,7 +1186,7 @@ sendTimeoutPush config ( Model model, cmd ) =
             ( Model model, Cmd.none )
 
 
-sendTimeoutPushes : List PushConfig -> Model -> ( Model, Cmd Msg )
+sendTimeoutPushes : List InternalPush -> Model -> ( Model, Cmd Msg )
 sendTimeoutPushes pushConfigs model =
     case pushConfigs of
         [] ->
@@ -1335,12 +1347,19 @@ updatePushResponse response (Model model) =
         }
 
 
-updateQueuedPushes : Dict Int PushConfig -> Model -> Model
+updateQueuedPushes : Dict Int InternalPush -> Model -> Model
 updateQueuedPushes queuedPushes (Model model) =
     Model
         { model
             | queuedPushes = queuedPushes
         }
+
+
+updateRetrySecs : Maybe Int -> Push -> Push
+updateRetrySecs retrySecs pushConfig =
+    { pushConfig
+        | retrySecs = retrySecs
+    }
 
 
 updateSocketError : String -> Model -> Model
@@ -1367,7 +1386,7 @@ updateSocketState state (Model model) =
         }
 
 
-updateTimeoutPushes : List PushConfig -> Model -> Model
+updateTimeoutPushes : List InternalPush -> Model -> Model
 updateTimeoutPushes pushConfig (Model model) =
     Model
         { model
