@@ -482,7 +482,8 @@ replace compareFunc newItem list =
     [Json.Encode.null](https://package.elm-lang.org/packages/elm/json/latest/Json-Encode#null) .
   - `timeout` - Optional timeout in milliseconds to set on the push request.
   - `retrySecs` - Optional time in seconds before retrying to send the push
-    after a timeout. A value of `Nothing` will prevent any automatic retries.
+    again after a timeout. A value of `Nothing` will prevent any automatic
+    retries.
   - `ref` - Optional reference you can provide that you can use to identify the
     response to a push if you're sending lots of the same `msg`s.
 
@@ -771,7 +772,7 @@ update msg (Model model) =
                     case Dict.get ref model.queuedPushes of
                         Just pushConfig ->
                             ( Model model
-                                |> addTimeoutPush pushConfig
+                                |> maybeAddTimeoutPush pushConfig
                                 |> updatePushResponse (PushTimeout topic msg_ payload ref)
                             , Cmd.none
                             )
@@ -1088,11 +1089,15 @@ addSocketMessage message (Model model) =
 {- Timeout Events -}
 
 
-addTimeoutPush : InternalPush -> Model -> Model
-addTimeoutPush pushConfig (Model model) =
-    updateTimeoutPushes
-        (Dict.insert pushConfig.ref pushConfig model.timeoutPushes)
-        (Model model)
+maybeAddTimeoutPush : InternalPush -> Model -> Model
+maybeAddTimeoutPush pushConfig (Model model) =
+    if pushConfig.push.retrySecs == Nothing then
+        Model model
+
+    else
+        updateTimeoutPushes
+            (Dict.insert pushConfig.ref pushConfig model.timeoutPushes)
+            (Model model)
 
 
 timeoutTick : Model -> Model
