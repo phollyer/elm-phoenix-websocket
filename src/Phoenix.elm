@@ -569,13 +569,32 @@ push pushConfig (Model model) =
 
 {-| Push a list of messages together.
 
-The messages will batched and the order in which they reach their respective
+The messages will be batched and the order in which they reach their respective
 Channels is unknown.
 
 -}
 pushAll : List Push -> Model -> ( Model, Cmd Msg )
-pushAll _ model =
-    ( model, Cmd.none )
+pushAll pushes model =
+    List.foldl
+        (\pushConfig (Model model_) ->
+            let
+                pushRef =
+                    model_.pushCount + 1
+
+                internalConfig =
+                    { push = pushConfig
+                    , ref = pushRef
+                    , retryStrategy = pushConfig.retryStrategy
+                    , timeoutTick = 0
+                    }
+            in
+            Model model_
+                |> addPushToQueue internalConfig
+                |> updatePushCount pushRef
+        )
+        model
+        pushes
+        |> sendQueuedPushes
 
 
 pushIfJoined : InternalPush -> Model -> ( Model, Cmd Msg )
@@ -625,8 +644,13 @@ pushIfConnected config (Model model) =
             )
 
 
-sendQueuedPushes : Topic -> Model -> ( Model, Cmd Msg )
-sendQueuedPushes topic model =
+sendQueuedPushes : Model -> ( Model, Cmd Msg )
+sendQueuedPushes (Model model) =
+    sendAllPushes model.queuedPushes (Model model)
+
+
+sendQueuedPushesByTopic : Topic -> Model -> ( Model, Cmd Msg )
+sendQueuedPushesByTopic topic model =
     let
         ( toGo, toKeep ) =
             model
@@ -789,7 +813,7 @@ update msg (Model model) =
             Model model
                 |> addJoinedChannel topic
                 |> dropChannelBeingJoined topic
-                |> sendQueuedPushes topic
+                |> sendQueuedPushesByTopic topic
 
         ChannelMsg (Channel.JoinTimeout _ _) ->
             ( Model model, Cmd.none )
