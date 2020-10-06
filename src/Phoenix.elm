@@ -5,7 +5,7 @@ module Phoenix exposing
     , Topic, join, JoinConfig, addJoinConfig
     , Push, RetryStrategy(..), push, pushAll
     , subscriptions
-    , Msg(..), update
+    , Msg, update
     , DecoderError(..), PushResponse(..), MsgOut
     , requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
     )
