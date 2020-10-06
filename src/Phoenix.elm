@@ -1,12 +1,12 @@
 module Phoenix exposing
     ( Model
     , PortConfig, init
-    , connect, addConnectOptions, setConnectOptions, setConnectParams
+    , connect, addConnectOptions, setConnectOptions, Payload, setConnectParams
     , Topic, join, JoinConfig, addJoinConfig
-    , Push, RetryStrategy(..), push, pushAll
+    , Message, RetryStrategy(..), Push, push, pushAll
     , subscriptions
     , Msg, update
-    , OrignalPushMsg, PushRef, Payload, OriginalPayload, PushResponse(..)
+    , OriginalPayload, IncomingMessage, PushRef, ChannelResponse(..), PhoenixMsg(..)
     , DecoderError(..)
     , requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
     )
@@ -104,7 +104,7 @@ socket you can do so when you [init](#init) the [Model](#Model), or use the
 If you want to send any params to the Socket when it connects at the Elixir end
 you can use the [setConnectParams](#setConnectParams) function.
 
-@docs connect, addConnectOptions, setConnectOptions, setConnectParams
+@docs connect, addConnectOptions, setConnectOptions, Payload, setConnectParams
 
 
 # Joining a Channel
@@ -125,17 +125,17 @@ When pushing a message to a Channel, opening the Socket, and joining the
 Channel is handled automatically. Pushes will be queued until the Channel has
 been joined, at which point, any queued pushes will be sent in a batch.
 
+See [Connecting to the Socket](#connecting-to-the-socket) and
+[Joining a Channel](#joining-a-channel) for more details on handling these
+manually.
+
 If the Socket is open and the Channel already joined, the push will be sent
 immediately.
-
-See [Connecting to the Socket](#connecting-to-the-socket) and
-[Joining a Channel](#joining-a-channel) for details on setting any required
-options and params prior to pushing.
 
 
 ## Pushing Messages
 
-@docs Push, RetryStrategy, push, pushAll
+@docs Message, RetryStrategy, Push, push, pushAll
 
 
 ## Receiving Messages
@@ -150,7 +150,7 @@ options and params prior to pushing.
 
 ## Pattern Matching
 
-@docs OrignalPushMsg, PushRef, Payload, OriginalPayload, PushResponse
+@docs OriginalPayload, IncomingMessage, PushRef, ChannelResponse, PhoenixMsg
 
 @docs DecoderError
 
@@ -160,10 +160,11 @@ options and params prior to pushing.
 
 import Dict exposing (Dict)
 import Json.Decode as JD
-import Json.Encode as JE
+import Json.Encode as JE exposing (Value)
 import Phoenix.Channel as Channel
 import Phoenix.Presence as Presence
 import Phoenix.Socket as Socket
+import Set exposing (Set)
 import Time
 
 
@@ -174,11 +175,11 @@ This is an opaque type, so use the provided API to interact with it.
 -}
 type Model
     = Model
-        { channelsBeingJoined : List Topic
-        , channelsJoined : List Topic
+        { channelsBeingJoined : Set Topic
+        , channelsJoined : Set Topic
         , connectionState : Maybe String
         , connectOptions : List Socket.ConnectOption
-        , connectParams : JE.Value
+        , connectParams : Payload
         , decoderErrors : List DecoderError
         , endpointURL : Maybe String
         , hasLogger : Maybe Bool
@@ -187,12 +188,12 @@ type Model
         , joinConfigs : Dict String JoinConfig
         , lastDecoderError : Maybe DecoderError
         , lastInvalidSocketEvent : Maybe String
+        , lastMessage : PhoenixMsg
         , lastSocketMessage : Maybe Socket.MessageConfig
         , nextMessageRef : Maybe String
         , portConfig : PortConfig
         , protocol : Maybe String
         , pushCount : Int
-        , pushResponse : Maybe PushResponse
         , queuedPushes : Dict Int InternalPush
         , socketError : String
         , socketMessages : List Socket.MessageConfig
@@ -209,7 +210,7 @@ type DecoderError
 type SocketState
     = Open
     | Opening
-    | Closed
+    | Disconnected
 
 
 {-| A type alias representing the ports to be used to communicate with JS.
@@ -221,12 +222,12 @@ You can find the `port` module
 type alias PortConfig =
     { phoenixSend :
         { msg : String
-        , payload : JE.Value
+        , payload : Value
         }
         -> Cmd Msg
     , socketReceiver :
         ({ msg : String
-         , payload : JE.Value
+         , payload : Value
          }
          -> Msg
         )
@@ -234,7 +235,7 @@ type alias PortConfig =
     , channelReceiver :
         ({ topic : String
          , msg : String
-         , payload : JE.Value
+         , payload : Value
          }
          -> Msg
         )
@@ -242,7 +243,7 @@ type alias PortConfig =
     , presenceReceiver :
         ({ topic : String
          , msg : String
-         , payload : JE.Value
+         , payload : Value
          }
          -> Msg
         )
@@ -274,8 +275,8 @@ any [ConnectOption](Phoenix.Socket#ConnectOption)s you want to set on the socket
 init : PortConfig -> List Socket.ConnectOption -> Model
 init portConfig connectOptions =
     Model
-        { channelsBeingJoined = []
-        , channelsJoined = []
+        { channelsBeingJoined = Set.empty
+        , channelsJoined = Set.empty
         , connectionState = Nothing
         , connectOptions = connectOptions
         , connectParams = JE.null
@@ -287,16 +288,16 @@ init portConfig connectOptions =
         , joinConfigs = Dict.empty
         , lastDecoderError = Nothing
         , lastInvalidSocketEvent = Nothing
+        , lastMessage = NoOp
         , lastSocketMessage = Nothing
         , nextMessageRef = Nothing
         , portConfig = portConfig
         , protocol = Nothing
         , pushCount = 0
-        , pushResponse = Nothing
         , queuedPushes = Dict.empty
         , socketError = ""
         , socketMessages = []
-        , socketState = Closed
+        , socketState = Disconnected
         , timeoutPushes = Dict.empty
         }
 
@@ -310,7 +311,7 @@ init portConfig connectOptions =
 connect : Model -> ( Model, Cmd Msg )
 connect (Model model) =
     case model.socketState of
-        Closed ->
+        Disconnected ->
             ( Model model
             , Socket.connect
                 model.connectOptions
@@ -346,20 +347,32 @@ setConnectOptions options model =
     updateConnectOptions options model
 
 
+{-| A type alias representing custom data that is sent to the Socket and your
+Channels, and received from your Channels.
+
+It is a
+[Json.Encode.Value](https://package.elm-lang.org/packages/elm/json/latest/Json-Encode#Value).
+
+-}
+type alias Payload =
+    Value
+
+
 {-| Provide some params to send to the Socket when connecting at the Elixir
 end.
 
     import Json.Encode as JE
 
     setConnectParams
-        JE.object
+        ( JE.object
             [ ("username", JE.string "username")
             , ("password", JE.string "password")
             ]
+        )
         model
 
 -}
-setConnectParams : JE.Value -> Model -> Model
+setConnectParams : Payload -> Model -> Model
 setConnectParams params model =
     updateConnectParams params model
 
@@ -407,7 +420,7 @@ join topic (Model model) =
             , Cmd.none
             )
 
-        Closed ->
+        Disconnected ->
             Model model
                 |> addChannelBeingJoined topic
                 |> connect
@@ -425,7 +438,7 @@ join topic (Model model) =
 -}
 type alias JoinConfig =
     { topic : Topic
-    , payload : Maybe JE.Value
+    , payload : Maybe Payload
     , timeout : Maybe Int
     }
 
@@ -452,45 +465,54 @@ addJoinConfig config (Model model) =
         (Model model)
 
 
-joinChannels : List Topic -> Model -> ( Model, Cmd Msg )
+joinChannels : Set Topic -> Model -> ( Model, Cmd Msg )
 joinChannels topics model =
-    List.foldl
-        (\topic ( model_, cmd ) ->
-            let
-                ( m, c ) =
-                    join topic model_
-            in
-            ( m, Cmd.batch [ c, cmd ] )
-        )
-        ( model, Cmd.none )
-        topics
+    Set.toList topics
+        |> List.foldl
+            (\topic ( model_, cmd ) ->
+                join topic model_
+                    |> Tuple.mapSecond
+                        (\cmd_ -> Cmd.batch [ cmd_, cmd ])
+            )
+            ( model, Cmd.none )
+
+
+addChannelBeingJoined : Topic -> Model -> Model
+addChannelBeingJoined topic (Model model) =
+    updateChannelsBeingJoined
+        (Set.insert topic model.channelsBeingJoined)
+        (Model model)
+
+
+addJoinedChannel : Topic -> Model -> Model
+addJoinedChannel topic (Model model) =
+    updateChannelsBeingJoined
+        (Set.insert topic model.channelsJoined)
+        (Model model)
+
+
+dropChannelBeingJoined : Topic -> Model -> Model
+dropChannelBeingJoined topic (Model model) =
+    updateChannelsJoined
+        (Set.remove topic model.channelsBeingJoined)
+        (Model model)
+
+
+dropJoinedChannel : Topic -> Model -> Model
+dropJoinedChannel topic (Model model) =
+    updateChannelsJoined
+        (Set.remove topic model.channelsJoined)
+        (Model model)
 
 
 
 {- Talking to Channels -}
 
 
-{-| A type alias representing the config for pushing a message to a Channel.
-
-  - `topic` - The Channel topic to send the push to.
-  - `msg` - The message to send to the Channel.
-  - `payload` - The params to send with the message. If you don't need to
-    send any params, set this to
-    [Json.Encode.null](https://package.elm-lang.org/packages/elm/json/latest/Json-Encode#null) .
-  - `timeout` - Optional timeout in milliseconds to set on the push request.
-  - `retryStrategy` - The retry strategy to use when a push times out.
-  - `ref` - Optional reference you can provide that you can later use to
-    identify the response to a push if you're sending lots of the same `msg`s.
-
+{-| A type alias representing the message to send to a Channel.
 -}
-type alias Push =
-    { topic : Topic
-    , msg : String
-    , payload : JE.Value
-    , timeout : Maybe Int
-    , retryStrategy : RetryStrategy
-    , ref : Maybe String
-    }
+type alias Message =
+    String
 
 
 {-| The retry strategy to use when a push times out.
@@ -516,6 +538,29 @@ type RetryStrategy
     = Drop
     | Every Int
     | Backoff (List Int) Int
+
+
+{-| A type alias representing the config for pushing a message to a Channel.
+
+  - `topic` - The Channel topic to send the push to.
+  - `msg` - The message to send to the Channel.
+  - `payload` - The params to send with the message. If you don't need to
+    send any params, set this to
+    [Json.Encode.null](https://package.elm-lang.org/packages/elm/json/latest/Json-Encode#null) .
+  - `timeout` - Optional timeout in milliseconds to set on the push request.
+  - `retryStrategy` - The retry strategy to use when a push times out.
+  - `ref` - Optional reference you can provide that you can later use to
+    identify the response to a push if you're sending lots of the same `msg`s.
+
+-}
+type alias Push =
+    { topic : Topic
+    , msg : Message
+    , payload : Payload
+    , timeout : Maybe Int
+    , retryStrategy : RetryStrategy
+    , ref : Maybe String
+    }
 
 
 type alias InternalPush =
@@ -597,14 +642,14 @@ pushAll pushes model =
 
 pushIfJoined : InternalPush -> Model -> ( Model, Cmd Msg )
 pushIfJoined config (Model model) =
-    if model.channelsJoined |> List.member config.push.topic then
+    if Set.member config.push.topic model.channelsJoined then
         ( Model model
         , Channel.push
             config.push
             model.portConfig.phoenixSend
         )
 
-    else if model.channelsBeingJoined |> List.member config.push.topic then
+    else if Set.member config.push.topic model.channelsBeingJoined then
         ( Model model
         , Cmd.none
         )
@@ -630,7 +675,7 @@ pushIfConnected config (Model model) =
             , Cmd.none
             )
 
-        Closed ->
+        Disconnected ->
             ( Model model
                 |> addChannelBeingJoined config.push.topic
                 |> addPushToQueue config
@@ -730,6 +775,13 @@ batchPush pushConfig ( model, cmd ) =
     )
 
 
+addTimeoutPush : InternalPush -> Model -> Model
+addTimeoutPush internalConfig (Model model) =
+    updateTimeoutPushes
+        (Dict.insert internalConfig.ref internalConfig model.timeoutPushes)
+        (Model model)
+
+
 
 {- Receiving Messages -}
 
@@ -779,6 +831,9 @@ This is an opaque type as it carries the _raw_ `Msg` data from the lower level
 [Socket](Phoenix.Socket#Msg), [Channel](Phoenix.Channel#Msg) and
 [Presence](Phoenix.Presence#Msg) `Msg`s.
 
+For pattern matching, use the [lastMsg](#lastMsg) function to return a
+[PhoenixMsg](#PhoenixMsg) which has nicer pattern matching options.
+
 -}
 type Msg
     = ChannelMsg Channel.Msg
@@ -813,32 +868,42 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg (Model model) =
     case msg of
-        ChannelMsg (Channel.Closed _) ->
-            ( Model model, Cmd.none )
+        ChannelMsg (Channel.Closed topic) ->
+            ( updateLastMsg (ChannelResponse (Closed topic)) (Model model), Cmd.none )
 
-        ChannelMsg (Channel.Error _) ->
-            ( Model model, Cmd.none )
+        ChannelMsg (Channel.Error topic) ->
+            ( updateLastMsg (ChannelResponse (ChannelError topic)) (Model model), Cmd.none )
 
-        ChannelMsg (Channel.InvalidMsg _ _ _) ->
-            ( Model model, Cmd.none )
+        ChannelMsg (Channel.InvalidMsg topic invalidMsg payload) ->
+            ( updateLastMsg (ChannelResponse (InvalidChannelMsg topic invalidMsg payload)) (Model model), Cmd.none )
 
-        ChannelMsg (Channel.JoinError _ _) ->
-            ( Model model, Cmd.none )
+        ChannelMsg (Channel.JoinError topic payload) ->
+            ( updateLastMsg (ChannelResponse (JoinError topic payload)) (Model model), Cmd.none )
 
-        ChannelMsg (Channel.JoinOk topic _) ->
+        ChannelMsg (Channel.JoinOk topic payload) ->
             Model model
                 |> addJoinedChannel topic
                 |> dropChannelBeingJoined topic
+                |> updateLastMsg (ChannelResponse (JoinOk topic payload))
                 |> sendQueuedPushesByTopic topic
 
-        ChannelMsg (Channel.JoinTimeout _ _) ->
-            ( Model model, Cmd.none )
+        ChannelMsg (Channel.JoinTimeout topic payload) ->
+            ( updateLastMsg (ChannelResponse (JoinTimeout topic payload)) (Model model), Cmd.none )
 
-        ChannelMsg (Channel.LeaveOk _) ->
-            ( Model model, Cmd.none )
+        ChannelMsg (Channel.LeaveOk topic) ->
+            ( Model model
+                |> dropJoinedChannel topic
+                |> updateLastMsg (ChannelResponse (LeaveOk topic))
+            , Cmd.none
+            )
 
-        ChannelMsg (Channel.Message _ _ _) ->
-            ( Model model, Cmd.none )
+        ChannelMsg (Channel.Message topic msgResult payloadResult) ->
+            case ( msgResult, payloadResult ) of
+                ( Ok message, Ok payload ) ->
+                    ( updateLastMsg (ChannelResponse (Message topic message payload)) (Model model), Cmd.none )
+
+                _ ->
+                    ( Model model, Cmd.none )
 
         ChannelMsg (Channel.PushError topic msgResult payloadResult refResult) ->
             case ( msgResult, payloadResult, refResult ) of
@@ -854,7 +919,7 @@ update msg (Model model) =
                     in
                     ( Model model
                         |> dropQueuedPush internalRef
-                        |> updatePushResponse (PushError topic msg_ pushRef payload)
+                        |> updateLastMsg (ChannelResponse (PushError topic msg_ pushRef payload))
                     , Cmd.none
                     )
 
@@ -875,7 +940,7 @@ update msg (Model model) =
                     in
                     ( Model model
                         |> dropQueuedPush internalRef
-                        |> updatePushResponse (PushOk topic msg_ pushRef payload)
+                        |> updateLastMsg (ChannelResponse (PushOk topic msg_ pushRef payload))
                     , Cmd.none
                     )
 
@@ -885,27 +950,31 @@ update msg (Model model) =
         ChannelMsg (Channel.PushTimeout topic msgResult payloadResult refResult) ->
             case ( msgResult, payloadResult, refResult ) of
                 ( Ok msg_, Ok payload, Ok internalRef ) ->
-                    let
-                        responseModel =
-                            updatePushResponse
-                                (PushTimeout topic msg_ (Just "") payload)
-                                (Model model)
-                    in
                     case Dict.get internalRef model.queuedPushes of
-                        Just pushConfig ->
-                            case pushConfig.push.retryStrategy of
+                        Just internalConfig ->
+                            let
+                                pushRef =
+                                    internalConfig.push.ref
+
+                                responseModel =
+                                    Model model
+                                        |> dropQueuedPush internalConfig.ref
+                                        |> updateLastMsg
+                                            (ChannelResponse (PushTimeout topic msg_ pushRef payload))
+                            in
+                            case internalConfig.retryStrategy of
                                 Drop ->
                                     ( responseModel, Cmd.none )
 
                                 _ ->
-                                    ( updateTimeoutPushes
-                                        (Dict.insert pushConfig.ref pushConfig model.timeoutPushes)
-                                        responseModel
-                                    , Cmd.none
-                                    )
+                                    ( addTimeoutPush internalConfig responseModel, Cmd.none )
 
                         Nothing ->
-                            ( responseModel, Cmd.none )
+                            ( updateLastMsg
+                                (ChannelResponse (PushTimeout topic msg_ Nothing payload))
+                                (Model model)
+                            , Cmd.none
+                            )
 
                 _ ->
                     ( Model model, Cmd.none )
@@ -928,7 +997,7 @@ update msg (Model model) =
         SocketMsg subMsg ->
             case subMsg of
                 Socket.Closed ->
-                    ( updateSocketState Closed (Model model)
+                    ( updateSocketState Disconnected (Model model)
                     , Cmd.none
                     )
 
@@ -1063,8 +1132,7 @@ update msg (Model model) =
                     Model model
                         |> updateIsConnected True
                         |> updateSocketState Open
-                        |> joinChannels
-                            model.channelsBeingJoined
+                        |> joinChannels model.channelsBeingJoined
 
                 Socket.ProtocolReply result ->
                     case result of
@@ -1086,9 +1154,16 @@ update msg (Model model) =
                 |> sendTimeoutPushes
 
 
-{-| A type alias representing the original `msg` that was sent to a Channel.
+{-| A type alias representing the original payload that was sent with the
+[push](#PushConfig).
 -}
-type alias OrignalPushMsg =
+type alias OriginalPayload =
+    Payload
+
+
+{-| A type alias representing a message received from a Channel.
+-}
+type alias IncomingMessage =
     String
 
 
@@ -1098,24 +1173,26 @@ type alias PushRef =
     Maybe String
 
 
-{-| A type alias representing the payload received from the Channel.
+{-| All the responses that can be received from a Channel.
 -}
-type alias Payload =
-    JE.Value
-
-
-{-| A type alias representing the original payload that was sent with the
-[push](#PushConfig).
--}
-type alias OriginalPayload =
-    JE.Value
+type ChannelResponse
+    = Closed Topic
+    | ChannelError Topic
+    | InvalidChannelMsg Topic String Payload
+    | JoinError Topic Payload
+    | JoinOk Topic Payload
+    | JoinTimeout Topic OriginalPayload
+    | LeaveOk Topic
+    | Message Topic IncomingMessage Payload
+    | PushError Topic Message PushRef Payload
+    | PushOk Topic Message PushRef Payload
+    | PushTimeout Topic Message PushRef OriginalPayload
 
 
 {-| -}
-type PushResponse
-    = PushOk Topic OrignalPushMsg PushRef Payload
-    | PushError Topic OrignalPushMsg PushRef Payload
-    | PushTimeout Topic OrignalPushMsg PushRef OriginalPayload
+type PhoenixMsg
+    = NoOp
+    | ChannelResponse ChannelResponse
 
 
 
@@ -1259,45 +1336,6 @@ timeoutTick (Model model) =
 
 
 
-{- Channels -}
-
-
-addChannelBeingJoined : Topic -> Model -> Model
-addChannelBeingJoined topic (Model model) =
-    if model.channelsBeingJoined |> List.member topic then
-        Model model
-
-    else
-        updateChannelsBeingJoined
-            (topic :: model.channelsBeingJoined)
-            (Model model)
-
-
-addJoinedChannel : Topic -> Model -> Model
-addJoinedChannel topic (Model model) =
-    if model.channelsJoined |> List.member topic then
-        Model model
-
-    else
-        updateChannelsJoined
-            (topic :: model.channelsJoined)
-            (Model model)
-
-
-dropChannelBeingJoined : Topic -> Model -> Model
-dropChannelBeingJoined topic (Model model) =
-    let
-        channelsBeingJoined =
-            model.channelsBeingJoined
-                |> List.filter
-                    (\topic_ -> topic_ /= topic)
-    in
-    updateChannelsBeingJoined
-        channelsBeingJoined
-        (Model model)
-
-
-
 {- Access Model Fields -}
 
 
@@ -1315,7 +1353,7 @@ timeoutPushes (Model model) =
 {- Update Model Fields -}
 
 
-updateChannelsBeingJoined : List Topic -> Model -> Model
+updateChannelsBeingJoined : Set Topic -> Model -> Model
 updateChannelsBeingJoined channelsBeingJoined (Model model) =
     Model
         { model
@@ -1323,7 +1361,7 @@ updateChannelsBeingJoined channelsBeingJoined (Model model) =
         }
 
 
-updateChannelsJoined : List Topic -> Model -> Model
+updateChannelsJoined : Set Topic -> Model -> Model
 updateChannelsJoined channelsJoined (Model model) =
     Model
         { model
@@ -1347,7 +1385,7 @@ updateConnectOptions options (Model model) =
         }
 
 
-updateConnectParams : JE.Value -> Model -> Model
+updateConnectParams : Payload -> Model -> Model
 updateConnectParams params (Model model) =
     Model
         { model
@@ -1419,6 +1457,14 @@ updateLastInvalidSocketEvent msg (Model model) =
         }
 
 
+updateLastMsg : PhoenixMsg -> Model -> Model
+updateLastMsg phoenixMsg (Model model) =
+    Model
+        { model
+            | lastMessage = phoenixMsg
+        }
+
+
 updateLastSocketMessage : Maybe Socket.MessageConfig -> Model -> Model
 updateLastSocketMessage message (Model model) =
     Model
@@ -1448,14 +1494,6 @@ updatePushCount count (Model model) =
     Model
         { model
             | pushCount = count
-        }
-
-
-updatePushResponse : PushResponse -> Model -> Model
-updatePushResponse response (Model model) =
-    Model
-        { model
-            | pushResponse = Just response
         }
 
 
