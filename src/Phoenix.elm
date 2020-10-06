@@ -1150,10 +1150,10 @@ dropQueuedPush ref (Model model) =
 {- Socket -}
 
 
-sendToSocket : Socket.MsgOut -> Model -> Cmd Msg
-sendToSocket msg (Model model) =
+sendToSocket : Socket.InfoRequest -> Model -> Cmd Msg
+sendToSocket infoRequest (Model model) =
     Socket.send
-        msg
+        infoRequest
         model.portConfig.phoenixSend
 
 

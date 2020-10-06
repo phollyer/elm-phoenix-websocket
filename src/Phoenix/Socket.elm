@@ -1,7 +1,7 @@
 module Phoenix.Socket exposing
     ( ConnectOption(..), Params, PortOut, connect
     , disconnect
-    , MsgOut(..), send
+    , InfoRequest(..), send
     , MsgIn(..), MessageConfig, InfoData, PortIn, subscriptions
     )
 
@@ -24,7 +24,7 @@ channel(s).
 
 # Sending Messages
 
-@docs MsgOut, send
+@docs InfoRequest, send
 
 
 # Receiving Messages
@@ -141,8 +141,7 @@ connect options maybeParams portOut =
         payload =
             encodeConnectOptionsAndParams options maybeParams
     in
-    portOut <|
-        package "connect" (Just payload)
+    portOut { msg = "connect", payload = payload }
 
 
 encodeConnectOptionsAndParams : List ConnectOption -> Maybe Value -> Value
@@ -200,7 +199,7 @@ accompanying JS file accordingly.
 disconnect : PortOut msg -> Cmd msg
 disconnect portOut =
     portOut <|
-        package "disconnect" Nothing
+        package "disconnect"
 
 
 {-| All of the messages you can send to the socket.
@@ -227,7 +226,7 @@ Currently, the following JS instance members are not supported:
   - `push(data)`
 
 -}
-type MsgOut
+type InfoRequest
     = ConnectionState
     | EndPointURL
     | HasLogger
@@ -235,10 +234,9 @@ type MsgOut
     | IsConnected
     | MakeRef
     | Protocol
-    | Log { kind : String, msg : String, data : JD.Value }
 
 
-{-| Send a [MsgOut](#MsgOut) to the socket.
+{-| Send a [InfoRequest](#InfoRequest) to the socket.
 
     import Port
     import Socket
@@ -246,62 +244,43 @@ type MsgOut
     Socket.send Socket.Info Port.phoenixSend
 
 -}
-send : MsgOut -> PortOut msg -> Cmd msg
+send : InfoRequest -> PortOut msg -> Cmd msg
 send msgOut portOut =
     case msgOut of
         ConnectionState ->
             portOut <|
-                package "connectionState" Nothing
+                package "connectionState"
 
         Info ->
             portOut <|
-                package "info" Nothing
+                package "info"
 
         IsConnected ->
             portOut <|
-                package "isConnected" Nothing
+                package "isConnected"
 
         EndPointURL ->
             portOut <|
-                package "endPointURL" Nothing
+                package "endPointURL"
 
         HasLogger ->
             portOut <|
-                package "hasLogger" Nothing
+                package "hasLogger"
 
         MakeRef ->
             portOut <|
-                package "makeRef" Nothing
+                package "makeRef"
 
         Protocol ->
             portOut <|
-                package "protocol" Nothing
-
-        Log { kind, msg, data } ->
-            let
-                payload =
-                    JE.object
-                        [ ( "kind", JE.string kind )
-                        , ( "msg", JE.string msg )
-                        , ( "data", data )
-                        ]
-            in
-            portOut <|
-                package "log" (Just payload)
+                package "protocol"
 
 
-package : String -> Maybe JE.Value -> { msg : String, payload : JE.Value }
-package msg maybePayload =
-    case maybePayload of
-        Just payload ->
-            { msg = msg
-            , payload = payload
-            }
-
-        Nothing ->
-            { msg = msg
-            , payload = JE.null
-            }
+package : String -> { msg : String, payload : JE.Value }
+package msg =
+    { msg = msg
+    , payload = JE.null
+    }
 
 
 
@@ -370,7 +349,7 @@ type alias MessageConfig =
 
 {-| All of the info available about the socket. This arrive as a
 [MsgIn](#MsgIn) `InfoReply` and is the result of sending an `Info`
-[MsgOut](#MsgOut).
+[InfoRequest](#InfoRequest).
 -}
 type alias InfoData =
     { connectionState : String
