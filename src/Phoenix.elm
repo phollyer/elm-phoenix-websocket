@@ -5,7 +5,7 @@ module Phoenix exposing
     , Topic, join, JoinConfig, addJoinConfig
     , Push, RetryStrategy(..), push, pushAll
     , subscriptions
-    , Msg, update
+    , Msg(..), update
     , DecoderError(..), PushResponse(..), MsgOut
     , requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
     )
@@ -140,6 +140,9 @@ options and params prior to pushing.
 ## Receiving Messages
 
 @docs subscriptions
+
+
+# Update
 
 @docs Msg, update
 
@@ -733,6 +736,10 @@ batchPush pushConfig ( model, cmd ) =
     )
 
 
+
+{- Receiving Messages -}
+
+
 {-| Receive messages from the Socket, Channels and Pheonix Presence.
 
     import Phoenix
@@ -783,14 +790,14 @@ subscriptions (Model model) =
 
 
 
--- Update
+{- Update -}
 
 
 {-| -}
 type Msg
     = ChannelMsg Channel.Msg
     | PresenceMsg Presence.Msg
-    | SocketMsg Socket.MsgIn
+    | SocketMsg Socket.Msg
     | TimeoutTick Time.Posix
 
 

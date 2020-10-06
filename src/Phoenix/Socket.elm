@@ -2,7 +2,7 @@ module Phoenix.Socket exposing
     ( ConnectOption(..), Params, PortOut, connect
     , disconnect
     , InfoRequest(..), send
-    , MsgIn(..), MessageConfig, InfoData, PortIn, subscriptions
+    , Msg(..), MessageConfig, InfoData, PortIn, subscriptions
     )
 
 {-| Use this module to work directly with the socket.
@@ -29,7 +29,7 @@ channel(s).
 
 # Receiving Messages
 
-@docs MsgIn, MessageConfig, InfoData, PortIn, subscriptions
+@docs Msg, MessageConfig, InfoData, PortIn, subscriptions
 
 -}
 
@@ -210,7 +210,7 @@ These messages correspond to the instance members of the socket as described
 
 Sending the `Info` message will request all of the following in a single
 request and their results will come back in a single `InfoReply`
-[MsgIn](#MsgIn) response.
+[Msg](#Msg) response.
 
   - `ConnectionState`
   - `EndPointURL`
@@ -289,7 +289,7 @@ package msg =
 
 {-| All of the messages you can receive from the socket.
 
-The data each [MsgIn](#MsgIn) carries should be self explanatory,
+The data each [Msg](#Msg) carries should be self explanatory,
 except for maybe:
 
   - `HasLoggerReply` - not all versions of
@@ -308,7 +308,7 @@ decided to leave the `Error` to be handled by the user of the package, rather
 than gloss over it with some kind of default.
 
 -}
-type MsgIn
+type Msg
     = Opened
     | Closed
     | Error (Result JD.Error String)
@@ -324,7 +324,7 @@ type MsgIn
 
 
 {-| A type alias representing the raw message received by the socket. This
-arrives as a [MsgIn](#MsgIn) `Message`.
+arrives as a [Msg](#Msg) `Message`.
 
 You will need to decode `payload` yourself, as only you will know the structure
 of this `Value`. It will be whatever data has been sent back from Phoenix
@@ -335,7 +335,7 @@ If you are using multiple channels, you will also need to check the `topic` to
 identify the channel that sent the `msg`.
 
 **NB** You won't need this if you choose to handle messages over
-[Channel](Phoenix.Channel#MsgIn)s.
+[Channel](Phoenix.Channel#Msg)s.
 
 -}
 type alias MessageConfig =
@@ -348,7 +348,7 @@ type alias MessageConfig =
 
 
 {-| All of the info available about the socket. This arrive as a
-[MsgIn](#MsgIn) `InfoReply` and is the result of sending an `Info`
+[Msg](#Msg) `InfoReply` and is the result of sending an `Info`
 [InfoRequest](#InfoRequest).
 -}
 type alias InfoData =
@@ -362,7 +362,7 @@ type alias InfoData =
 
 
 {-| A type alias representing the `port` function required to receive
-the [MsgIn](#MsgIn) from the socket.
+the [Msg](#Msg) from the socket.
 
 You will find this `port` function in the
 [Port](https://github.com/phollyer/elm-phoenix-websocket/tree/master/src/Ports)
@@ -384,7 +384,7 @@ type alias PortIn msg =
     import Socket
 
     type Msg
-      = SocketMsg Socket.MsgIn
+      = SocketMsg Socket.Msg
       | ...
 
 
@@ -395,13 +395,13 @@ type alias PortIn msg =
             Port.socketReceiver
 
 -}
-subscriptions : (MsgIn -> msg) -> PortIn msg -> Sub msg
+subscriptions : (Msg -> msg) -> PortIn msg -> Sub msg
 subscriptions msg portIn =
     portIn <|
         handleIn msg
 
 
-handleIn : (MsgIn -> msg) -> { msg : String, payload : JE.Value } -> msg
+handleIn : (Msg -> msg) -> { msg : String, payload : JE.Value } -> msg
 handleIn toMsg { msg, payload } =
     case msg of
         "Opened" ->
