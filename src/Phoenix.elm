@@ -6,7 +6,8 @@ module Phoenix exposing
     , Push, RetryStrategy(..), push, pushAll
     , subscriptions
     , Msg, update
-    , DecoderError(..), PushResponse(..), MsgOut
+    , OrignalPushMsg, PushRef, Payload, OriginalPayload, PushResponse(..)
+    , DecoderError(..)
     , requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
     )
 
@@ -146,7 +147,12 @@ options and params prior to pushing.
 
 @docs Msg, update
 
-@docs DecoderError, PushResponse, MsgOut
+
+## Pattern Matching
+
+@docs OrignalPushMsg, PushRef, Payload, OriginalPayload, PushResponse
+
+@docs DecoderError
 
 @docs requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
 
@@ -198,18 +204,6 @@ type Model
 {-| -}
 type DecoderError
     = Socket JD.Error
-
-
-{-| -}
-type alias MsgOut =
-    String
-
-
-{-| -}
-type PushResponse
-    = PushOk Topic MsgOut JE.Value Int
-    | PushError Topic MsgOut JE.Value Int
-    | PushTimeout Topic MsgOut JE.Value Int
 
 
 type SocketState
@@ -848,10 +842,19 @@ update msg (Model model) =
 
         ChannelMsg (Channel.PushError topic msgResult payloadResult refResult) ->
             case ( msgResult, payloadResult, refResult ) of
-                ( Ok msg_, Ok payload, Ok ref ) ->
+                ( Ok msg_, Ok payload, Ok internalRef ) ->
+                    let
+                        pushRef =
+                            case Dict.get internalRef model.queuedPushes of
+                                Just internalConfig ->
+                                    internalConfig.push.ref
+
+                                Nothing ->
+                                    Just ""
+                    in
                     ( Model model
-                        |> dropQueuedPush ref
-                        |> updatePushResponse (PushError topic msg_ payload ref)
+                        |> dropQueuedPush internalRef
+                        |> updatePushResponse (PushError topic msg_ pushRef payload)
                     , Cmd.none
                     )
 
@@ -860,10 +863,19 @@ update msg (Model model) =
 
         ChannelMsg (Channel.PushOk topic msgResult payloadResult refResult) ->
             case ( msgResult, payloadResult, refResult ) of
-                ( Ok msg_, Ok payload, Ok ref ) ->
+                ( Ok msg_, Ok payload, Ok internalRef ) ->
+                    let
+                        pushRef =
+                            case Dict.get internalRef model.queuedPushes of
+                                Just internalConfig ->
+                                    internalConfig.push.ref
+
+                                Nothing ->
+                                    Just ""
+                    in
                     ( Model model
-                        |> dropQueuedPush ref
-                        |> updatePushResponse (PushOk topic msg_ payload ref)
+                        |> dropQueuedPush internalRef
+                        |> updatePushResponse (PushOk topic msg_ pushRef payload)
                     , Cmd.none
                     )
 
@@ -872,14 +884,14 @@ update msg (Model model) =
 
         ChannelMsg (Channel.PushTimeout topic msgResult payloadResult refResult) ->
             case ( msgResult, payloadResult, refResult ) of
-                ( Ok msg_, Ok payload, Ok ref ) ->
+                ( Ok msg_, Ok payload, Ok internalRef ) ->
                     let
                         responseModel =
                             updatePushResponse
-                                (PushTimeout topic msg_ payload ref)
+                                (PushTimeout topic msg_ (Just "") payload)
                                 (Model model)
                     in
-                    case Dict.get ref model.queuedPushes of
+                    case Dict.get internalRef model.queuedPushes of
                         Just pushConfig ->
                             case pushConfig.push.retryStrategy of
                                 Drop ->
@@ -1072,6 +1084,38 @@ update msg (Model model) =
             Model model
                 |> timeoutTick
                 |> sendTimeoutPushes
+
+
+{-| A type alias representing the original `msg` that was sent to a Channel.
+-}
+type alias OrignalPushMsg =
+    String
+
+
+{-| A type alias representing the `ref` set on the original [push](#PushConfig).
+-}
+type alias PushRef =
+    Maybe String
+
+
+{-| A type alias representing the payload received from the Channel.
+-}
+type alias Payload =
+    JE.Value
+
+
+{-| A type alias representing the original payload that was sent with the
+[push](#PushConfig).
+-}
+type alias OriginalPayload =
+    JE.Value
+
+
+{-| -}
+type PushResponse
+    = PushOk Topic OrignalPushMsg PushRef Payload
+    | PushError Topic OrignalPushMsg PushRef Payload
+    | PushTimeout Topic OrignalPushMsg PushRef OriginalPayload
 
 
 
