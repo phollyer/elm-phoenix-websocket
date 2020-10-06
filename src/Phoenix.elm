@@ -419,11 +419,11 @@ join topic (Model model) =
 
 {-| A type alias representing the config for joining a Channel.
 
-  - `topic` - the channel topic id, for example: `"topic:subTopic"`.
+  - `topic` - The channel topic id, for example: `"topic:subTopic"`.
 
-  - `payload` - optional data to be sent to the channel when joining.
+  - `payload` - Optional data to be sent to the channel when joining.
 
-  - `timeout` - optional timeout, in ms, before retrying to join if the previous
+  - `timeout` - Optional timeout, in ms, before retrying to join if the previous
     attempt failed.
 
 -}
@@ -436,6 +436,15 @@ type alias JoinConfig =
 
 {-| Add a [JoinConfig](#JoinConfig) to be used when joining a Channel
 referenced by the [Topic](#Topic).
+
+Multiple Channels are supported, so if you need to add multiple configs you
+can pipeline.
+
+    model
+        |> addJoinConfig config1
+        |> addJoinConfig config2
+        |> addJoinConfig config3
+
 -}
 addJoinConfig : JoinConfig -> Model -> Model
 addJoinConfig config (Model model) =
