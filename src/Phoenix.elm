@@ -436,13 +436,16 @@ type alias JoinConfig =
 {-| Add a [JoinConfig](#JoinConfig) to be used when joining a Channel
 referenced by the [Topic](#Topic).
 
-Multiple Channels are supported, so if you need to add multiple configs you
-can pipeline.
+Multiple Channels are supported, so if you need/want to add multiple configs
+all at once, you can pipeline as follows:
 
     model
         |> addJoinConfig config1
         |> addJoinConfig config2
         |> addJoinConfig config3
+
+**Note:** Internally, [JoinConfg](#JoinConfig)s are stored by `topic`, so subsequent
+additions with the same `topic` will overwrite previous ones.
 
 -}
 addJoinConfig : JoinConfig -> Model -> Model
@@ -565,10 +568,10 @@ push pushConfig (Model model) =
         |> pushIfJoined internalConfig
 
 
-{-| Push a list of messages together.
+{-| Send a list of [Push](#Push)es to Elixir.
 
-The messages will be batched and the order in which they reach their respective
-Channels is unknown.
+The [Push](#Push)es will be batched together and sent as a single `Cmd`. The
+order in which they will arrive at the Elixir end is unknown.
 
 -}
 pushAll : List Push -> Model -> ( Model, Cmd Msg )
