@@ -748,20 +748,6 @@ batchPush pushConfig ( model, cmd ) =
         = PhoenixMsg Phoenix.Msg
         | ...
 
-    update : Msg -> Model -> (Model, Cmd Msg)
-    update msg model =
-        case msg of
-            PhoenixMsg subMsg ->
-                let
-                    (phoenix, phoenixCmd) =
-                        Phoenix.update subMsg model.phoenix
-                in
-                ( { model | phoenix = phoenix}
-                , Cmd.map PhoenixMsg phoenixCmd
-                )
-
-            ...
-
     subscriptions : Model -> Sub Msg
     subscriptions model =
         Sub.map PhoenixMsg <|
@@ -793,7 +779,13 @@ subscriptions (Model model) =
 {- Update -}
 
 
-{-| -}
+{-| The `Msg` type that you pass into the [update](#update) function.
+
+This is an opaque type as it carries the _raw_ `Msg` data from the lower level
+[Socket](Phoenix.Socket#Msg), [Channel](Phoenix.Channel#Msg) and
+[Presence](Phoenix.Presence#Msg) `Msg`s.
+
+-}
 type Msg
     = ChannelMsg Channel.Msg
     | PresenceMsg Presence.Msg
@@ -801,7 +793,29 @@ type Msg
     | TimeoutTick Time.Posix
 
 
-{-| -}
+{-| This is a standard `update` function that you should be used to.
+
+    import Phoenix
+
+    type Msg
+        = PhoenixMsg Phoenix.Msg
+        | ...
+
+    update : Msg -> Model -> (Model, Cmd Msg)
+    update msg model =
+        case msg of
+            PhoenixMsg subMsg ->
+                let
+                    (phoenix, phoenixCmd) =
+                        Phoenix.update subMsg model.phoenix
+                in
+                ( { model | phoenix = phoenix}
+                , Cmd.map PhoenixMsg phoenixCmd
+                )
+
+            ...
+
+-}
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg (Model model) =
     case msg of
