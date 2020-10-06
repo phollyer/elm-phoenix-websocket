@@ -398,7 +398,7 @@ update msg model =
             )
 
         -- Message was sent successfully
-        ChannelMsg (Channel.PushOk _ _ _) ->
+        ChannelMsg (Channel.PushOk _ _ _ _) ->
             ( { model
                 | message = ""
                 , messageState = Waiting
