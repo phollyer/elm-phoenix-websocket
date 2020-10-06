@@ -477,6 +477,20 @@ replace compareFunc newItem list =
         list
 
 
+joinChannels : List Topic -> Model -> ( Model, Cmd Msg )
+joinChannels topics model =
+    List.foldl
+        (\topic ( model_, cmd ) ->
+            let
+                ( m, c ) =
+                    join topic model_
+            in
+            ( m, Cmd.batch [ c, cmd ] )
+        )
+        ( model, Cmd.none )
+        topics
+
+
 
 {- Talking to Channels -}
 
@@ -1238,20 +1252,6 @@ dropChannelBeingJoined topic (Model model) =
     updateChannelsBeingJoined
         channelsBeingJoined
         (Model model)
-
-
-joinChannels : List Topic -> Model -> ( Model, Cmd Msg )
-joinChannels topics model =
-    List.foldl
-        (\topic ( model_, cmd ) ->
-            let
-                ( m, c ) =
-                    join topic model_
-            in
-            ( m, Cmd.batch [ c, cmd ] )
-        )
-        ( model, Cmd.none )
-        topics
 
 
 
