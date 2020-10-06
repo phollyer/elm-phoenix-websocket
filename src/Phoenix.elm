@@ -152,7 +152,6 @@ options and params prior to pushing.
 import Dict exposing (Dict)
 import Json.Decode as JD
 import Json.Encode as JE
-import List.Extra
 import Phoenix.Channel as Channel
 import Phoenix.Presence as Presence
 import Phoenix.Socket as Socket
@@ -176,7 +175,7 @@ type Model
         , hasLogger : Maybe Bool
         , invalidSocketEvents : List String
         , isConnected : Bool
-        , joinConfigs : List JoinConfig
+        , joinConfigs : Dict String JoinConfig
         , lastDecoderError : Maybe DecoderError
         , lastInvalidSocketEvent : Maybe String
         , lastSocketMessage : Maybe Socket.MessageConfig
@@ -288,7 +287,7 @@ init portConfig connectOptions =
         , hasLogger = Nothing
         , invalidSocketEvents = []
         , isConnected = False
-        , joinConfigs = []
+        , joinConfigs = Dict.empty
         , lastDecoderError = Nothing
         , lastInvalidSocketEvent = Nothing
         , lastSocketMessage = Nothing
@@ -389,7 +388,7 @@ join : Topic -> Model -> ( Model, Cmd Msg )
 join topic (Model model) =
     case model.socketState of
         Open ->
-            case List.Extra.find (\joinConfig -> joinConfig.topic == topic) model.joinConfigs of
+            case Dict.get topic model.joinConfigs of
                 Just joinConfig ->
                     ( addChannelBeingJoined topic (Model model)
                     , Channel.join
@@ -448,33 +447,9 @@ can pipeline.
 -}
 addJoinConfig : JoinConfig -> Model -> Model
 addJoinConfig config (Model model) =
-    case List.Extra.find (\joinConfig -> joinConfig.topic == config.topic) model.joinConfigs of
-        Just _ ->
-            updateJoinConfigs
-                (replace
-                    (\c1 c2 -> c1.topic == c2.topic)
-                    config
-                    model.joinConfigs
-                )
-                (Model model)
-
-        Nothing ->
-            updateJoinConfigs
-                (config :: model.joinConfigs)
-                (Model model)
-
-
-replace : (a -> a -> Bool) -> a -> List a -> List a
-replace compareFunc newItem list =
-    List.map
-        (\item ->
-            if compareFunc item newItem then
-                newItem
-
-            else
-                item
-        )
-        list
+    updateJoinConfigs
+        (Dict.insert config.topic config model.joinConfigs)
+        (Model model)
 
 
 joinChannels : List Topic -> Model -> ( Model, Cmd Msg )
@@ -1352,7 +1327,7 @@ updateIsConnected isConnected (Model model) =
         }
 
 
-updateJoinConfigs : List JoinConfig -> Model -> Model
+updateJoinConfigs : Dict String JoinConfig -> Model -> Model
 updateJoinConfigs configs (Model model) =
     Model
         { model
