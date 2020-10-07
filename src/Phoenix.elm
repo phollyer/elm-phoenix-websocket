@@ -1289,10 +1289,15 @@ type PhoenixMsg
                     ChannelResponse (JoinOk "topic:subTopic" payload) ->
                         ...
 
-                    SocketResponse (StateChange Connected) ->
-                        ...
+                    SocketResponse (StateChange state) ->
+                        case state of
+                            Connected ->
+                                ...
 
-                    SocketResponse (StateChange (Disconnected reason code wasClean)) ->
+                            Disconnected reason code wasClean)) ->
+                                ...
+
+                    Message (Channel "topic:subTopic" "new_msg" payload) ->
                         ...
 
 -}
