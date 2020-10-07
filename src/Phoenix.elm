@@ -9,7 +9,7 @@ module Phoenix exposing
     , SocketState(..), SocketInfo(..), SocketResponse(..)
     , OriginalPayload, OriginalMessage, PushRef, ChannelResponse(..), IncomingMessage
     , Message(..)
-    , Presence, PresenceState, PresenceDiff, PresenceResponse
+    , Presence, PresenceResponse(..)
     , PhoenixMsg(..), lastMsg
     , requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
     )
@@ -167,7 +167,7 @@ immediately.
 
 ### Pheonix Presence
 
-@docs Presence, PresenceState, PresenceDiff, PresenceResponse
+@docs Presence, PresenceResponse
 
 
 ### Matching
@@ -1257,19 +1257,7 @@ type ChannelResponse
 {-| -}
 type alias Presence =
     { id : String
-    , metas : Dict String (List Value)
-    }
-
-
-{-| -}
-type alias PresenceState =
-    List Presence
-
-
-{-| -}
-type alias PresenceDiff =
-    { joins : List Presence
-    , leaves : List Presence
+    , info : Dict String (List Value)
     }
 
 
@@ -1277,8 +1265,8 @@ type alias PresenceDiff =
 type PresenceResponse
     = Join Topic Presence
     | Leave Topic Presence
-    | State Topic PresenceState
-    | Diff Topic PresenceDiff
+    | State Topic (List Presence)
+    | Diff Topic { joins : List Presence, leaves : List Presence }
 
 
 {-| A type alias representing a message that is `push`ed or `broadcast`ed from
