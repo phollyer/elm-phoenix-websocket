@@ -999,7 +999,7 @@ update msg (Model model) =
                             , Cmd.none
                             )
 
-                        Err error ->
+                        Err _ ->
                             ( Model model
                             , Cmd.none
                             )
@@ -1014,7 +1014,7 @@ update msg (Model model) =
                             , Cmd.none
                             )
 
-                        Err error ->
+                        Err _ ->
                             ( Model model
                             , Cmd.none
                             )
@@ -1035,7 +1035,7 @@ update msg (Model model) =
                                     , Cmd.none
                                     )
 
-                                Err error ->
+                                Err _ ->
                                     ( Model model
                                     , Cmd.none
                                     )
@@ -1049,7 +1049,7 @@ update msg (Model model) =
                                     , Cmd.none
                                     )
 
-                                Err error ->
+                                Err _ ->
                                     ( Model model
                                     , Cmd.none
                                     )
@@ -1063,7 +1063,7 @@ update msg (Model model) =
                                     , Cmd.none
                                     )
 
-                                Err error ->
+                                Err _ ->
                                     ( Model model
                                     , Cmd.none
                                     )
@@ -1077,7 +1077,7 @@ update msg (Model model) =
                                     , Cmd.none
                                     )
 
-                                Err error ->
+                                Err _ ->
                                     ( Model model
                                     , Cmd.none
                                     )
@@ -1091,7 +1091,7 @@ update msg (Model model) =
                                     , Cmd.none
                                     )
 
-                                Err error ->
+                                Err _ ->
                                     ( Model model
                                     , Cmd.none
                                     )
@@ -1105,7 +1105,7 @@ update msg (Model model) =
                                     , Cmd.none
                                     )
 
-                                Err error ->
+                                Err _ ->
                                     ( Model model
                                     , Cmd.none
                                     )
@@ -1119,7 +1119,7 @@ update msg (Model model) =
                                     , Cmd.none
                                     )
 
-                                Err error ->
+                                Err _ ->
                                     ( Model model
                                     , Cmd.none
                                     )
