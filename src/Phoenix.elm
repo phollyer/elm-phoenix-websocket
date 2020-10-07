@@ -238,7 +238,7 @@ init portConfig connectOptions =
         , socketError = ""
         , socketMessage = Nothing
         , socketMessages = []
-        , socketState = Disconnected Nothing
+        , socketState = Disconnected "" 0 False
         , timeoutPushes = Dict.empty
         }
 
@@ -286,7 +286,7 @@ type alias PortConfig =
 connect : Model -> ( Model, Cmd Msg )
 connect (Model model) =
     case model.socketState of
-        Disconnected _ ->
+        Disconnected _ _ _ ->
             ( Model model
             , Socket.connect
                 model.connectOptions
@@ -429,7 +429,7 @@ join topic (Model model) =
             , Cmd.none
             )
 
-        Disconnected _ ->
+        Disconnected _ _ _ ->
             Model model
                 |> addChannelBeingJoined topic
                 |> connect
@@ -678,7 +678,7 @@ pushIfConnected config (Model model) =
             , Cmd.none
             )
 
-        Disconnected _ ->
+        Disconnected _ _ _ ->
             ( Model model
                 |> addChannelBeingJoined config.push.topic
                 |> addPushToQueue config
@@ -1010,8 +1010,8 @@ update msg (Model model) =
                     case ( reasonResult, codeResult, wasCleanResult ) of
                         ( Ok reason, Ok code, Ok wasClean ) ->
                             ( Model model
-                                |> updateSocketState (Disconnected (Just ( reason, code, wasClean )))
-                                |> updatePhoenixMsg (SocketResponse (StateChange (Disconnected (Just ( reason, code, wasClean )))))
+                                |> updateSocketState (Disconnected reason code wasClean)
+                                |> updatePhoenixMsg (SocketResponse (StateChange (Disconnected reason code wasClean)))
                             , Cmd.none
                             )
 
@@ -1170,7 +1170,7 @@ update msg (Model model) =
 type SocketState
     = Connected
     | Connecting
-    | Disconnected (Maybe ( String, Int, Bool ))
+    | Disconnected String Int Bool
 
 
 {-| Information about the Socket.
@@ -1290,6 +1290,9 @@ type PhoenixMsg
                         ...
 
                     SocketResponse (StateChange Connected) ->
+                        ...
+
+                    SocketResponse (StateChange (Disconnected code) ->
                         ...
 
 -}
