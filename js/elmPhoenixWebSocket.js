@@ -90,7 +90,7 @@ let ElmPhoenixWebSocket = {
 
                 // The socket has closed unexpectedly after having been open,
                 // so we assume the closure was due to a drop in the network.
-                self.socketSend("Error", {reason: "Unreachable"})
+                self.socketSend("Closed", {code: resp.code, wasClean: resp.wasClean, reason: "Unreachable"})
             } else {
 
                 // The socket closes, and allowReconnect is still equal to false, so we assume
@@ -105,10 +105,8 @@ let ElmPhoenixWebSocket = {
                 // This is wrong, but, maybe not too much of an issue with a Phoenix OTP
                 // backend. Maybe look to Ajax as a final fallback check.
 
-                self.socketSend("Error", {reason: "Denied"})
+                self.socketSend("Closed", {code: resp.code, wasClean: resp.wasClean, reason: "Denied"})
             }
-
-            self.socketSend("Closed", resp)
         })
 
         this.socket.connect()
