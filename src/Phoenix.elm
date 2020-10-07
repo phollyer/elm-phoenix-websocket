@@ -1,6 +1,6 @@
 module Phoenix exposing
     ( Model
-    , PortConfig, init
+    , init, PortConfig
     , connect, addConnectOptions, setConnectOptions, Payload, setConnectParams
     , Topic, join, JoinConfig, addJoinConfig
     , RetryStrategy(..), Push, push, pushAll
@@ -20,7 +20,7 @@ Once you have installed the package, and followed the simple setup instructions
 configuring this module is as simple as this:
 
     import Phoenix
-    import Port
+    import Ports.Phoenix as Ports
 
 
     -- Add the Phoenix Model to your Model
@@ -37,11 +37,7 @@ configuring this module is as simple as this:
     init =
         { phoenix =
             Phoenix.init
-                { phoenixSend = Port.phoenixSend
-                , socketReceiver = Port.socketReceiver
-                , channelReceiver = Port.channelReceiver
-                , presenceReceiver = Port.presenceReceiver
-                }
+                Ports.config
                 []
         ...
         }
@@ -86,7 +82,7 @@ configuring this module is as simple as this:
 
 # Initialising the Model
 
-@docs PortConfig, init
+@docs init, PortConfig
 
 
 # Connecting to the Socket
@@ -100,8 +96,9 @@ socket you can do so when you [init](#init) the [Model](#Model), or use the
 [addConnectOptions](#addConnectOptions) or
 [setConnectOptions](#setConnectOptions) functions.
 
-If you want to send any params to the Socket when it connects at the Elixir end
-you can use the [setConnectParams](#setConnectParams) function.
+If you want to send any params to the Socket when it connects at the Elixir
+end, such as authenticating a user for example, then you can use the
+[setConnectParams](#setConnectParams) function.
 
 @docs connect, addConnectOptions, setConnectOptions, Payload, setConnectParams
 
@@ -196,60 +193,23 @@ type Model
         }
 
 
-{-| A type alias representing the ports to be used to communicate with JS.
+{-| Initialize the [Model](#Model) by providing the `ports` that enable
+communication with JS and any [ConnectOption](Phoenix.Socket#ConnectOption)s
+you want to set on the socket.
 
-You can find the `port` module
-[here](https://github.com/phollyer/elm-phoenix-websocket/tree/master/ports).
-
--}
-type alias PortConfig =
-    { phoenixSend :
-        { msg : String
-        , payload : Value
-        }
-        -> Cmd Msg
-    , socketReceiver :
-        ({ msg : String
-         , payload : Value
-         }
-         -> Msg
-        )
-        -> Sub Msg
-    , channelReceiver :
-        ({ topic : String
-         , msg : String
-         , payload : Value
-         }
-         -> Msg
-        )
-        -> Sub Msg
-    , presenceReceiver :
-        ({ topic : String
-         , msg : String
-         , payload : Value
-         }
-         -> Msg
-        )
-        -> Sub Msg
-    }
-
-
-{-| Initialize the [Model](#Model), providing the [PortConfig](#PortConfig) and
-any [ConnectOption](Phoenix.Socket#ConnectOption)s you want to set on the socket.
+The easiest way to provide the `ports` is to copy
+[this file](https://github.com/phollyer/elm-phoenix-websocket/tree/master/ports)
+into your `src`, and then use its `config` function as follows:
 
     import Phoenix
     import Phoenix.Socket as Socket
-    import Port
+    import Ports.Phoenix as Ports
 
     init : Model
     init =
         { phoenix =
             Phoenix.init
-                { phoenixSend = Port.phoenixSend
-                , socketReceiver = Port.socketReceiver
-                , channelReceiver = Port.channelReceiver
-                , presenceReceiver = Port.presenceReceiver
-                }
+                Ports.config
                 [ Socket.Timeout 10000 ]
         ...
         }
@@ -283,6 +243,40 @@ init portConfig connectOptions =
         }
 
 
+{-| A type alias representing the ports that are needed to communicate with JS.
+-}
+type alias PortConfig =
+    { phoenixSend :
+        { msg : String
+        , payload : Value
+        }
+        -> Cmd Msg
+    , socketReceiver :
+        ({ msg : String
+         , payload : Value
+         }
+         -> Msg
+        )
+        -> Sub Msg
+    , channelReceiver :
+        ({ topic : String
+         , msg : String
+         , payload : Value
+         }
+         -> Msg
+        )
+        -> Sub Msg
+    , presenceReceiver :
+        ({ topic : String
+         , msg : String
+         , payload : Value
+         }
+         -> Msg
+        )
+        -> Sub Msg
+    }
+
+
 
 {- Connecting to the Socket -}
 
@@ -308,6 +302,40 @@ connect (Model model) =
 
 {-| Add some [ConnectOption](Phoenix.Socket#ConnectOption)s to set on the
 Socket when connecting.
+
+    import Phoenix.Socket as Socket
+
+    addConnectOptions
+        [ Socket.Timeout 7000
+        , Socket.HeartbeatIntervalMillis 2000
+        ]
+        model.phoenix
+
+**Note:** This will overwrite any
+[ConnectOption](Phoenix.Socket.ConnectOption)s that have already been set.
+
+    import Phoenix
+    import Phoenix.Socket as Socket
+    import Ports.Phoenix as Ports
+
+    init =
+        { phoenix =
+            Phoenix.init Ports.config
+                [ Socket.Timeout 7000
+                , Socket.HeartbeatIntervalMillis 2000
+                ]
+        ...
+        }
+
+    { model
+    | phoenix =
+        addConnectOptions
+            [ Socket.Timeout 5000 ]
+            model.phoenix
+    }
+
+    -- List ConnectOption == [ Socket.Timeout 5000, Socket.HeartbeatIntervalMillis 2000 ]
+
 -}
 addConnectOptions : List Socket.ConnectOption -> Model -> Model
 addConnectOptions connectOptions (Model model) =
@@ -319,7 +347,7 @@ addConnectOptions connectOptions (Model model) =
 {-| Provide some [ConnectOption](Phoenix.Socket#ConnectOption)s to set on the
 Socket when connecting.
 
-**Note:** This will replace any current
+**Note:** This will replace _all_ current
 [ConnectOption](Phoenix.Socket.ConnectOption)s that have already been set.
 
 -}
