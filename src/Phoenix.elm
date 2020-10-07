@@ -1222,7 +1222,7 @@ type Message
         { joinRef : Maybe String
         , ref : Maybe String
         , topic : String
-        , msg : String
+        , event : String
         , payload : Value
         }
 

@@ -266,7 +266,7 @@ type alias MessageConfig =
     { joinRef : Maybe String
     , ref : Maybe String
     , topic : String
-    , msg : String
+    , event : String
     , payload : Value
     }
 
@@ -426,7 +426,7 @@ messageDecoder =
         |> andMap (JD.maybe (JD.field "join_ref" JD.string))
         |> andMap (JD.maybe (JD.field "ref" JD.string))
         |> andMap (JD.field "topic" JD.string)
-        |> andMap (JD.field "msg" JD.string)
+        |> andMap (JD.field "event" JD.string)
         |> andMap (JD.field "payload" JD.value)
 
 
