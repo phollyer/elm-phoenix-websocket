@@ -1,8 +1,8 @@
 module Phoenix.Socket exposing
     ( ConnectOption(..), Params, PortOut, connect
     , disconnect
-    , InfoRequest(..), send
-    , Msg(..), MessageConfig, InfoData, PortIn, subscriptions
+    , Msg(..), MessageConfig, AllInfo, Info(..), PortIn, subscriptions
+    , connectionState, endPointURL, hasLogger, info, isConnected, makeRef, protocol
     )
 
 {-| Use this module to work directly with the socket.
@@ -22,14 +22,14 @@ channel(s).
 @docs disconnect
 
 
-# Sending Messages
-
-@docs InfoRequest, send
-
-
 # Receiving Messages
 
-@docs Msg, MessageConfig, InfoData, PortIn, subscriptions
+@docs Msg, MessageConfig, AllInfo, Info, PortIn, subscriptions
+
+
+# Socket Information
+
+@docs connectionState, endPointURL, hasLogger, info, isConnected, makeRef, protocol
 
 -}
 
@@ -202,87 +202,6 @@ disconnect portOut =
         package "disconnect"
 
 
-{-| All of the messages you can send to the socket.
-
-These messages correspond to the instance members of the socket as described
-[here](https://hexdocs.pm/phoenix/js/index.html#socket), with the exception of
-`Info`.
-
-Sending the `Info` message will request all of the following in a single
-request and their results will come back in a single `InfoReply`
-[Msg](#Msg) response.
-
-  - `ConnectionState`
-  - `EndPointURL`
-  - `HasLogger`
-  - `IsConnected`
-  - `MakeRef`
-  - `Protocol`
-
-Currently, the following JS instance members are not supported:
-
-  - `off(refs, null-null)`
-  - `channel(topic, chanParams)`
-  - `push(data)`
-
--}
-type InfoRequest
-    = ConnectionState
-    | EndPointURL
-    | HasLogger
-    | Info
-    | IsConnected
-    | MakeRef
-    | Protocol
-
-
-{-| Send a [InfoRequest](#InfoRequest) to the socket.
-
-    import Port
-    import Socket
-
-    Socket.send Socket.Info Port.phoenixSend
-
--}
-send : InfoRequest -> PortOut msg -> Cmd msg
-send msgOut portOut =
-    case msgOut of
-        ConnectionState ->
-            portOut <|
-                package "connectionState"
-
-        Info ->
-            portOut <|
-                package "info"
-
-        IsConnected ->
-            portOut <|
-                package "isConnected"
-
-        EndPointURL ->
-            portOut <|
-                package "endPointURL"
-
-        HasLogger ->
-            portOut <|
-                package "hasLogger"
-
-        MakeRef ->
-            portOut <|
-                package "makeRef"
-
-        Protocol ->
-            portOut <|
-                package "protocol"
-
-
-package : String -> { msg : String, payload : JE.Value }
-package msg =
-    { msg = msg
-    , payload = JE.null
-    }
-
-
 
 -- Receiving
 
@@ -310,17 +229,22 @@ than gloss over it with some kind of default.
 -}
 type Msg
     = Opened
-    | Closed
+    | Closed (Result JD.Error String) (Result JD.Error Int) (Result JD.Error Bool)
     | Error (Result JD.Error String)
     | Message (Result JD.Error MessageConfig)
-    | ConnectionStateReply (Result JD.Error String)
-    | EndPointURLReply (Result JD.Error String)
-    | HasLoggerReply (Result JD.Error (Maybe Bool))
-    | InfoReply (Result JD.Error InfoData)
-    | IsConnectedReply (Result JD.Error Bool)
-    | MakeRefReply (Result JD.Error String)
-    | ProtocolReply (Result JD.Error String)
+    | Info Info
     | InvalidMsg String
+
+
+{-| -}
+type Info
+    = All (Result JD.Error AllInfo)
+    | ConnectionState (Result JD.Error String)
+    | EndPointURL (Result JD.Error String)
+    | HasLogger (Result JD.Error (Maybe Bool))
+    | IsConnected (Result JD.Error Bool)
+    | MakeRef (Result JD.Error String)
+    | Protocol (Result JD.Error String)
 
 
 {-| A type alias representing the raw message received by the socket. This
@@ -351,7 +275,7 @@ type alias MessageConfig =
 [Msg](#Msg) `InfoReply` and is the result of sending an `Info`
 [InfoRequest](#InfoRequest).
 -}
-type alias InfoData =
+type alias AllInfo =
     { connectionState : String
     , endpointURL : String
     , hasLogger : Maybe Bool
@@ -408,7 +332,11 @@ handleIn toMsg { msg, payload } =
             toMsg Opened
 
         "Closed" ->
-            toMsg Closed
+            toMsg <|
+                Closed
+                    (JD.decodeValue JD.string payload)
+                    (JD.decodeValue JD.int payload)
+                    (JD.decodeValue JD.bool payload)
 
         "Error" ->
             toMsg <|
@@ -422,38 +350,45 @@ handleIn toMsg { msg, payload } =
 
         "ConnectionState" ->
             toMsg <|
-                ConnectionStateReply
-                    (JD.decodeValue JD.string payload)
+                Info <|
+                    ConnectionState
+                        (JD.decodeValue JD.string payload)
 
         "EndPointURL" ->
             toMsg <|
-                EndPointURLReply
-                    (JD.decodeValue JD.string payload)
+                Info <|
+                    EndPointURL
+                        (JD.decodeValue JD.string payload)
 
         "HasLogger" ->
             toMsg <|
-                HasLoggerReply
-                    (JD.decodeValue (JD.maybe JD.bool) payload)
+                Info <|
+                    HasLogger
+                        (JD.decodeValue (JD.maybe JD.bool) payload)
 
         "Info" ->
             toMsg <|
-                InfoReply
-                    (JD.decodeValue infoDecoder payload)
+                Info <|
+                    All
+                        (JD.decodeValue infoDecoder payload)
 
         "IsConnected" ->
             toMsg <|
-                IsConnectedReply
-                    (JD.decodeValue JD.bool payload)
+                Info <|
+                    IsConnected
+                        (JD.decodeValue JD.bool payload)
 
         "MakeRef" ->
             toMsg <|
-                MakeRefReply
-                    (JD.decodeValue JD.string payload)
+                Info <|
+                    MakeRef
+                        (JD.decodeValue JD.string payload)
 
         "Protocol" ->
             toMsg <|
-                ProtocolReply
-                    (JD.decodeValue JD.string payload)
+                Info <|
+                    Protocol
+                        (JD.decodeValue JD.string payload)
 
         _ ->
             toMsg (InvalidMsg msg)
@@ -472,10 +407,10 @@ errorDecoder =
         ]
 
 
-infoDecoder : JD.Decoder InfoData
+infoDecoder : JD.Decoder AllInfo
 infoDecoder =
     JD.succeed
-        InfoData
+        AllInfo
         |> andMap (JD.field "connectionState" JD.string)
         |> andMap (JD.field "endPointURL" JD.string)
         |> andMap (JD.field "hasLogger" (JD.maybe JD.bool))
@@ -493,3 +428,56 @@ messageDecoder =
         |> andMap (JD.field "topic" JD.string)
         |> andMap (JD.field "msg" JD.string)
         |> andMap (JD.field "payload" JD.value)
+
+
+
+{- Socket Information -}
+
+
+{-| -}
+connectionState : PortOut msg -> Cmd msg
+connectionState portOut =
+    portOut (package "connectionState")
+
+
+{-| -}
+endPointURL : PortOut msg -> Cmd msg
+endPointURL portOut =
+    portOut (package "endPointURL")
+
+
+{-| -}
+hasLogger : PortOut msg -> Cmd msg
+hasLogger portOut =
+    portOut (package "hasLogger")
+
+
+{-| -}
+info : PortOut msg -> Cmd msg
+info portOut =
+    portOut (package "info")
+
+
+{-| -}
+isConnected : PortOut msg -> Cmd msg
+isConnected portOut =
+    portOut (package "isConnected")
+
+
+{-| -}
+makeRef : PortOut msg -> Cmd msg
+makeRef portOut =
+    portOut (package "makeRef")
+
+
+{-| -}
+protocol : PortOut msg -> Cmd msg
+protocol portOut =
+    portOut (package "protocol")
+
+
+package : String -> { msg : String, payload : JE.Value }
+package msg =
+    { msg = msg
+    , payload = JE.null
+    }

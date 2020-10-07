@@ -3,11 +3,10 @@ module Phoenix exposing
     , PortConfig, init
     , connect, addConnectOptions, setConnectOptions, Payload, setConnectParams
     , Topic, join, JoinConfig, addJoinConfig
-    , Message, RetryStrategy(..), Push, push, pushAll
+    , RetryStrategy(..), Push, push, pushAll
     , subscriptions
     , Msg, update
-    , OriginalPayload, IncomingMessage, PushRef, ChannelResponse(..), PhoenixMsg(..)
-    , DecoderError(..)
+    , SocketState(..), SocketInfo(..), SocketResponse(..), OriginalPayload, PushRef, IncomingMessage, ChannelResponse(..), Message(..), PhoenixMsg(..)
     , requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
     )
 
@@ -135,7 +134,7 @@ immediately.
 
 ## Pushing Messages
 
-@docs Message, RetryStrategy, Push, push, pushAll
+@docs RetryStrategy, Push, push, pushAll
 
 
 ## Receiving Messages
@@ -150,16 +149,13 @@ immediately.
 
 ## Pattern Matching
 
-@docs OriginalPayload, IncomingMessage, PushRef, ChannelResponse, PhoenixMsg
-
-@docs DecoderError
+@docs SocketState, SocketInfo, SocketResponse, OriginalPayload, PushRef, IncomingMessage, ChannelResponse, Message, PhoenixMsg
 
 @docs requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
 
 -}
 
 import Dict exposing (Dict)
-import Json.Decode as JD
 import Json.Encode as JE exposing (Value)
 import Phoenix.Channel as Channel
 import Phoenix.Presence as Presence
@@ -180,37 +176,24 @@ type Model
         , connectionState : Maybe String
         , connectOptions : List Socket.ConnectOption
         , connectParams : Payload
-        , decoderErrors : List DecoderError
         , endpointURL : Maybe String
         , hasLogger : Maybe Bool
         , invalidSocketEvents : List String
         , isConnected : Bool
         , joinConfigs : Dict String JoinConfig
-        , lastDecoderError : Maybe DecoderError
         , lastInvalidSocketEvent : Maybe String
-        , lastMessage : PhoenixMsg
-        , lastSocketMessage : Maybe Socket.MessageConfig
         , nextMessageRef : Maybe String
+        , phoenixMsg : PhoenixMsg
         , portConfig : PortConfig
         , protocol : Maybe String
         , pushCount : Int
         , queuedPushes : Dict Int InternalPush
         , socketError : String
+        , socketMessage : Maybe Socket.MessageConfig
         , socketMessages : List Socket.MessageConfig
         , socketState : SocketState
         , timeoutPushes : Dict Int InternalPush
         }
-
-
-{-| -}
-type DecoderError
-    = Socket JD.Error
-
-
-type SocketState
-    = Open
-    | Opening
-    | Disconnected
 
 
 {-| A type alias representing the ports to be used to communicate with JS.
@@ -280,24 +263,22 @@ init portConfig connectOptions =
         , connectionState = Nothing
         , connectOptions = connectOptions
         , connectParams = JE.null
-        , decoderErrors = []
         , endpointURL = Nothing
         , hasLogger = Nothing
         , invalidSocketEvents = []
         , isConnected = False
         , joinConfigs = Dict.empty
-        , lastDecoderError = Nothing
         , lastInvalidSocketEvent = Nothing
-        , lastMessage = NoOp
-        , lastSocketMessage = Nothing
         , nextMessageRef = Nothing
+        , phoenixMsg = NoOp
         , portConfig = portConfig
         , protocol = Nothing
         , pushCount = 0
         , queuedPushes = Dict.empty
         , socketError = ""
+        , socketMessage = Nothing
         , socketMessages = []
-        , socketState = Disconnected
+        , socketState = Disconnected Nothing
         , timeoutPushes = Dict.empty
         }
 
@@ -311,7 +292,7 @@ init portConfig connectOptions =
 connect : Model -> ( Model, Cmd Msg )
 connect (Model model) =
     case model.socketState of
-        Disconnected ->
+        Disconnected _ ->
             ( Model model
             , Socket.connect
                 model.connectOptions
@@ -397,7 +378,7 @@ the Socket is open, the join will be attempted.
 join : Topic -> Model -> ( Model, Cmd Msg )
 join topic (Model model) =
     case model.socketState of
-        Open ->
+        Connected ->
             case Dict.get topic model.joinConfigs of
                 Just joinConfig ->
                     ( addChannelBeingJoined topic (Model model)
@@ -415,12 +396,12 @@ join topic (Model model) =
                             }
                         |> join topic
 
-        Opening ->
+        Connecting ->
             ( addChannelBeingJoined topic (Model model)
             , Cmd.none
             )
 
-        Disconnected ->
+        Disconnected _ ->
             Model model
                 |> addChannelBeingJoined topic
                 |> connect
@@ -509,12 +490,6 @@ dropJoinedChannel topic (Model model) =
 {- Talking to Channels -}
 
 
-{-| A type alias representing the message to send to a Channel.
--}
-type alias Message =
-    String
-
-
 {-| The retry strategy to use when a push times out.
 
   - `Drop` - Drop the push and don't try again.
@@ -555,7 +530,7 @@ type RetryStrategy
 -}
 type alias Push =
     { topic : Topic
-    , msg : Message
+    , msg : String
     , payload : Payload
     , timeout : Maybe Int
     , retryStrategy : RetryStrategy
@@ -663,23 +638,23 @@ pushIfJoined config (Model model) =
 pushIfConnected : InternalPush -> Model -> ( Model, Cmd Msg )
 pushIfConnected config (Model model) =
     case model.socketState of
-        Open ->
+        Connected ->
             pushIfJoined
                 config
                 (Model model)
 
-        Opening ->
+        Connecting ->
             ( Model model
                 |> addChannelBeingJoined config.push.topic
                 |> addPushToQueue config
             , Cmd.none
             )
 
-        Disconnected ->
+        Disconnected _ ->
             ( Model model
                 |> addChannelBeingJoined config.push.topic
                 |> addPushToQueue config
-                |> updateSocketState Opening
+                |> updateSocketState Connecting
             , Socket.connect
                 model.connectOptions
                 (Just model.connectParams)
@@ -869,38 +844,38 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg (Model model) =
     case msg of
         ChannelMsg (Channel.Closed topic) ->
-            ( updateLastMsg (ChannelResponse (Closed topic)) (Model model), Cmd.none )
+            ( updatePhoenixMsg (ChannelResponse (Closed topic)) (Model model), Cmd.none )
 
         ChannelMsg (Channel.Error topic) ->
-            ( updateLastMsg (ChannelResponse (ChannelError topic)) (Model model), Cmd.none )
+            ( updatePhoenixMsg (ChannelResponse (ChannelError topic)) (Model model), Cmd.none )
 
         ChannelMsg (Channel.InvalidMsg topic invalidMsg payload) ->
-            ( updateLastMsg (ChannelResponse (InvalidChannelMsg topic invalidMsg payload)) (Model model), Cmd.none )
+            ( updatePhoenixMsg (ChannelResponse (InvalidChannelMsg topic invalidMsg payload)) (Model model), Cmd.none )
 
         ChannelMsg (Channel.JoinError topic payload) ->
-            ( updateLastMsg (ChannelResponse (JoinError topic payload)) (Model model), Cmd.none )
+            ( updatePhoenixMsg (ChannelResponse (JoinError topic payload)) (Model model), Cmd.none )
 
         ChannelMsg (Channel.JoinOk topic payload) ->
             Model model
                 |> addJoinedChannel topic
                 |> dropChannelBeingJoined topic
-                |> updateLastMsg (ChannelResponse (JoinOk topic payload))
+                |> updatePhoenixMsg (ChannelResponse (JoinOk topic payload))
                 |> sendQueuedPushesByTopic topic
 
         ChannelMsg (Channel.JoinTimeout topic payload) ->
-            ( updateLastMsg (ChannelResponse (JoinTimeout topic payload)) (Model model), Cmd.none )
+            ( updatePhoenixMsg (ChannelResponse (JoinTimeout topic payload)) (Model model), Cmd.none )
 
         ChannelMsg (Channel.LeaveOk topic) ->
             ( Model model
                 |> dropJoinedChannel topic
-                |> updateLastMsg (ChannelResponse (LeaveOk topic))
+                |> updatePhoenixMsg (ChannelResponse (LeaveOk topic))
             , Cmd.none
             )
 
         ChannelMsg (Channel.Message topic msgResult payloadResult) ->
             case ( msgResult, payloadResult ) of
                 ( Ok message, Ok payload ) ->
-                    ( updateLastMsg (ChannelResponse (Message topic message payload)) (Model model), Cmd.none )
+                    ( updatePhoenixMsg (Message (Channel topic message payload)) (Model model), Cmd.none )
 
                 _ ->
                     ( Model model, Cmd.none )
@@ -919,7 +894,7 @@ update msg (Model model) =
                     in
                     ( Model model
                         |> dropQueuedPush internalRef
-                        |> updateLastMsg (ChannelResponse (PushError topic msg_ pushRef payload))
+                        |> updatePhoenixMsg (ChannelResponse (PushError topic msg_ pushRef payload))
                     , Cmd.none
                     )
 
@@ -940,7 +915,7 @@ update msg (Model model) =
                     in
                     ( Model model
                         |> dropQueuedPush internalRef
-                        |> updateLastMsg (ChannelResponse (PushOk topic msg_ pushRef payload))
+                        |> updatePhoenixMsg (ChannelResponse (PushOk topic msg_ pushRef payload))
                     , Cmd.none
                     )
 
@@ -959,7 +934,7 @@ update msg (Model model) =
                                 responseModel =
                                     Model model
                                         |> dropQueuedPush internalConfig.ref
-                                        |> updateLastMsg
+                                        |> updatePhoenixMsg
                                             (ChannelResponse (PushTimeout topic msg_ pushRef payload))
                             in
                             case internalConfig.retryStrategy of
@@ -970,7 +945,7 @@ update msg (Model model) =
                                     ( addTimeoutPush internalConfig responseModel, Cmd.none )
 
                         Nothing ->
-                            ( updateLastMsg
+                            ( updatePhoenixMsg
                                 (ChannelResponse (PushTimeout topic msg_ Nothing payload))
                                 (Model model)
                             , Cmd.none
@@ -996,86 +971,158 @@ update msg (Model model) =
 
         SocketMsg subMsg ->
             case subMsg of
-                Socket.Closed ->
-                    ( updateSocketState Disconnected (Model model)
-                    , Cmd.none
-                    )
+                Socket.Opened ->
+                    Model model
+                        |> updateIsConnected True
+                        |> updateSocketState Connected
+                        |> updatePhoenixMsg (SocketResponse (StateChange Connected))
+                        |> joinChannels model.channelsBeingJoined
 
-                Socket.ConnectionStateReply result ->
-                    case result of
-                        Ok connectionState ->
-                            ( updateConnectionState (Just connectionState) (Model model)
-                            , Cmd.none
-                            )
-
-                        Err error ->
+                Socket.Closed reasonResult codeResult wasCleanResult ->
+                    case ( reasonResult, codeResult, wasCleanResult ) of
+                        ( Ok reason, Ok code, Ok wasClean ) ->
                             ( Model model
-                                |> addDecoderError (Socket error)
-                                |> updateLastDecoderError (Just (Socket error))
+                                |> updateSocketState (Disconnected (Just ( reason, code, wasClean )))
+                                |> updatePhoenixMsg (SocketResponse (StateChange (Disconnected (Just ( reason, code, wasClean )))))
                             , Cmd.none
                             )
 
-                Socket.EndPointURLReply result ->
-                    case result of
-                        Ok endpointURL ->
-                            ( updateEndpointURL (Just endpointURL) (Model model)
-                            , Cmd.none
-                            )
-
-                        Err error ->
-                            ( Model model
-                                |> addDecoderError (Socket error)
-                                |> updateLastDecoderError (Just (Socket error))
-                            , Cmd.none
-                            )
+                        _ ->
+                            ( Model model, Cmd.none )
 
                 Socket.Error result ->
                     case result of
                         Ok error ->
-                            ( updateSocketError error (Model model)
+                            ( Model model
+                                |> updateSocketError error
+                                |> updatePhoenixMsg (SocketResponse SocketError)
                             , Cmd.none
                             )
 
                         Err error ->
                             ( Model model
-                                |> addDecoderError (Socket error)
-                                |> updateLastDecoderError (Just (Socket error))
                             , Cmd.none
                             )
 
-                Socket.HasLoggerReply result ->
+                Socket.Message result ->
                     case result of
-                        Ok hasLogger ->
-                            ( updateHasLogger hasLogger (Model model)
+                        Ok message ->
+                            ( Model model
+                                |> addMessage message
+                                |> updateSocketMessage (Just message)
+                                |> updatePhoenixMsg (Message (Socket message))
                             , Cmd.none
                             )
 
                         Err error ->
                             ( Model model
-                                |> addDecoderError (Socket error)
-                                |> updateLastDecoderError (Just (Socket error))
                             , Cmd.none
                             )
 
-                Socket.InfoReply result ->
-                    case result of
-                        Ok info ->
-                            ( Model model
-                                |> updateConnectionState (Just info.connectionState)
-                                |> updateEndpointURL (Just info.endpointURL)
-                                |> updateHasLogger info.hasLogger
-                                |> updateIsConnected info.isConnected
-                                |> updateNextMessageRef (Just info.nextMessageRef)
-                                |> updateProtocol (Just info.protocol)
-                            , Cmd.none
-                            )
+                Socket.Info info ->
+                    case info of
+                        Socket.All result ->
+                            case result of
+                                Ok all ->
+                                    ( Model model
+                                        |> updateConnectionState (Just all.connectionState)
+                                        |> updateEndPointURL (Just all.endpointURL)
+                                        |> updateHasLogger all.hasLogger
+                                        |> updateIsConnected all.isConnected
+                                        |> updateNextMessageRef (Just all.nextMessageRef)
+                                        |> updateProtocol (Just all.protocol)
+                                        |> updatePhoenixMsg (SocketResponse (SocketInfo All))
+                                    , Cmd.none
+                                    )
 
-                        Err error ->
-                            ( Model model
-                                |> addDecoderError (Socket error)
-                                |> updateLastDecoderError (Just (Socket error))
-                            , Cmd.none
-                            )
+                                Err error ->
+                                    ( Model model
+                                    , Cmd.none
+                                    )
+
+                        Socket.ConnectionState result ->
+                            case result of
+                                Ok connectionState ->
+                                    ( Model model
+                                        |> updateConnectionState (Just connectionState)
+                                        |> updatePhoenixMsg (SocketResponse (SocketInfo (ConnectionState connectionState)))
+                                    , Cmd.none
+                                    )
+
+                                Err error ->
+                                    ( Model model
+                                    , Cmd.none
+                                    )
+
+                        Socket.EndPointURL result ->
+                            case result of
+                                Ok endPointURL ->
+                                    ( Model model
+                                        |> updateEndPointURL (Just endPointURL)
+                                        |> updatePhoenixMsg (SocketResponse (SocketInfo (EndPointURL endPointURL)))
+                                    , Cmd.none
+                                    )
+
+                                Err error ->
+                                    ( Model model
+                                    , Cmd.none
+                                    )
+
+                        Socket.HasLogger result ->
+                            case result of
+                                Ok hasLogger ->
+                                    ( Model model
+                                        |> updateHasLogger hasLogger
+                                        |> updatePhoenixMsg (SocketResponse (SocketInfo (HasLogger hasLogger)))
+                                    , Cmd.none
+                                    )
+
+                                Err error ->
+                                    ( Model model
+                                    , Cmd.none
+                                    )
+
+                        Socket.IsConnected result ->
+                            case result of
+                                Ok isConnected ->
+                                    ( Model model
+                                        |> updateIsConnected isConnected
+                                        |> updatePhoenixMsg (SocketResponse (SocketInfo (IsConnected isConnected)))
+                                    , Cmd.none
+                                    )
+
+                                Err error ->
+                                    ( Model model
+                                    , Cmd.none
+                                    )
+
+                        Socket.MakeRef result ->
+                            case result of
+                                Ok ref ->
+                                    ( Model model
+                                        |> updateNextMessageRef (Just ref)
+                                        |> updatePhoenixMsg (SocketResponse (SocketInfo (MakeRef ref)))
+                                    , Cmd.none
+                                    )
+
+                                Err error ->
+                                    ( Model model
+                                    , Cmd.none
+                                    )
+
+                        Socket.Protocol result ->
+                            case result of
+                                Ok protocol ->
+                                    ( Model model
+                                        |> updateProtocol (Just protocol)
+                                        |> updatePhoenixMsg (SocketResponse (SocketInfo (Protocol protocol)))
+                                    , Cmd.none
+                                    )
+
+                                Err error ->
+                                    ( Model model
+                                    , Cmd.none
+                                    )
 
                 Socket.InvalidMsg message ->
                     ( Model model
@@ -1084,74 +1131,38 @@ update msg (Model model) =
                     , Cmd.none
                     )
 
-                Socket.IsConnectedReply result ->
-                    case result of
-                        Ok isConnected ->
-                            ( updateIsConnected isConnected (Model model)
-                            , Cmd.none
-                            )
-
-                        Err error ->
-                            ( Model model
-                                |> addDecoderError (Socket error)
-                                |> updateLastDecoderError (Just (Socket error))
-                            , Cmd.none
-                            )
-
-                Socket.MakeRefReply result ->
-                    case result of
-                        Ok ref ->
-                            ( updateNextMessageRef (Just ref) (Model model)
-                            , Cmd.none
-                            )
-
-                        Err error ->
-                            ( Model model
-                                |> addDecoderError (Socket error)
-                                |> updateLastDecoderError (Just (Socket error))
-                            , Cmd.none
-                            )
-
-                Socket.Message result ->
-                    case result of
-                        Ok message ->
-                            ( Model model
-                                |> addSocketMessage message
-                                |> updateLastSocketMessage (Just message)
-                            , Cmd.none
-                            )
-
-                        Err error ->
-                            ( Model model
-                                |> addDecoderError (Socket error)
-                                |> updateLastDecoderError (Just (Socket error))
-                            , Cmd.none
-                            )
-
-                Socket.Opened ->
-                    Model model
-                        |> updateIsConnected True
-                        |> updateSocketState Open
-                        |> joinChannels model.channelsBeingJoined
-
-                Socket.ProtocolReply result ->
-                    case result of
-                        Ok protocol ->
-                            ( updateProtocol (Just protocol) (Model model)
-                            , Cmd.none
-                            )
-
-                        Err error ->
-                            ( Model model
-                                |> addDecoderError (Socket error)
-                                |> updateLastDecoderError (Just (Socket error))
-                            , Cmd.none
-                            )
-
         TimeoutTick _ ->
             Model model
                 |> timeoutTick
                 |> sendTimeoutPushes
+
+
+{-| All the possible states of the Socket.
+-}
+type SocketState
+    = Connected
+    | Connecting
+    | Disconnected (Maybe ( String, Int, Bool ))
+
+
+{-| Information about the Socket.
+-}
+type SocketInfo
+    = All
+    | ConnectionState String
+    | EndPointURL String
+    | HasLogger (Maybe Bool)
+    | IsConnected Bool
+    | MakeRef String
+    | Protocol String
+
+
+{-| All the responses that can be received from the Socket.
+-}
+type SocketResponse
+    = StateChange SocketState
+    | SocketError
+    | SocketInfo SocketInfo
 
 
 {-| A type alias representing the original payload that was sent with the
@@ -1161,38 +1172,45 @@ type alias OriginalPayload =
     Payload
 
 
-{-| A type alias representing a message received from a Channel.
--}
-type alias IncomingMessage =
-    String
-
-
 {-| A type alias representing the `ref` set on the original [push](#PushConfig).
 -}
 type alias PushRef =
     Maybe String
 
 
+{-| A type alias representing a message received from a Channel.
+-}
+type alias IncomingMessage =
+    String
+
+
 {-| All the responses that can be received from a Channel.
 -}
 type ChannelResponse
-    = Closed Topic
-    | ChannelError Topic
-    | InvalidChannelMsg Topic String Payload
+    = JoinOk Topic Payload
     | JoinError Topic Payload
-    | JoinOk Topic Payload
     | JoinTimeout Topic OriginalPayload
+    | PushOk Topic String PushRef Payload
+    | PushError Topic String PushRef Payload
+    | PushTimeout Topic String PushRef OriginalPayload
+    | Closed Topic
+    | ChannelError Topic
     | LeaveOk Topic
-    | Message Topic IncomingMessage Payload
-    | PushError Topic Message PushRef Payload
-    | PushOk Topic Message PushRef Payload
-    | PushTimeout Topic Message PushRef OriginalPayload
+    | InvalidChannelMsg Topic String Payload
+
+
+{-| -}
+type Message
+    = Channel Topic IncomingMessage Payload
+    | Socket Socket.MessageConfig
 
 
 {-| -}
 type PhoenixMsg
     = NoOp
+    | SocketResponse SocketResponse
     | ChannelResponse ChannelResponse
+    | Message Message
 
 
 
@@ -1201,73 +1219,44 @@ type PhoenixMsg
 
 {-| -}
 requestConnectionState : Model -> Cmd Msg
-requestConnectionState model =
-    sendToSocket
-        Socket.ConnectionState
-        model
+requestConnectionState (Model model) =
+    Socket.connectionState model.portConfig.phoenixSend
 
 
 {-| -}
 requestEndpointURL : Model -> Cmd Msg
-requestEndpointURL model =
-    sendToSocket
-        Socket.EndPointURL
-        model
+requestEndpointURL (Model model) =
+    Socket.endPointURL model.portConfig.phoenixSend
 
 
 {-| -}
 requestHasLogger : Model -> Cmd Msg
-requestHasLogger model =
-    sendToSocket
-        Socket.HasLogger
-        model
+requestHasLogger (Model model) =
+    Socket.hasLogger model.portConfig.phoenixSend
 
 
 {-| -}
 requestIsConnected : Model -> Cmd Msg
-requestIsConnected model =
-    sendToSocket
-        Socket.IsConnected
-        model
+requestIsConnected (Model model) =
+    Socket.isConnected model.portConfig.phoenixSend
 
 
 {-| -}
 requestMakeRef : Model -> Cmd Msg
-requestMakeRef model =
-    sendToSocket
-        Socket.MakeRef
-        model
+requestMakeRef (Model model) =
+    Socket.makeRef model.portConfig.phoenixSend
 
 
 {-| -}
 requestProtocol : Model -> Cmd Msg
-requestProtocol model =
-    sendToSocket
-        Socket.Protocol
-        model
+requestProtocol (Model model) =
+    Socket.protocol model.portConfig.phoenixSend
 
 
 {-| -}
 requestSocketInfo : Model -> Cmd Msg
-requestSocketInfo model =
-    sendToSocket
-        Socket.Info
-        model
-
-
-
-{- Decoder Errors -}
-
-
-addDecoderError : DecoderError -> Model -> Model
-addDecoderError decoderError (Model model) =
-    if model.decoderErrors |> List.member decoderError then
-        Model model
-
-    else
-        updateDecoderErrors
-            (decoderError :: model.decoderErrors)
-            (Model model)
+requestSocketInfo (Model model) =
+    Socket.info model.portConfig.phoenixSend
 
 
 
@@ -1292,13 +1281,6 @@ dropQueuedPush ref (Model model) =
 {- Socket -}
 
 
-sendToSocket : Socket.InfoRequest -> Model -> Cmd Msg
-sendToSocket infoRequest (Model model) =
-    Socket.send
-        infoRequest
-        model.portConfig.phoenixSend
-
-
 addInvalidSocketEvent : String -> Model -> Model
 addInvalidSocketEvent msg (Model model) =
     updateInvalidSocketEvents
@@ -1310,8 +1292,8 @@ addInvalidSocketEvent msg (Model model) =
 {- Socket Messages -}
 
 
-addSocketMessage : Socket.MessageConfig -> Model -> Model
-addSocketMessage message (Model model) =
+addMessage : Socket.MessageConfig -> Model -> Model
+addMessage message (Model model) =
     updateSocketMessages
         (message :: model.socketMessages)
         (Model model)
@@ -1393,16 +1375,8 @@ updateConnectParams params (Model model) =
         }
 
 
-updateDecoderErrors : List DecoderError -> Model -> Model
-updateDecoderErrors decoderErrors (Model model) =
-    Model
-        { model
-            | decoderErrors = decoderErrors
-        }
-
-
-updateEndpointURL : Maybe String -> Model -> Model
-updateEndpointURL endpointURL (Model model) =
+updateEndPointURL : Maybe String -> Model -> Model
+updateEndPointURL endpointURL (Model model) =
     Model
         { model
             | endpointURL = endpointURL
@@ -1441,14 +1415,6 @@ updateJoinConfigs configs (Model model) =
         }
 
 
-updateLastDecoderError : Maybe DecoderError -> Model -> Model
-updateLastDecoderError error (Model model) =
-    Model
-        { model
-            | lastDecoderError = error
-        }
-
-
 updateLastInvalidSocketEvent : Maybe String -> Model -> Model
 updateLastInvalidSocketEvent msg (Model model) =
     Model
@@ -1457,27 +1423,19 @@ updateLastInvalidSocketEvent msg (Model model) =
         }
 
 
-updateLastMsg : PhoenixMsg -> Model -> Model
-updateLastMsg phoenixMsg (Model model) =
-    Model
-        { model
-            | lastMessage = phoenixMsg
-        }
-
-
-updateLastSocketMessage : Maybe Socket.MessageConfig -> Model -> Model
-updateLastSocketMessage message (Model model) =
-    Model
-        { model
-            | lastSocketMessage = message
-        }
-
-
 updateNextMessageRef : Maybe String -> Model -> Model
 updateNextMessageRef ref (Model model) =
     Model
         { model
             | nextMessageRef = ref
+        }
+
+
+updatePhoenixMsg : PhoenixMsg -> Model -> Model
+updatePhoenixMsg phoenixMsg (Model model) =
+    Model
+        { model
+            | phoenixMsg = phoenixMsg
         }
 
 
@@ -1510,6 +1468,14 @@ updateSocketError error (Model model) =
     Model
         { model
             | socketError = error
+        }
+
+
+updateSocketMessage : Maybe Socket.MessageConfig -> Model -> Model
+updateSocketMessage message (Model model) =
+    Model
+        { model
+            | socketMessage = message
         }
 
 
