@@ -123,7 +123,7 @@ been joined, at which point, any queued pushes will be sent in a batch.
 
 See [Connecting to the Socket](#connecting-to-the-socket) and
 [Joining a Channel](#joining-a-channel) for more details on handling these
-manually.
+processes manually.
 
 If the Socket is open and the Channel already joined, the push will be sent
 immediately.
@@ -435,7 +435,7 @@ join topic (Model model) =
                 |> connect
 
 
-{-| A type alias representing the config for joining a Channel.
+{-| A type alias representing the optional config for joining a Channel.
 
   - `topic` - The channel topic id, for example: `"topic:subTopic"`.
 
@@ -524,9 +524,9 @@ dropJoinedChannel topic (Model model) =
 
   - `Every second` - The number of seconds to wait between retries.
 
-  - `Backoff [List seconds] max` - A backoff strategy so you can increase the
-    delay between retries. When the list has been exhausted, `max` will be used
-    for each subsequent attempt.
+  - `Backoff [List seconds] max` - A backoff strategy enabling you to increase
+    the delay between retries. When the list has been exhausted, `max` will be
+    used for each subsequent attempt.
 
         Backoff [ 1, 5, 10, 20 ] 30
 
@@ -789,7 +789,7 @@ addTimeoutPush internalConfig (Model model) =
 {- Receiving Messages -}
 
 
-{-| Receive messages from the Socket, Channels and Pheonix Presence.
+{-| Receive messages from the Socket, Channels and Phoenix Presence.
 
     import Phoenix
 
@@ -1287,9 +1287,10 @@ type PhoenixMsg
                 in
                 case Phoenix.lastMsg phoenix of
                     ChannelResponse (JoinOk "topic:subTopic" payload) ->
-                        ( {model | phoenix = phoenix}
-                        , Cmd.batch ReceivedPhoenixMsg phoenixCmd
-                        )
+                        ...
+
+                    SocketResponse (StateChange Connected) ->
+                        ...
 
 -}
 lastMsg : Model -> PhoenixMsg
