@@ -1292,7 +1292,7 @@ type PhoenixMsg
                     SocketResponse (StateChange Connected) ->
                         ...
 
-                    SocketResponse (StateChange (Disconnected code) ->
+                    SocketResponse (StateChange (Disconnected reason code wasClean)) ->
                         ...
 
 -}
