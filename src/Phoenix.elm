@@ -465,17 +465,17 @@ addChannelBeingJoined topic (Model model) =
         (Model model)
 
 
-addJoinedChannel : Topic -> Model -> Model
-addJoinedChannel topic (Model model) =
+dropChannelBeingJoined : Topic -> Model -> Model
+dropChannelBeingJoined topic (Model model) =
     updateChannelsBeingJoined
-        (Set.insert topic model.channelsJoined)
+        (Set.remove topic model.channelsBeingJoined)
         (Model model)
 
 
-dropChannelBeingJoined : Topic -> Model -> Model
-dropChannelBeingJoined topic (Model model) =
+addJoinedChannel : Topic -> Model -> Model
+addJoinedChannel topic (Model model) =
     updateChannelsJoined
-        (Set.remove topic model.channelsBeingJoined)
+        (Set.insert topic model.channelsJoined)
         (Model model)
 
 
