@@ -6,7 +6,7 @@ module Phoenix exposing
     , RetryStrategy(..), Push, push, pushAll
     , subscriptions
     , Msg, update
-    , SocketState(..), SocketInfo(..), SocketResponse(..), OriginalPayload, PushRef, IncomingMessage, ChannelResponse(..), Message(..), PhoenixMsg(..)
+    , SocketState(..), SocketInfo(..), SocketResponse(..), OriginalPayload, OriginalMessage, PushRef, ChannelResponse(..), IncomingMessage, Message(..), PhoenixMsg(..), lastMsg
     , requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
     )
 
@@ -149,7 +149,7 @@ immediately.
 
 ## Pattern Matching
 
-@docs SocketState, SocketInfo, SocketResponse, OriginalPayload, PushRef, IncomingMessage, ChannelResponse, Message, PhoenixMsg
+@docs SocketState, SocketInfo, SocketResponse, OriginalPayload, OriginalMessage, PushRef, ChannelResponse, IncomingMessage, Message, PhoenixMsg, lastMsg
 
 @docs requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
 
@@ -183,7 +183,7 @@ type Model
         , joinConfigs : Dict String JoinConfig
         , lastInvalidSocketEvent : Maybe String
         , nextMessageRef : Maybe String
-        , phoenixMsg : PhoenixMsg
+        , msg : PhoenixMsg
         , portConfig : PortConfig
         , protocol : Maybe String
         , pushCount : Int
@@ -270,7 +270,7 @@ init portConfig connectOptions =
         , joinConfigs = Dict.empty
         , lastInvalidSocketEvent = Nothing
         , nextMessageRef = Nothing
-        , phoenixMsg = NoOp
+        , msg = NoOp
         , portConfig = portConfig
         , protocol = Nothing
         , pushCount = 0
@@ -1172,16 +1172,17 @@ type alias OriginalPayload =
     Payload
 
 
+{-| A type alias representing the original message that was sent with the
+[push](#PushConfig).
+-}
+type alias OriginalMessage =
+    String
+
+
 {-| A type alias representing the `ref` set on the original [push](#PushConfig).
 -}
 type alias PushRef =
     Maybe String
-
-
-{-| A type alias representing a message received from a Channel.
--}
-type alias IncomingMessage =
-    String
 
 
 {-| All the responses that can be received from a Channel.
@@ -1190,27 +1191,82 @@ type ChannelResponse
     = JoinOk Topic Payload
     | JoinError Topic Payload
     | JoinTimeout Topic OriginalPayload
-    | PushOk Topic String PushRef Payload
-    | PushError Topic String PushRef Payload
-    | PushTimeout Topic String PushRef OriginalPayload
+    | PushOk Topic OriginalMessage PushRef Payload
+    | PushError Topic OriginalMessage PushRef Payload
+    | PushTimeout Topic OriginalMessage PushRef OriginalPayload
     | Closed Topic
     | ChannelError Topic
     | LeaveOk Topic
     | InvalidChannelMsg Topic String Payload
 
 
-{-| -}
+{-| A type alias representing a message that is `push`ed or `broadcast`ed from
+a Channel.
+
+So if you did this from your Elixir Channel:
+
+    broadcast(socket, "new_msg", %{id: 1, text: "Hello everyone."})
+
+`IncomingMessage` would have the value `"new_msg"`.
+
+-}
+type alias IncomingMessage =
+    String
+
+
+{-| A message that has come in from a Channel or the Socket.
+-}
 type Message
     = Channel Topic IncomingMessage Payload
-    | Socket Socket.MessageConfig
+    | Socket
+        { joinRef : Maybe String
+        , ref : Maybe String
+        , topic : String
+        , msg : String
+        , payload : Value
+        }
 
 
-{-| -}
+{-| The messages that you can pattern match on for your own program logic.
+-}
 type PhoenixMsg
     = NoOp
     | SocketResponse SocketResponse
     | ChannelResponse ChannelResponse
     | Message Message
+
+
+{-| Retrieve the last message received. Use it to pattern match on.
+
+    import Phoenix
+
+    type alias Model =
+        { phoenix : Phoenix.Model
+        ...
+        }
+
+    type Msg
+        = ReceivedPhoenixMsg Phoenix.Msg
+        | ...
+
+    update : Msg -> Model -> (Model, Cmd Msg)
+    update msg model =
+        case msg of
+            ReceivedPhoenixMsg subMsg ->
+                let
+                    (phoenix, phoenxCmd) =
+                        Phoenix.update subMsg model.phoenix
+                in
+                case Phoenix.lastMsg phoenix of
+                    ChannelResponse (JoinOk "topic:subTopic" payload) ->
+                        ( {model | phoenix = phoenix}
+                        , Cmd.batch ReceivedPhoenixMsg phoenixCmd
+                        )
+
+-}
+lastMsg : Model -> PhoenixMsg
+lastMsg (Model model) =
+    model.msg
 
 
 
@@ -1432,10 +1488,10 @@ updateNextMessageRef ref (Model model) =
 
 
 updatePhoenixMsg : PhoenixMsg -> Model -> Model
-updatePhoenixMsg phoenixMsg (Model model) =
+updatePhoenixMsg msg (Model model) =
     Model
         { model
-            | phoenixMsg = phoenixMsg
+            | msg = msg
         }
 
 
