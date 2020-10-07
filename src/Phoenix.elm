@@ -6,7 +6,11 @@ module Phoenix exposing
     , RetryStrategy(..), Push, push, pushAll
     , subscriptions
     , Msg, update
-    , SocketState(..), SocketInfo(..), SocketResponse(..), OriginalPayload, OriginalMessage, PushRef, ChannelResponse(..), IncomingMessage, Message(..), PhoenixMsg(..), lastMsg
+    , SocketState(..), SocketInfo(..), SocketResponse(..)
+    , OriginalPayload, OriginalMessage, PushRef, ChannelResponse(..), IncomingMessage
+    , Message(..)
+    , Presence, PresenceState, PresenceDiff, PresenceResponse
+    , PhoenixMsg(..), lastMsg
     , requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
     )
 
@@ -146,7 +150,29 @@ immediately.
 
 ## Pattern Matching
 
-@docs SocketState, SocketInfo, SocketResponse, OriginalPayload, OriginalMessage, PushRef, ChannelResponse, IncomingMessage, Message, PhoenixMsg, lastMsg
+
+### Socket
+
+@docs SocketState, SocketInfo, SocketResponse
+
+
+### Channel
+
+@docs OriginalPayload, OriginalMessage, PushRef, ChannelResponse, IncomingMessage
+
+
+### Incoming Messages
+
+@docs Message
+
+### Pheonix Presence
+
+@docs Presence, PresenceState, PresenceDiff, PresenceResponse
+
+
+### Matching
+
+@docs PhoenixMsg, lastMsg
 
 @docs requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
 
@@ -1228,6 +1254,33 @@ type ChannelResponse
     | InvalidChannelMsg Topic String Payload
 
 
+{-| -}
+type alias Presence =
+    { id : String
+    , metas : Dict String (List Value)
+    }
+
+
+{-| -}
+type alias PresenceState =
+    List Presence
+
+
+{-| -}
+type alias PresenceDiff =
+    { joins : List Presence
+    , leaves : List Presence
+    }
+
+
+{-| -}
+type PresenceResponse
+    = Join Topic Presence
+    | Leave Topic Presence
+    | State Topic PresenceState
+    | Diff Topic PresenceDiff
+
+
 {-| A type alias representing a message that is `push`ed or `broadcast`ed from
 a Channel.
 
@@ -1259,9 +1312,10 @@ type Message
 -}
 type PhoenixMsg
     = NoOp
+    | Message Message
     | SocketResponse SocketResponse
     | ChannelResponse ChannelResponse
-    | Message Message
+    | PresenceResponse PresenceResponse
 
 
 {-| Retrieve the last message received. Use it to pattern match on.
