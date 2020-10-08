@@ -383,7 +383,7 @@ let ElmPhoenixWebSocket = {
         self = this
 
         // Select the channel to push to.
-        let channel = this.find[params.topic]
+        let channel = this.find(params.topic)
 
         let push = {}
 
