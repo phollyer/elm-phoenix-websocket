@@ -205,6 +205,9 @@ type Model
         , msg : PhoenixMsg
         , portConfig : PortConfig
         , presenceDiff : Dict String (List Presence.PresenceDiff)
+        , presenceJoin : Dict String (List Presence.Presence)
+        , presenceLeave : Dict String (List Presence.Presence)
+        , presenceState : Dict String Presence.PresenceState
         , pushCount : Int
         , queuedPushes : Dict Int InternalPush
         , socketError : String
@@ -251,6 +254,9 @@ init portConfig connectOptions =
         , msg = NoOp
         , portConfig = portConfig
         , presenceDiff = Dict.empty
+        , presenceJoin = Dict.empty
+        , presenceLeave = Dict.empty
+        , presenceState = Dict.empty
         , pushCount = 0
         , queuedPushes = Dict.empty
         , socketError = ""
@@ -1026,14 +1032,41 @@ update msg (Model model) =
                 _ ->
                     ( Model model, Cmd.none )
 
-        PresenceMsg (Presence.Join _ _) ->
-            ( Model model, Cmd.none )
+        PresenceMsg (Presence.Join topic presenceResult) ->
+            case presenceResult of
+                Ok presence ->
+                    ( Model model
+                        |> addPresenceJoin topic presence
+                        |> updatePhoenixMsg (PresenceResponse (Join topic presence))
+                    , Cmd.none
+                    )
 
-        PresenceMsg (Presence.Leave _ _) ->
-            ( Model model, Cmd.none )
+                _ ->
+                    ( Model model, Cmd.none )
 
-        PresenceMsg (Presence.State _ _) ->
-            ( Model model, Cmd.none )
+        PresenceMsg (Presence.Leave topic presenceResult) ->
+            case presenceResult of
+                Ok presence ->
+                    ( Model model
+                        |> addPresenceLeave topic presence
+                        |> updatePhoenixMsg (PresenceResponse (Leave topic presence))
+                    , Cmd.none
+                    )
+
+                _ ->
+                    ( Model model, Cmd.none )
+
+        PresenceMsg (Presence.State topic stateResult) ->
+            case stateResult of
+                Ok state ->
+                    ( Model model
+                        |> replacePresenceState topic state
+                        |> updatePhoenixMsg (PresenceResponse (State topic state))
+                    , Cmd.none
+                    )
+
+                _ ->
+                    ( Model model, Cmd.none )
 
         PresenceMsg (Presence.InvalidMsg _ _) ->
             ( Model model, Cmd.none )
@@ -1137,18 +1170,42 @@ update msg (Model model) =
 addPresenceDiff : Topic -> Presence.PresenceDiff -> Model -> Model
 addPresenceDiff topic diff (Model model) =
     updatePresenceDiff
-        (Dict.update
-            topic
-            (\maybeList ->
-                case maybeList of
-                    Just list ->
-                        Just (diff :: list)
+        (insertPresence topic diff model.presenceDiff)
+        (Model model)
 
-                    Nothing ->
-                        Just [ diff ]
-            )
-            model.presenceDiff
+
+addPresenceJoin : Topic -> Presence.Presence -> Model -> Model
+addPresenceJoin topic presence (Model model) =
+    updatePresenceJoin
+        (insertPresence topic presence model.presenceJoin)
+        (Model model)
+
+
+addPresenceLeave : Topic -> Presence.Presence -> Model -> Model
+addPresenceLeave topic presence (Model model) =
+    updatePresenceLeave
+        (insertPresence topic presence model.presenceLeave)
+        (Model model)
+
+
+insertPresence : Topic -> a -> Dict String (List a) -> Dict String (List a)
+insertPresence topic presence dict =
+    Dict.update topic
+        (\maybeList ->
+            case maybeList of
+                Just list ->
+                    Just (presence :: list)
+
+                Nothing ->
+                    Just [ presence ]
         )
+        dict
+
+
+replacePresenceState : Topic -> Presence.PresenceState -> Model -> Model
+replacePresenceState topic state (Model model) =
+    updatePresenceState
+        (Dict.insert topic state model.presenceState)
         (Model model)
 
 
@@ -1475,6 +1532,30 @@ updatePresenceDiff diff (Model model) =
     Model
         { model
             | presenceDiff = diff
+        }
+
+
+updatePresenceJoin : Dict String (List Presence.Presence) -> Model -> Model
+updatePresenceJoin presence (Model model) =
+    Model
+        { model
+            | presenceJoin = presence
+        }
+
+
+updatePresenceLeave : Dict String (List Presence.Presence) -> Model -> Model
+updatePresenceLeave presence (Model model) =
+    Model
+        { model
+            | presenceLeave = presence
+        }
+
+
+updatePresenceState : Dict String Presence.PresenceState -> Model -> Model
+updatePresenceState state (Model model) =
+    Model
+        { model
+            | presenceState = state
         }
 
 
