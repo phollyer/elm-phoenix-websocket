@@ -106,6 +106,7 @@ let ElmPhoenixWebSocket = {
 
                 self.socketSend("Closed", {code: resp.code, wasClean: resp.wasClean, reason: "Denied"})
             }
+            self.info()
         })
 
         this.socket.connect()
