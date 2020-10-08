@@ -255,7 +255,7 @@ init portConfig connectOptions =
         , socketInfo = SocketInfo.init
         , socketMessage = Nothing
         , socketMessages = []
-        , socketState = Disconnected "" 0 False
+        , socketState = Disconnected (Socket.ClosedInfo "" 0 False)
         , timeoutPushes = Dict.empty
         }
 
@@ -303,7 +303,7 @@ type alias PortConfig =
 connect : Model -> ( Model, Cmd Msg )
 connect (Model model) =
     case model.socketState of
-        Disconnected _ _ _ ->
+        Disconnected _ ->
             ( Model model
             , Socket.connect
                 model.connectOptions
@@ -446,7 +446,7 @@ join topic (Model model) =
             , Cmd.none
             )
 
-        Disconnected _ _ _ ->
+        Disconnected _ ->
             Model model
                 |> addChannelBeingJoined topic
                 |> connect
@@ -709,7 +709,7 @@ pushIfConnected config (Model model) =
             , Cmd.none
             )
 
-        Disconnected _ _ _ ->
+        Disconnected _ ->
             ( Model model
                 |> addChannelBeingJoined config.push.topic
                 |> updateSocketState Connecting
@@ -1035,12 +1035,12 @@ update msg (Model model) =
                         |> updatePhoenixMsg (SocketResponse (StateChange Connected))
                         |> joinChannels model.channelsBeingJoined
 
-                Socket.Closed reasonResult codeResult wasCleanResult ->
-                    case ( reasonResult, codeResult, wasCleanResult ) of
-                        ( Ok reason, Ok code, Ok wasClean ) ->
+                Socket.Closed infoResult ->
+                    case infoResult of
+                        Ok info ->
                             ( Model model
-                                |> updateSocketState (Disconnected reason code wasClean)
-                                |> updatePhoenixMsg (SocketResponse (StateChange (Disconnected reason code wasClean)))
+                                |> updateSocketState (Disconnected info)
+                                |> updatePhoenixMsg (SocketResponse (StateChange (Disconnected info)))
                             , Cmd.none
                             )
 
@@ -1200,7 +1200,7 @@ update msg (Model model) =
 type SocketState
     = Connected
     | Connecting
-    | Disconnected String Int Bool
+    | Disconnected Socket.ClosedInfo
 
 
 {-| Information about the Socket.

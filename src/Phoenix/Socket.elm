@@ -1,7 +1,7 @@
 module Phoenix.Socket exposing
     ( ConnectOption(..), Params, PortOut, connect
     , disconnect
-    , Msg(..), MessageConfig, AllInfo, Info(..), PortIn, subscriptions
+    , Msg(..), ClosedInfo, MessageConfig, AllInfo, Info(..), PortIn, subscriptions
     , connectionState, endPointURL, hasLogger, info, isConnected, makeRef, protocol
     )
 
@@ -24,7 +24,7 @@ channel(s).
 
 # Receiving Messages
 
-@docs Msg, MessageConfig, AllInfo, Info, PortIn, subscriptions
+@docs Msg, ClosedInfo, MessageConfig, AllInfo, Info, PortIn, subscriptions
 
 
 # Socket Information
@@ -229,7 +229,7 @@ than gloss over it with some kind of default.
 -}
 type Msg
     = Opened
-    | Closed (Result JD.Error String) (Result JD.Error Int) (Result JD.Error Bool)
+    | Closed (Result JD.Error ClosedInfo)
     | Error (Result JD.Error String)
     | Message (Result JD.Error MessageConfig)
     | Info Info
@@ -245,6 +245,15 @@ type Info
     | IsConnected (Result JD.Error Bool)
     | MakeRef (Result JD.Error String)
     | Protocol (Result JD.Error String)
+
+
+{-| A type alias representing the information received when the socket closes.
+-}
+type alias ClosedInfo =
+    { reason : String
+    , code : Int
+    , wasClean : Bool
+    }
 
 
 {-| A type alias representing the raw message received by the socket. This
@@ -334,9 +343,7 @@ handleIn toMsg { msg, payload } =
         "Closed" ->
             toMsg <|
                 Closed
-                    (JD.decodeValue JD.string payload)
-                    (JD.decodeValue JD.int payload)
-                    (JD.decodeValue JD.bool payload)
+                    (JD.decodeValue closedDecoder payload)
 
         "Error" ->
             toMsg <|
@@ -396,6 +403,15 @@ handleIn toMsg { msg, payload } =
 
 
 -- Decoders
+
+
+closedDecoder : JD.Decoder ClosedInfo
+closedDecoder =
+    JD.succeed
+        ClosedInfo
+        |> andMap (JD.field "reason" JD.string)
+        |> andMap (JD.field "code" JD.int)
+        |> andMap (JD.field "wasClean" JD.bool)
 
 
 errorDecoder : JD.Decoder String
