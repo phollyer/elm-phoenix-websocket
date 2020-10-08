@@ -9,7 +9,7 @@ module Phoenix exposing
     , SocketState(..), SocketInfo(..), SocketResponse(..)
     , OriginalPayload, OriginalMessage, PushRef, ChannelResponse(..), IncomingMessage
     , Message(..)
-    , Presence, PresenceResponse(..)
+    , PresenceResponse(..)
     , PhoenixMsg(..), lastMsg
     , requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
     )
@@ -204,6 +204,7 @@ type Model
         , lastInvalidSocketEvent : Maybe String
         , msg : PhoenixMsg
         , portConfig : PortConfig
+        , presenceDiff : Dict String (List Presence.PresenceDiff)
         , pushCount : Int
         , queuedPushes : Dict Int InternalPush
         , socketError : String
@@ -249,6 +250,7 @@ init portConfig connectOptions =
         , lastInvalidSocketEvent = Nothing
         , msg = NoOp
         , portConfig = portConfig
+        , presenceDiff = Dict.empty
         , pushCount = 0
         , queuedPushes = Dict.empty
         , socketError = ""
@@ -1012,11 +1014,17 @@ update msg (Model model) =
                 _ ->
                     ( Model model, Cmd.none )
 
-        PresenceMsg (Presence.Diff _ _) ->
-            ( Model model, Cmd.none )
+        PresenceMsg (Presence.Diff topic diffResult) ->
+            case diffResult of
+                Ok diff ->
+                    ( Model model
+                        |> addPresenceDiff topic diff
+                        |> updatePhoenixMsg (PresenceResponse (Diff topic diff))
+                    , Cmd.none
+                    )
 
-        PresenceMsg (Presence.InvalidMsg _ _) ->
-            ( Model model, Cmd.none )
+                _ ->
+                    ( Model model, Cmd.none )
 
         PresenceMsg (Presence.Join _ _) ->
             ( Model model, Cmd.none )
@@ -1025,6 +1033,9 @@ update msg (Model model) =
             ( Model model, Cmd.none )
 
         PresenceMsg (Presence.State _ _) ->
+            ( Model model, Cmd.none )
+
+        PresenceMsg (Presence.InvalidMsg _ _) ->
             ( Model model, Cmd.none )
 
         SocketMsg subMsg ->
@@ -1123,6 +1134,24 @@ update msg (Model model) =
                 |> sendTimeoutPushes
 
 
+addPresenceDiff : Topic -> Presence.PresenceDiff -> Model -> Model
+addPresenceDiff topic diff (Model model) =
+    updatePresenceDiff
+        (Dict.update
+            topic
+            (\maybeList ->
+                case maybeList of
+                    Just list ->
+                        Just (diff :: list)
+
+                    Nothing ->
+                        Just [ diff ]
+            )
+            model.presenceDiff
+        )
+        (Model model)
+
+
 {-| All the possible states of the Socket.
 -}
 type SocketState
@@ -1187,18 +1216,11 @@ type ChannelResponse
 
 
 {-| -}
-type alias Presence =
-    { id : String
-    , info : Dict String (List Value)
-    }
-
-
-{-| -}
 type PresenceResponse
-    = Join Topic Presence
-    | Leave Topic Presence
-    | State Topic (List Presence)
-    | Diff Topic { joins : List Presence, leaves : List Presence }
+    = Join Topic Presence.Presence
+    | Leave Topic Presence.Presence
+    | State Topic Presence.PresenceState
+    | Diff Topic Presence.PresenceDiff
 
 
 {-| A type alias representing a message that is `push`ed or `broadcast`ed from
@@ -1445,6 +1467,14 @@ updatePhoenixMsg msg (Model model) =
     Model
         { model
             | msg = msg
+        }
+
+
+updatePresenceDiff : Dict String (List Presence.PresenceDiff) -> Model -> Model
+updatePresenceDiff diff (Model model) =
+    Model
+        { model
+            | presenceDiff = diff
         }
 
 
