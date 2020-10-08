@@ -1031,8 +1031,6 @@ update msg (Model model) =
             case subMsg of
                 Socket.Opened ->
                     Model model
-                        |> updateSocketInfo
-                            (SocketInfo.updateIsConnected True model.socketInfo)
                         |> updateSocketState Connected
                         |> updatePhoenixMsg (SocketResponse (StateChange Connected))
                         |> joinChannels model.channelsBeingJoined
