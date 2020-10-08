@@ -721,7 +721,6 @@ pushIfConnected config (Model model) =
         Disconnected _ _ _ ->
             ( Model model
                 |> addChannelBeingJoined config.push.topic
-                |> addPushToQueue config
                 |> updateSocketState Connecting
             , Socket.connect
                 model.connectOptions
