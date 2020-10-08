@@ -19,9 +19,6 @@ let ElmPhoenixWebSocket = {
     // The Phoenix JS socket instantiated with `new phoenixSocket`
     socket: {},
 
-    // The current channel
-    channel: {},
-
     // A map of channels with each topic as a unique key
     channels: {},
 
@@ -30,7 +27,7 @@ let ElmPhoenixWebSocket = {
     phoenixPresence: {},
 
     // The Presence data
-    presence: {},
+    presences: {},
 
     // The Elm ports object
     elmPorts: {},
@@ -329,24 +326,25 @@ let ElmPhoenixWebSocket = {
     join(params) {
         let self = this
 
-        this.channel = this.socket.channel(params.topic, params.payload)
-        this.channel.onClose( () => self.channelSend(params.topic, "Closed", {}))
-        this.channel.onError( () => self.channelSend(params.topic, "Error", {}))
+        let channel = this.socket.channel(params.topic, params.payload)
 
-        this.channel.on("presence_diff", diff => self.onDiff(params.topic, diff))
-        this.channel.on("presence_state", state => self.onState(params.topic, state))
+        channel.onClose( () => self.channelSend(params.topic, "Closed", {}))
+        channel.onError( () => self.channelSend(params.topic, "Error", {}))
+
+        channel.on("presence_diff", diff => self.onDiff(params.topic, diff))
+        channel.on("presence_state", state => self.onState(params.topic, state))
 
         let join = {}
 
         // Join the channel, with or without a custom timeout.
         if(params.timeout) {
-            join = this.channel.join(params.timeout)
+            join = channel.join(params.timeout)
         } else {
-            join = this.channel.join()
+            join = channel.join()
         }
 
         join
-            .receive("ok", (payload) => self.joinOk(this.channel, params.topic, payload))
+            .receive("ok", (payload) => self.joinOk(channel, params.topic, payload))
             .receive("error", (payload) => self.channelSend(params.topic, "JoinError", payload))
             .receive("timeout", () => self.channelSend(params.topic, "JoinTimeout", {payload: params.payload}))
     },
@@ -385,7 +383,7 @@ let ElmPhoenixWebSocket = {
         self = this
 
         // Select the channel to push to.
-        let channel = this.find(params.topic)
+        let channel = this.find[params.topic]
 
         let push = {}
 
@@ -469,14 +467,13 @@ let ElmPhoenixWebSocket = {
 
     /* find/1
 
-            Find a channel by topic, or return the current channel
-            if one cannot be found by topic.
+            Find a channel by topic.
 
             Parameters:
-                topic <maybe string> - The topic of the channel to find.
+                topic <string> - The topic of the channel to find.
     */
     find(topic) {
-        return this.channels[topic] || this.channel
+        return this.channels[topic]
     },
 
     /* channelSend/3
@@ -518,15 +515,19 @@ let ElmPhoenixWebSocket = {
     onDiff(topic, diff) {
         let self = this
 
-        this.presence = this.phoenixPresence.syncDiff(
-            this.presence,
+        let currentPresence = this.presences[topic] || {}
+
+        let newPresence = this.phoenixPresence.syncDiff(
+            currentPresence,
             diff,
             (id, current, newPres) => self.presenceSend(topic, "Join", (this.packageForElm(id, newPres))),
             (id, current, leftPres) => self.presenceSend(topic, "Leave", (this.packageForElm(id, leftPres)))
         )
 
         this.presenceSend(topic, "Diff", {leaves: this.toList(diff.leaves), joins: this.toList(diff.joins)})
-        this.presenceSend(topic, "State",{list: this.phoenixPresence.list(this.presence, (id, metas) => (this.packageForElm(id, metas)))})
+        this.presenceSend(topic, "State",{list: this.phoenixPresence.list(newPresence, (id, metas) => (this.packageForElm(id, metas)))})
+
+        this.presences[topic] = newPresence
     },
 
 
@@ -542,14 +543,18 @@ let ElmPhoenixWebSocket = {
     onState(topic, state) {
         let self = this
 
-        this.presence = this.phoenixPresence.syncState(
-            this.presence,
+        let currentPresence = this.presences[topic]
+
+        let newPresence = this.phoenixPresence.syncState(
+            currentPresence,
             state,
             (id, current, newPres) => self.presenceSend(topic, "Join", (this.packageForElm(id, newPres))),
             (id, current, leftPres) => self.presenceSend(topic, "Leave", (this.packageForElm(id, leftPres)))
         )
 
-        this.presenceSend(topic, "State",{list: this.phoenixPresence.list(this.presence, (id, metas) => (this.packageForElm(id, metas)))})
+        this.presenceSend(topic, "State",{list: this.phoenixPresence.list(newPresence, (id, metas) => (this.packageForElm(id, metas)))})
+
+        this.presences[topic] = newPresence
     },
 
 
