@@ -54,6 +54,7 @@ let ElmPhoenixWebSocket = {
         this.phoenixPresence = presence
 
         this.socket = new this.phoenixSocket(this.url, {})
+        this.info()
     },
 
     /* Socket */
