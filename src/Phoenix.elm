@@ -179,6 +179,7 @@ immediately.
 -}
 
 import Dict exposing (Dict)
+import Internal.SocketInfo as SocketInfo
 import Json.Encode as JE exposing (Value)
 import Phoenix.Channel as Channel
 import Phoenix.Presence as Presence
@@ -196,22 +197,17 @@ type Model
     = Model
         { channelsBeingJoined : Set Topic
         , channelsJoined : Set Topic
-        , connectionState : Maybe String
         , connectOptions : List Socket.ConnectOption
         , connectParams : Payload
-        , endpointURL : Maybe String
-        , hasLogger : Maybe Bool
         , invalidSocketEvents : List String
-        , isConnected : Bool
         , joinConfigs : Dict String JoinConfig
         , lastInvalidSocketEvent : Maybe String
-        , nextMessageRef : Maybe String
         , msg : PhoenixMsg
         , portConfig : PortConfig
-        , protocol : Maybe String
         , pushCount : Int
         , queuedPushes : Dict Int InternalPush
         , socketError : String
+        , socketInfo : SocketInfo.Info
         , socketMessage : Maybe Socket.MessageConfig
         , socketMessages : List Socket.MessageConfig
         , socketState : SocketState
@@ -246,22 +242,17 @@ init portConfig connectOptions =
     Model
         { channelsBeingJoined = Set.empty
         , channelsJoined = Set.empty
-        , connectionState = Nothing
         , connectOptions = connectOptions
         , connectParams = JE.null
-        , endpointURL = Nothing
-        , hasLogger = Nothing
         , invalidSocketEvents = []
-        , isConnected = False
         , joinConfigs = Dict.empty
         , lastInvalidSocketEvent = Nothing
-        , nextMessageRef = Nothing
         , msg = NoOp
         , portConfig = portConfig
-        , protocol = Nothing
         , pushCount = 0
         , queuedPushes = Dict.empty
         , socketError = ""
+        , socketInfo = SocketInfo.init
         , socketMessage = Nothing
         , socketMessages = []
         , socketState = Disconnected "" 0 False
@@ -1040,7 +1031,8 @@ update msg (Model model) =
             case subMsg of
                 Socket.Opened ->
                     Model model
-                        |> updateIsConnected True
+                        |> updateSocketInfo
+                            (SocketInfo.updateIsConnected True model.socketInfo)
                         |> updateSocketState Connected
                         |> updatePhoenixMsg (SocketResponse (StateChange Connected))
                         |> joinChannels model.channelsBeingJoined
@@ -1086,18 +1078,13 @@ update msg (Model model) =
                             , Cmd.none
                             )
 
-                Socket.Info info ->
-                    case info of
+                Socket.Info infoResponse ->
+                    case infoResponse of
                         Socket.All result ->
                             case result of
-                                Ok all ->
+                                Ok info ->
                                     ( Model model
-                                        |> updateConnectionState (Just all.connectionState)
-                                        |> updateEndPointURL (Just all.endpointURL)
-                                        |> updateHasLogger all.hasLogger
-                                        |> updateIsConnected all.isConnected
-                                        |> updateNextMessageRef (Just all.nextMessageRef)
-                                        |> updateProtocol (Just all.protocol)
+                                        |> updateSocketInfo info
                                         |> updatePhoenixMsg (SocketResponse (SocketInfo All))
                                     , Cmd.none
                                     )
@@ -1111,7 +1098,8 @@ update msg (Model model) =
                             case result of
                                 Ok connectionState ->
                                     ( Model model
-                                        |> updateConnectionState (Just connectionState)
+                                        |> updateSocketInfo
+                                            (SocketInfo.updateConnectionState connectionState model.socketInfo)
                                         |> updatePhoenixMsg (SocketResponse (SocketInfo (ConnectionState connectionState)))
                                     , Cmd.none
                                     )
@@ -1125,7 +1113,8 @@ update msg (Model model) =
                             case result of
                                 Ok endPointURL ->
                                     ( Model model
-                                        |> updateEndPointURL (Just endPointURL)
+                                        |> updateSocketInfo
+                                            (SocketInfo.updateEndPointURL endPointURL model.socketInfo)
                                         |> updatePhoenixMsg (SocketResponse (SocketInfo (EndPointURL endPointURL)))
                                     , Cmd.none
                                     )
@@ -1139,7 +1128,8 @@ update msg (Model model) =
                             case result of
                                 Ok hasLogger ->
                                     ( Model model
-                                        |> updateHasLogger hasLogger
+                                        |> updateSocketInfo
+                                            (SocketInfo.updateHasLogger hasLogger model.socketInfo)
                                         |> updatePhoenixMsg (SocketResponse (SocketInfo (HasLogger hasLogger)))
                                     , Cmd.none
                                     )
@@ -1153,7 +1143,8 @@ update msg (Model model) =
                             case result of
                                 Ok isConnected ->
                                     ( Model model
-                                        |> updateIsConnected isConnected
+                                        |> updateSocketInfo
+                                            (SocketInfo.updateIsConnected isConnected model.socketInfo)
                                         |> updatePhoenixMsg (SocketResponse (SocketInfo (IsConnected isConnected)))
                                     , Cmd.none
                                     )
@@ -1167,7 +1158,8 @@ update msg (Model model) =
                             case result of
                                 Ok ref ->
                                     ( Model model
-                                        |> updateNextMessageRef (Just ref)
+                                        |> updateSocketInfo
+                                            (SocketInfo.updateMakeRef ref model.socketInfo)
                                         |> updatePhoenixMsg (SocketResponse (SocketInfo (MakeRef ref)))
                                     , Cmd.none
                                     )
@@ -1181,7 +1173,8 @@ update msg (Model model) =
                             case result of
                                 Ok protocol ->
                                     ( Model model
-                                        |> updateProtocol (Just protocol)
+                                        |> updateSocketInfo
+                                            (SocketInfo.updateProtocol protocol model.socketInfo)
                                         |> updatePhoenixMsg (SocketResponse (SocketInfo (Protocol protocol)))
                                     , Cmd.none
                                     )
@@ -1481,14 +1474,6 @@ updateChannelsJoined channelsJoined (Model model) =
         }
 
 
-updateConnectionState : Maybe String -> Model -> Model
-updateConnectionState connectionState (Model model) =
-    Model
-        { model
-            | connectionState = connectionState
-        }
-
-
 updateConnectOptions : List Socket.ConnectOption -> Model -> Model
 updateConnectOptions options (Model model) =
     Model
@@ -1505,35 +1490,11 @@ updateConnectParams params (Model model) =
         }
 
 
-updateEndPointURL : Maybe String -> Model -> Model
-updateEndPointURL endpointURL (Model model) =
-    Model
-        { model
-            | endpointURL = endpointURL
-        }
-
-
-updateHasLogger : Maybe Bool -> Model -> Model
-updateHasLogger hasLogger (Model model) =
-    Model
-        { model
-            | hasLogger = hasLogger
-        }
-
-
 updateInvalidSocketEvents : List String -> Model -> Model
 updateInvalidSocketEvents msgs (Model model) =
     Model
         { model
             | invalidSocketEvents = msgs
-        }
-
-
-updateIsConnected : Bool -> Model -> Model
-updateIsConnected isConnected (Model model) =
-    Model
-        { model
-            | isConnected = isConnected
         }
 
 
@@ -1553,27 +1514,11 @@ updateLastInvalidSocketEvent msg (Model model) =
         }
 
 
-updateNextMessageRef : Maybe String -> Model -> Model
-updateNextMessageRef ref (Model model) =
-    Model
-        { model
-            | nextMessageRef = ref
-        }
-
-
 updatePhoenixMsg : PhoenixMsg -> Model -> Model
 updatePhoenixMsg msg (Model model) =
     Model
         { model
             | msg = msg
-        }
-
-
-updateProtocol : Maybe String -> Model -> Model
-updateProtocol protocol (Model model) =
-    Model
-        { model
-            | protocol = protocol
         }
 
 
@@ -1598,6 +1543,14 @@ updateSocketError error (Model model) =
     Model
         { model
             | socketError = error
+        }
+
+
+updateSocketInfo : SocketInfo.Info -> Model -> Model
+updateSocketInfo socketInfo (Model model) =
+    Model
+        { model
+            | socketInfo = socketInfo
         }
 
 

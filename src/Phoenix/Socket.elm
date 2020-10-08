@@ -277,10 +277,10 @@ type alias MessageConfig =
 -}
 type alias AllInfo =
     { connectionState : String
-    , endpointURL : String
+    , endPointURL : String
     , hasLogger : Maybe Bool
     , isConnected : Bool
-    , nextMessageRef : String
+    , makeRef : String
     , protocol : String
     }
 

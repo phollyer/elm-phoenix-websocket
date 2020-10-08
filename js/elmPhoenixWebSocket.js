@@ -81,6 +81,7 @@ let ElmPhoenixWebSocket = {
         this.socket.onOpen( resp => {
             self.allowReconnect = true
             self.socketSend("Opened", resp)
+            self.info()
         })
         this.socket.onClose( resp => {
             if(self.allowReconnect) {
