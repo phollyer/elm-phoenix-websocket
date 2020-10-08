@@ -202,7 +202,7 @@ type Model
         , invalidSocketEvents : List String
         , joinConfigs : Dict String JoinConfig
         , lastInvalidSocketEvent : Maybe String
-        , msg : PhoenixMsg
+        , phoenixMsg : PhoenixMsg
         , portConfig : PortConfig
         , presenceDiff : Dict String (List Presence.PresenceDiff)
         , presenceJoin : Dict String (List Presence.Presence)
@@ -251,7 +251,7 @@ init portConfig connectOptions =
         , invalidSocketEvents = []
         , joinConfigs = Dict.empty
         , lastInvalidSocketEvent = Nothing
-        , msg = NoOp
+        , phoenixMsg = NoOp
         , portConfig = portConfig
         , presenceDiff = Dict.empty
         , presenceJoin = Dict.empty
@@ -1356,7 +1356,7 @@ type PhoenixMsg
 -}
 lastMsg : Model -> PhoenixMsg
 lastMsg (Model model) =
-    model.msg
+    model.phoenixMsg
 
 
 
@@ -1523,7 +1523,7 @@ updatePhoenixMsg : PhoenixMsg -> Model -> Model
 updatePhoenixMsg msg (Model model) =
     Model
         { model
-            | msg = msg
+            | phoenixMsg = msg
         }
 
 
