@@ -167,7 +167,7 @@ immediately.
 
 ### Pheonix Presence
 
-@docs Presence, PresenceResponse
+@docs PresenceResponse
 
 
 ### Matching
