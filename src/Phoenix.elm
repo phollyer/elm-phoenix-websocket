@@ -639,6 +639,20 @@ push pushConfig (Model model) =
         |> pushIfJoined internalConfig
 
 
+addPushToQueue : InternalPush -> Model -> Model
+addPushToQueue pushConfig (Model model) =
+    updateQueuedPushes
+        (Dict.insert pushConfig.ref pushConfig model.queuedPushes)
+        (Model model)
+
+
+dropQueuedPush : Int -> Model -> Model
+dropQueuedPush ref (Model model) =
+    updateQueuedPushes
+        (Dict.remove ref model.queuedPushes)
+        (Model model)
+
+
 {-| Send a list of [Push](#Push)es to Elixir.
 
 The [Push](#Push)es will be batched together and sent as a single `Cmd`. The
@@ -1392,24 +1406,6 @@ requestProtocol (Model model) =
 requestSocketInfo : Model -> Cmd Msg
 requestSocketInfo (Model model) =
     Socket.info model.portConfig.phoenixSend
-
-
-
-{- Queued Pushes -}
-
-
-addPushToQueue : InternalPush -> Model -> Model
-addPushToQueue pushConfig (Model model) =
-    updateQueuedPushes
-        (Dict.insert pushConfig.ref pushConfig model.queuedPushes)
-        (Model model)
-
-
-dropQueuedPush : Int -> Model -> Model
-dropQueuedPush ref (Model model) =
-    updateQueuedPushes
-        (Dict.remove ref model.queuedPushes)
-        (Model model)
 
 
 
