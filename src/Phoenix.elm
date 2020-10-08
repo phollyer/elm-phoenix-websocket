@@ -1092,66 +1092,6 @@ update msg (Model model) =
                                     , Cmd.none
                                     )
 
-                        Socket.ConnectionState result ->
-                            case result of
-                                Ok connectionState ->
-                                    ( Model model
-                                        |> updateSocketInfo
-                                            (SocketInfo.updateConnectionState connectionState model.socketInfo)
-                                        |> updatePhoenixMsg (SocketResponse (SocketInfo (ConnectionState connectionState)))
-                                    , Cmd.none
-                                    )
-
-                                Err _ ->
-                                    ( Model model
-                                    , Cmd.none
-                                    )
-
-                        Socket.EndPointURL result ->
-                            case result of
-                                Ok endPointURL ->
-                                    ( Model model
-                                        |> updateSocketInfo
-                                            (SocketInfo.updateEndPointURL endPointURL model.socketInfo)
-                                        |> updatePhoenixMsg (SocketResponse (SocketInfo (EndPointURL endPointURL)))
-                                    , Cmd.none
-                                    )
-
-                                Err _ ->
-                                    ( Model model
-                                    , Cmd.none
-                                    )
-
-                        Socket.HasLogger result ->
-                            case result of
-                                Ok hasLogger ->
-                                    ( Model model
-                                        |> updateSocketInfo
-                                            (SocketInfo.updateHasLogger hasLogger model.socketInfo)
-                                        |> updatePhoenixMsg (SocketResponse (SocketInfo (HasLogger hasLogger)))
-                                    , Cmd.none
-                                    )
-
-                                Err _ ->
-                                    ( Model model
-                                    , Cmd.none
-                                    )
-
-                        Socket.IsConnected result ->
-                            case result of
-                                Ok isConnected ->
-                                    ( Model model
-                                        |> updateSocketInfo
-                                            (SocketInfo.updateIsConnected isConnected model.socketInfo)
-                                        |> updatePhoenixMsg (SocketResponse (SocketInfo (IsConnected isConnected)))
-                                    , Cmd.none
-                                    )
-
-                                Err _ ->
-                                    ( Model model
-                                    , Cmd.none
-                                    )
-
                         Socket.MakeRef result ->
                             case result of
                                 Ok ref ->
@@ -1167,20 +1107,8 @@ update msg (Model model) =
                                     , Cmd.none
                                     )
 
-                        Socket.Protocol result ->
-                            case result of
-                                Ok protocol ->
-                                    ( Model model
-                                        |> updateSocketInfo
-                                            (SocketInfo.updateProtocol protocol model.socketInfo)
-                                        |> updatePhoenixMsg (SocketResponse (SocketInfo (Protocol protocol)))
-                                    , Cmd.none
-                                    )
-
-                                Err _ ->
-                                    ( Model model
-                                    , Cmd.none
-                                    )
+                        _ ->
+                            ( Model model, Cmd.none )
 
                 Socket.InvalidMsg message ->
                     ( Model model
