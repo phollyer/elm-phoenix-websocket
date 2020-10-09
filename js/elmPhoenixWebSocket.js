@@ -117,7 +117,7 @@ let ElmPhoenixWebSocket = {
     connect(data) {
         let self = this
 
-        this.socket = new this.phoenixSocket(this.url, this.optionsToParams(data))
+        this.socket = new this.phoenixSocket(this.url, this.setOptionsAndParams(data))
         this.socket.onMessage( resp => self.socketSend("Message", resp))
         this.socket.onError( resp => self.socketSend("Error", {reason: "Unknown"}))
         this.socket.onOpen( resp => {
@@ -174,7 +174,7 @@ let ElmPhoenixWebSocket = {
         this.socket.connect()
     },
 
-    /* optionsToParams
+    /* setOptionsAndParams
 
         data <object>
             params <maybe object>
@@ -184,54 +184,37 @@ let ElmPhoenixWebSocket = {
             options <maybe object>
                 Any options to set on the socket when connecting.
     */
-    optionsToParams(data) {
+    setOptionsAndParams(data) {
         if (data) {
-            var params = data.params ? {params: data.params} : {}
 
-            var options = data.options
-            for( var prop in options ) {
-                switch(prop) {
-                    case "reconnectAfterMs":
+            let options = data.options
 
-                        // Check to see if a backoff function is required for the socket.
-                        if(options.reconnectSteppedBackoff) {
+            if (options) {
+                if (options.reconnectSteppedBackoff && options.reconnectAfterMs) {
+                    options.reconnectAfterMs = function(tries) { return options.reconnectSteppedBackoff[ tries - 1] || options.reconnectAfterMs }
+                    delete options.reconnectSteppedBackoff
+                }
 
-                            // Create the backoff function the socket uses when trying to reconnect.
-                            params.reconnectAfterMs = function(tries) { return options.reconnectSteppedBackoff[ tries - 1] || options.reconnectAfterMs }
-                        } else {
-                            if(options.reconnectAfterMs) {
+                if (options.rejoinSteppedBackoff && options.rejoinAfterMs) {
+                    options.rejoinAfterMs = function(tries) { return options.rejoinSteppedBackoff[ tries - 1] || options.rejoinAfterMs }
+                    delete options.rejoinSteppedBackoff
+                }
 
-                                // No backoff function is required so just use the Int supplied.
-                                params.reconnectAfterMs = options.reconnectAfterMs
-                            }
-                        }
-                        break
-
-                    case "rejoinAfterMs":
-
-                        // Check to see if a backoff function is required for the channels.
-                        if(options.rejoinSteppedBackoff) {
-
-                            // Create the backoff function the channels use when trying to rejoin.
-                            params.rejoinAfterMs = function(tries) { return options.rejoinSteppedBackoff[ tries - 1] || options.rejoinAfterMs }
-                        } else {
-                            if(options.rejoinAfterMs) {
-
-                                // No backoff function is required so just use the Int supplied.
-                                params.rejoinAfterMs = options.rejoinAfterMs
-                            }
-                        }
-                        break
-
-                    default:
-                        params[prop] = options[prop]
+                if (options.logger) {
+                    options.logger = (kind, msg, data) => console.log(`${kind}: ${msg}`, data)
                 }
             }
 
-            return params
-        } else {
-            return {}
+            if (data.params && options) {
+                options.params = data.params
+            } else if (data.params) {
+                options = data
+            }
+
+            return options
         }
+
+        return null
     },
 
 
