@@ -313,17 +313,16 @@ let ElmPhoenixWebSocket = {
 
     /* Channel */
 
-    /* join/2
+    /* join
 
             Join a channel.
 
             Parameters:
                 params <object>
                     topic <string> - The topic of the channel.
+                    payload <maybe object> - Optional data to be sent to the channel, such as authentication params.
                     msgs <list string> - The msgs expected to come from the channel.
-                    msg <object> - Any data to be sent to the channel, such as authentication params.
-
-                socket <object> - The Phx Socket.
+                    timeout <maybe int> - Optional timeout in ms.
 
     */
     join(params) {
@@ -337,6 +336,14 @@ let ElmPhoenixWebSocket = {
         channel.on("presence_diff", diff => self.onDiff(params.topic, diff))
         channel.on("presence_state", state => self.onState(params.topic, state))
 
+        // Add the channel to the map of channels with the
+        // topic as the key, so that it can be selected by
+        // topic later.
+        this.channels[params.topic] = channel
+
+        // Set any incoming messages expected from the channel.
+        this.allOn(params)
+
         let join = {}
 
         // Join the channel, with or without a custom timeout.
@@ -347,12 +354,12 @@ let ElmPhoenixWebSocket = {
         }
 
         join
-            .receive("ok", (payload) => self.joinOk(channel, params.topic, payload))
+            .receive("ok", (payload) => this.channelSend(params.topic, "JoinOk", payload))
             .receive("error", (payload) => self.channelSend(params.topic, "JoinError", payload))
-            .receive("timeout", () => self.channelSend(params.topic, "JoinTimeout", {payload: params.payload}))
+            .receive("timeout", () => self.channelSend(params.topic, "JoinTimeout", params.payload))
     },
 
-    /* joinOk/3
+    /* joinOk
 
             Callback function for when a channel is joined.
 
@@ -362,12 +369,7 @@ let ElmPhoenixWebSocket = {
                 payload <object> - The payload received from the join.
     */
     joinOk(channel, topic, payload) {
-        // Add the channel to the list of channels with the
-        // topic as the key, so that it can be selected by
-        // topic later.
-        this.channels[topic] = channel
 
-        this.channelSend(topic, "JoinOk", payload)
     },
 
     /*    push/1
@@ -418,6 +420,25 @@ let ElmPhoenixWebSocket = {
             .on(params.msg, payload => self.channelSend(params.topic, "Message", {msg: params.msg, payload: payload}))
     },
 
+    /* allOn/1
+
+            Subscribe to channel msgs.
+
+            Parameters:
+                params <object>
+                    topic <maybe string> - The topic of the channel to subscribe to.
+                    msgs <list string> - The msgs to subscribe to.
+    */
+    allOn(params) {
+        self = this
+
+        let channel = this.find(params.topic)
+
+        for (let i = 0; i < params.msgs.length; i++) {
+            channel.on(params.msgs[i], payload => self.channelSend(params.topic, "Message", {msg: params.msgs[i], payload: payload}))
+        }
+    },
+
 
     /* off/1
 
@@ -431,6 +452,25 @@ let ElmPhoenixWebSocket = {
     off(params) {
         this.find(params.topic)
             .off(params.msg)
+    },
+
+    /* allOn/1
+
+            Subscribe to channel msgs.
+
+            Parameters:
+                params <object>
+                    topic <maybe string> - The topic of the channel to subscribe to.
+                    msgs <list string> - The msgs to subscribe to.
+    */
+    allOff(params) {
+        self = this
+
+        let channel = this.find(params.topic)
+
+        for (let i = 0; i < params.msgs.length; i++) {
+            channel.off(params.msgs[i])
+        }
     },
 
 

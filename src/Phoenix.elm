@@ -5,6 +5,7 @@ module Phoenix exposing
     , Topic, join, JoinConfig, addJoinConfig
     , RetryStrategy(..), Push, push, pushAll
     , subscriptions
+    , addIncoming
     , Msg, update
     , SocketState(..), SocketInfo(..), SocketResponse(..)
     , OriginalPayload, OriginalMessage, PushRef, ChannelResponse(..), IncomingMessage
@@ -143,6 +144,11 @@ immediately.
 @docs subscriptions
 
 
+### Incoming
+
+@docs addIncoming
+
+
 # Update
 
 @docs Msg, update
@@ -179,6 +185,7 @@ immediately.
 -}
 
 import Dict exposing (Dict)
+import Internal.Dict as Dict
 import Internal.SocketInfo as SocketInfo
 import Json.Encode as JE exposing (Value)
 import Phoenix.Channel as Channel
@@ -199,6 +206,7 @@ type Model
         , channelsJoined : Set Topic
         , connectOptions : List Socket.ConnectOption
         , connectParams : Payload
+        , incomingChannelMessages : Dict String (List String)
         , invalidSocketEvents : List String
         , joinConfigs : Dict String JoinConfig
         , lastInvalidSocketEvent : Maybe String
@@ -248,6 +256,7 @@ init portConfig connectOptions =
         , channelsJoined = Set.empty
         , connectOptions = connectOptions
         , connectParams = JE.null
+        , incomingChannelMessages = Dict.empty
         , invalidSocketEvents = []
         , joinConfigs = Dict.empty
         , lastInvalidSocketEvent = Nothing
@@ -445,6 +454,7 @@ join topic (Model model) =
                         |> addJoinConfig
                             { topic = topic
                             , payload = Nothing
+                            , incoming = []
                             , timeout = Nothing
                             }
                         |> join topic
@@ -466,6 +476,8 @@ join topic (Model model) =
 
   - `payload` - Optional data to be sent to the channel when joining.
 
+  - `incoming` - A list of messages to receive on the Channel.
+
   - `timeout` - Optional timeout, in ms, before retrying to join if the previous
     attempt failed.
 
@@ -473,6 +485,7 @@ join topic (Model model) =
 type alias JoinConfig =
     { topic : Topic
     , payload : Maybe Payload
+    , incoming : List String
     , timeout : Maybe Int
     }
 
@@ -862,6 +875,16 @@ subscriptions (Model model) =
         ]
 
 
+{-| Add the messages you want to receive from the Channel identified by
+[Topic](#Topic).
+-}
+addIncoming : Topic -> List String -> Model -> Model
+addIncoming topic messages (Model model) =
+    updateIncomingChannelMessages
+        (Dict.prepend topic messages model.incomingChannelMessages)
+        (Model model)
+
+
 
 {- Update -}
 
@@ -1170,36 +1193,22 @@ update msg (Model model) =
 addPresenceDiff : Topic -> Presence.PresenceDiff -> Model -> Model
 addPresenceDiff topic diff (Model model) =
     updatePresenceDiff
-        (insertPresence topic diff model.presenceDiff)
+        (Dict.prependOne topic diff model.presenceDiff)
         (Model model)
 
 
 addPresenceJoin : Topic -> Presence.Presence -> Model -> Model
 addPresenceJoin topic presence (Model model) =
     updatePresenceJoin
-        (insertPresence topic presence model.presenceJoin)
+        (Dict.prependOne topic presence model.presenceJoin)
         (Model model)
 
 
 addPresenceLeave : Topic -> Presence.Presence -> Model -> Model
 addPresenceLeave topic presence (Model model) =
     updatePresenceLeave
-        (insertPresence topic presence model.presenceLeave)
+        (Dict.prependOne topic presence model.presenceLeave)
         (Model model)
-
-
-insertPresence : Topic -> a -> Dict String (List a) -> Dict String (List a)
-insertPresence topic presence dict =
-    Dict.update topic
-        (\maybeList ->
-            case maybeList of
-                Just list ->
-                    Just (presence :: list)
-
-                Nothing ->
-                    Just [ presence ]
-        )
-        dict
 
 
 replacePresenceState : Topic -> Presence.PresenceState -> Model -> Model
@@ -1493,6 +1502,11 @@ updateConnectParams params (Model model) =
         { model
             | connectParams = params
         }
+
+
+updateIncomingChannelMessages : Dict String (List String) -> Model -> Model
+updateIncomingChannelMessages messages (Model model) =
+    Model { model | incomingChannelMessages = messages }
 
 
 updateInvalidSocketEvents : List String -> Model -> Model

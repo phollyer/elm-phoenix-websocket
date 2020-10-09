@@ -3,7 +3,7 @@ module Phoenix.Channel exposing
     , LeaveConfig, leave
     , PushConfig, push, pushWithRef
     , PortIn, Topic, OriginalPushMsg, NewPushMsg, Msg(..), subscriptions
-    , on, off
+    , on, allOn, off, allOff
     )
 
 {-| Use this module to work directly with channels.
@@ -34,7 +34,7 @@ you first need to connect to a [socket](Phoenix.Socket), and join the channels.
 
 # Custom Messages
 
-@docs on, off
+@docs on, allOn, off, allOff
 
 -}
 
@@ -49,6 +49,8 @@ import Json.Encode.Extra exposing (maybe)
 
   - `payload` - optional data to be sent to the channel when joining.
 
+  - `incoming` - A list of messages to receive on the Channel.
+
   - `timeout` - optional timeout, in ms, before retrying to join if the previous
     attempt failed.
 
@@ -56,6 +58,7 @@ import Json.Encode.Extra exposing (maybe)
 type alias JoinConfig =
     { topic : String
     , payload : Maybe Value
+    , incoming : List String
     , timeout : Maybe Int
     }
 
@@ -89,23 +92,24 @@ type alias PortOut msg =
 
 -}
 join : JoinConfig -> PortOut msg -> Cmd msg
-join { topic, payload, timeout } portOut =
+join { topic, payload, incoming, timeout } portOut =
     let
         payload_ =
             JE.object
                 [ ( "topic", JE.string topic )
-                , ( "timeout"
-                  , case timeout of
-                        Just t ->
-                            JE.int t
-
-                        Nothing ->
-                            JE.null
-                  )
                 , ( "payload"
                   , case payload of
                         Just data ->
                             data
+
+                        Nothing ->
+                            JE.null
+                  )
+                , ( "msgs", JE.list JE.string incoming )
+                , ( "timeout"
+                  , case timeout of
+                        Just t ->
+                            JE.int t
 
                         Nothing ->
                             JE.null
@@ -455,50 +459,57 @@ handleIn toMsg { topic, msg, payload } =
             toMsg (InvalidMsg topic msg payload)
 
 
-{-| Switch incoming messages on.
-
-In order to receive messages that are `push`ed or `broadcast` from a channel,
-it is necessary to set up the JS to receive them. This function allows you to
-do just that.
-
+{-| Switch an incoming message on.
 -}
-on : { topic : String, msgs : List String } -> PortOut msg -> Cmd msg
-on { topic, msgs } portOut =
-    Cmd.batch <|
-        List.map
-            (\msg ->
-                let
-                    payload =
-                        JE.object
-                            [ ( "topic", JE.string topic )
-                            , ( "msg", JE.string msg )
-                            ]
-                in
-                portOut
-                    { msg = "on"
-                    , payload = payload
-                    }
-            )
-            msgs
+on : { topic : String, msg : String } -> PortOut msg -> Cmd msg
+on { topic, msg } portOut =
+    portOut
+        { msg = "on"
+        , payload =
+            JE.object
+                [ ( "topic", JE.string topic )
+                , ( "msg", JE.string msg )
+                ]
+        }
 
 
-{-| Switch incoming messages off.
+{-| Switch a list of incoming messages on.
 -}
-off : { topic : String, msgs : List String } -> PortOut msg -> Cmd msg
-off { topic, msgs } portOut =
-    Cmd.batch <|
-        List.map
-            (\msg ->
-                let
-                    payload =
-                        JE.object
-                            [ ( "topic", JE.string topic )
-                            , ( "msg", JE.string msg )
-                            ]
-                in
-                portOut
-                    { msg = "off"
-                    , payload = payload
-                    }
-            )
-            msgs
+allOn : { topic : String, msgs : List String } -> PortOut msg -> Cmd msg
+allOn { topic, msgs } portOut =
+    portOut
+        { msg = "allOn"
+        , payload =
+            JE.object
+                [ ( "topic", JE.string topic )
+                , ( "msgs", JE.list JE.string msgs )
+                ]
+        }
+
+
+{-| Switch an incoming message off.
+-}
+off : { topic : String, msg : String } -> PortOut msg -> Cmd msg
+off { topic, msg } portOut =
+    portOut
+        { msg = "off"
+        , payload =
+            JE.object
+                [ ( "topic", JE.string topic )
+                , ( "msg", JE.string msg )
+                ]
+        }
+
+
+{-| Switch a list of incoming messages on.
+-}
+allOff : { topic : String, msgs : List String } -> PortOut msg -> Cmd msg
+allOff { topic, msgs } portOut =
+    portOut
+        { msg = "allOff"
+        , payload =
+            JE.object
+                [ ( "topic", JE.string topic )
+                , ( "msgs", JE.list JE.string msgs )
+                ]
+        }
