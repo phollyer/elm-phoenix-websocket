@@ -404,9 +404,12 @@ let ElmPhoenixWebSocket = {
             .receive("timeout", () => self.channelSend(params.topic, "PushTimeout", {msg: params.msg, payload: params.payload, ref: params.ref || 0}))
     },
 
-    /* on/1
+    /* on
 
             Subscribe to a channel msg.
+
+            Store them it be re-used if a channel is disconnected by the user,
+            so that it doesn't have to be sent over again from Elm.
 
             Parameters:
                 params <object>
@@ -425,7 +428,7 @@ let ElmPhoenixWebSocket = {
         this.addIncoming({topic: params.topic, msgs: [params.msg]})
     },
 
-    /* allOn/1
+    /* allOn
 
             Subscribe to channel msgs.
 
@@ -466,13 +469,13 @@ let ElmPhoenixWebSocket = {
     },
 
 
-    /* off/1
+    /* off
 
-            Turn off a subscribption to a channel msg.
+            Turn off a subscription to a channel msg.
 
             Parameters:
                 params <object>
-                    topic <maybe string> - The topic of the channel to unsubscribe to.
+                    topic <string> - The topic of the channel to unsubscribe to.
                     msg <string> - The msg to unsubscribe to.
     */
     off(params) {
@@ -487,13 +490,13 @@ let ElmPhoenixWebSocket = {
         this.dropIncoming({topic: params.topic, msgs: [params.msg]})
     },
 
-    /* allOn/1
+    /* allOff
 
-            Subscribe to channel msgs.
+            Turn off subscriptions to channel msgs.
 
             Parameters:
                 params <object>
-                    topic <maybe string> - The topic of the channel to subscribe to.
+                    topic <string> - The topic of the channel to subscribe to.
                     msgs <list string> - The msgs to subscribe to.
     */
     allOff(params) {
