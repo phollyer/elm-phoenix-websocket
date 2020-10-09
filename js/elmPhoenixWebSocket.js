@@ -325,8 +325,7 @@ let ElmPhoenixWebSocket = {
 
     /* log
 
-        Logs the message. Override this.logger for specialized logging. noops
-        by default.
+        Logs the message.
 
         params <object>
             kind <string>
