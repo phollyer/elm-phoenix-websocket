@@ -84,6 +84,7 @@ type ConnectOption
     | RejoinSteppedBackoff (List Int)
     | Timeout Int
     | Transport String
+    | Vsn String
 
 
 {-| A type alias repesenting the params to be sent when connecting, such as
@@ -188,6 +189,9 @@ encodeConnectOption option =
 
         Transport transport ->
             ( "transport", JE.string transport )
+
+        Vsn vsn ->
+            ( "vsn", JE.string vsn )
 
 
 {-| Disconnect the socket.
