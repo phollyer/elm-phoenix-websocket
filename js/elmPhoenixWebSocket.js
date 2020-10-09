@@ -201,7 +201,7 @@ let ElmPhoenixWebSocket = {
                 }
 
                 if (options.logger) {
-                    options.logger = (kind, msg, data) => console.log(`${kind}: ${msg}`, data)
+                    options.logger = this.logger
                 }
             }
 
@@ -337,6 +337,16 @@ let ElmPhoenixWebSocket = {
             this.socket.log(params.kind, params.msg, params.data)
         }
     },
+
+    startLogging() {
+        this.socket.logger = this.logger
+    },
+
+    stopLogging() {
+        this.socket.logger = null
+    },
+
+    logger(kind, msg, data) { console.log(`${kind}: ${msg}`, data) },
 
     /********** Channel **********/
 

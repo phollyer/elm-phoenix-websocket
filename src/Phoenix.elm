@@ -13,6 +13,7 @@ module Phoenix exposing
     , PresenceResponse(..)
     , PhoenixMsg(..), lastMsg
     , requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
+    , log, startLogging, stopLogging
     )
 
 {-| This module is a wrapper around the [Socket](Phoenix.Socket),
@@ -181,6 +182,22 @@ immediately.
 @docs PhoenixMsg, lastMsg
 
 @docs requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
+
+
+# Logging
+
+Here you can log data to the console, and activate and deactive the socket's
+logger.
+
+But be warned **there is no safeguard during compilation** such as you get when
+you use `Debug.log`. Be sure to deactive the logging before you deploy to
+production.
+
+However, the ability to easily toggle logging on and off leads to a possible
+use case where, in a deployed production environment, an admin is able to see
+all the logging, while regular users do not.
+
+@docs log, startLogging, stopLogging
 
 -}
 
@@ -1430,6 +1447,61 @@ requestProtocol (Model model) =
 requestSocketInfo : Model -> Cmd Msg
 requestSocketInfo (Model model) =
     Socket.info model.portConfig.phoenixSend
+
+
+
+{- Logging -}
+
+
+{-| Log some data to the console.
+
+    import Json.Encode as JE
+
+    log "info" "foo"
+        (JE.object
+            [ ( "bar", JE.string "foo bar" ) ]
+        )
+        model
+
+    -- info: foo {bar: "foo bar"}
+
+In order to receive any output in the console, you first need to activate the
+socket's logger. There are two ways to do this. You can use the
+[startLogging](#startLogging) function, or you can pass the `Logger True`
+[ConnectOption](#Phoenix.Socket#ConnectOption) to the [init](#init) function.
+
+    import Phoenix
+    import Phoenix.Socket exposing (ConnectOption(..))
+    import Ports.Phoenix as Ports
+
+    init : Model
+    init =
+        { phoenix =
+            Phoenix.init
+                Ports.config
+                [ Logger True ]
+        ...
+        }
+
+-}
+log : String -> String -> Value -> Model -> Cmd Msg
+log kind msg data (Model model) =
+    Socket.log kind msg data model.portConfig.phoenixSend
+
+
+{-| Activate the socket's logger function. This will log all messages that the
+socket sends and receives.
+-}
+startLogging : Model -> Cmd Msg
+startLogging (Model model) =
+    Socket.startLogging model.portConfig.phoenixSend
+
+
+{-| Deactivate the socket's logger function.
+-}
+stopLogging : Model -> Cmd Msg
+stopLogging (Model model) =
+    Socket.stopLogging model.portConfig.phoenixSend
 
 
 

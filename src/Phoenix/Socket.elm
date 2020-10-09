@@ -3,6 +3,7 @@ module Phoenix.Socket exposing
     , disconnect
     , Msg(..), ClosedInfo, MessageConfig, AllInfo, Info(..), PortIn, subscriptions
     , connectionState, endPointURL, hasLogger, info, isConnected, makeRef, protocol
+    , log, startLogging, stopLogging
     )
 
 {-| Use this module to work directly with the socket.
@@ -30,6 +31,22 @@ channel(s).
 # Socket Information
 
 @docs connectionState, endPointURL, hasLogger, info, isConnected, makeRef, protocol
+
+
+# Logging
+
+Here you can log data to the console, and activate and deactive the socket's
+logger.
+
+But be warned **there is no safeguard during compilation** such as you get when
+you use `Debug.log`. Be sure to deactive the logging before you deploy to
+production.
+
+However, the ability to easily toggle logging on and off leads to a possible
+use case where, in a deployed production environment, an admin is able to see
+all the logging, while regular users do not.
+
+@docs log, startLogging, stopLogging
 
 -}
 
@@ -505,3 +522,59 @@ package msg =
     { msg = msg
     , payload = JE.null
     }
+
+
+
+{- Logging -}
+
+
+{-| Log some data to the console.
+
+    import Json.Encode as JE
+    import Ports.Phoenix as Port
+
+    log "info" "foo"
+        (JE.object
+            [ ( "bar", JE.string "foo bar" ) ]
+        )
+        port.phoenixSend
+
+    -- info: foo {bar: "foo bar"}
+
+In order to receive any output in the console, you first need to activate the
+socket's logger. There are two ways to do this. You can use the
+[startLogging](#startLogging) function, or you can pass the `Logger True`
+[ConnectOption](#Phoenix.Socket#ConnectOption) to the [connect](#connect)
+function.
+
+    import Ports.Phoenix as Port
+
+    connect [ Logger True ] Nothing Port.phoenixSend
+
+-}
+log : String -> String -> Value -> PortOut msg -> Cmd msg
+log kind msg data portOut =
+    portOut <|
+        { msg = "log"
+        , payload =
+            JE.object
+                [ ( "kind", JE.string kind )
+                , ( "msg", JE.string msg )
+                , ( "data", data )
+                ]
+        }
+
+
+{-| Activate the socket's logger function. This will log all messages that the
+socket sends and receives.
+-}
+startLogging : PortOut msg -> Cmd msg
+startLogging portOut =
+    portOut (package "startLogging")
+
+
+{-| Deactivate the socket's logger function.
+-}
+stopLogging : PortOut msg -> Cmd msg
+stopLogging portOut =
+    portOut (package "stopLogging")
