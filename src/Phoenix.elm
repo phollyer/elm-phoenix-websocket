@@ -203,7 +203,13 @@ all the logging, while regular users do not.
 These functions allow you to request information from the socket. The request
 will go out through the `port` and come back as [SocketInfo](#SocketInfo).
 
+This information is automatically populated when the JS is first `init`'d, when
+the Socket attempts to connect, and when the Socket opens and closes.
+
 @docs requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
+
+These functions will retrieve the information off the [Model](#Model), and so
+will return the information immediately.
 
 -}
 
@@ -1478,43 +1484,81 @@ stopLogging (Model model) =
 {- Request information about the Socket -}
 
 
-{-| -}
+{-| Request the current connection state of the Socket.
+
+PhoenixJS
+[reference](https://hexdocs.pm/phoenix/js/index.html#socketconnectionstate).
+
+-}
 requestConnectionState : Model -> Cmd Msg
 requestConnectionState (Model model) =
     Socket.connectionState model.portConfig.phoenixSend
 
 
-{-| -}
+{-| Request the endPointURL for the Socket.
+
+PhoenixJS
+[reference](https://hexdocs.pm/phoenix/js/index.html#socketendpointurl).
+
+-}
 requestEndpointURL : Model -> Cmd Msg
 requestEndpointURL (Model model) =
     Socket.endPointURL model.portConfig.phoenixSend
 
 
-{-| -}
+{-| Determine if the logger function for the Socket has been set.
+
+**Note:** Not all versions of PhoenixJS have the `hasLogger` function.
+Therefore, the possible values this `Cmd` will produce are:
+
+  - `Nothing` - the function does not exist and so could not be called.
+  - `Just True` - the function exists, was called, and returned `true`.
+  - `Just False` - the function exists, was called, and returned `false`.
+
+PhoenixJS
+[reference](https://hexdocs.pm/phoenix/js/index.html#sockethaslogger).
+
+-}
 requestHasLogger : Model -> Cmd Msg
 requestHasLogger (Model model) =
     Socket.hasLogger model.portConfig.phoenixSend
 
 
-{-| -}
+{-| Find out if the Socket is connected.
+
+PhoenixJS
+[reference](https://hexdocs.pm/phoenix/js/index.html#socketisconnected).
+
+-}
 requestIsConnected : Model -> Cmd Msg
 requestIsConnected (Model model) =
     Socket.isConnected model.portConfig.phoenixSend
 
 
-{-| -}
+{-| Request the next message ref from the Socket.
+
+PhoenixJS
+[reference](https://hexdocs.pm/phoenix/js/index.html#socketmakeref).
+
+-}
 requestMakeRef : Model -> Cmd Msg
 requestMakeRef (Model model) =
     Socket.makeRef model.portConfig.phoenixSend
 
 
-{-| -}
+{-| Request the protocol being used by the Socket.
+
+PhoenixJS
+[reference](https://hexdocs.pm/phoenix/js/index.html#socketprotocol).
+
+-}
 requestProtocol : Model -> Cmd Msg
 requestProtocol (Model model) =
     Socket.protocol model.portConfig.phoenixSend
 
 
-{-| -}
+{-| Request all of the Socket information in a single call.
+-}
 requestSocketInfo : Model -> Cmd Msg
 requestSocketInfo (Model model) =
     Socket.info model.portConfig.phoenixSend

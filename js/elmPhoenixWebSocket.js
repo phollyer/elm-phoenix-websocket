@@ -168,6 +168,8 @@ let ElmPhoenixWebSocket = {
             self.info()
         })
 
+        this.info()
+
         // Ensure this is set to false before trying to connect.
         this.allowReconnect = false
 
