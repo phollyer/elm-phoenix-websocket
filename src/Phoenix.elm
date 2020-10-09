@@ -5,7 +5,7 @@ module Phoenix exposing
     , Topic, join, JoinConfig, addJoinConfig
     , RetryStrategy(..), Push, push, pushAll
     , subscriptions
-    , addIncoming
+    , addIncoming, dropIncoming
     , Msg, update
     , SocketState(..), SocketInfo(..), SocketResponse(..)
     , OriginalPayload, OriginalMessage, PushRef, ChannelResponse(..), IncomingMessage
@@ -146,7 +146,7 @@ immediately.
 
 ### Incoming
 
-@docs addIncoming
+@docs addIncoming, dropIncoming
 
 
 # Update
@@ -878,11 +878,29 @@ subscriptions (Model model) =
 {-| Add the messages you want to receive from the Channel identified by
 [Topic](#Topic).
 -}
-addIncoming : Topic -> List String -> Model -> Model
+addIncoming : Topic -> List String -> Model -> ( Model, Cmd Msg )
 addIncoming topic messages (Model model) =
-    updateIncomingChannelMessages
-        (Dict.prepend topic messages model.incomingChannelMessages)
-        (Model model)
+    ( Model model
+    , Channel.allOn
+        { topic = topic
+        , msgs = messages
+        }
+        model.portConfig.phoenixSend
+    )
+
+
+{-| Remove messages you no longer want to receive from the Channel identified
+by [Topic](#Topic).
+-}
+dropIncoming : Topic -> List String -> Model -> ( Model, Cmd Msg )
+dropIncoming topic messages (Model model) =
+    ( Model model
+    , Channel.allOff
+        { topic = topic
+        , msgs = messages
+        }
+        model.portConfig.phoenixSend
+    )
 
 
 
