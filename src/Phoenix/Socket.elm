@@ -76,6 +76,7 @@ For a consistent time interval simply ignore the `...SteppedBackoff` options:
 type ConnectOption
     = BinaryType String
     | HeartbeatIntervalMillis Int
+    | Logger Bool
     | LongpollerTimeout Int
     | ReconnectAfterMillis Int
     | ReconnectSteppedBackoff (List Int)
@@ -163,6 +164,9 @@ encodeConnectOption option =
 
         HeartbeatIntervalMillis interval ->
             ( "heartbeatIntervalMs", JE.int interval )
+
+        Logger use ->
+            ( "logger", JE.bool use )
 
         LongpollerTimeout timeout ->
             ( "longpollerTimeout", JE.int timeout )
