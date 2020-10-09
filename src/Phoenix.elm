@@ -1654,11 +1654,6 @@ updateConnectParams params (Model model) =
         }
 
 
-updateIncomingChannelMessages : Dict String (List String) -> Model -> Model
-updateIncomingChannelMessages messages (Model model) =
-    Model { model | incomingChannelMessages = messages }
-
-
 updateInvalidSocketEvents : List String -> Model -> Model
 updateInvalidSocketEvents msgs (Model model) =
     Model
