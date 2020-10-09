@@ -1,6 +1,6 @@
 module Phoenix exposing
     ( Model
-    , init, PortConfig
+    , PortConfig, init
     , connect, addConnectOptions, setConnectOptions, Payload, setConnectParams
     , Topic, join, JoinConfig, addJoinConfig
     , RetryStrategy(..), Push, push, pushAll
@@ -12,8 +12,8 @@ module Phoenix exposing
     , Message(..)
     , PresenceResponse(..)
     , PhoenixMsg(..), lastMsg
-    , requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
     , log, startLogging, stopLogging
+    , requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
     )
 
 {-| This module is a wrapper around the [Socket](Phoenix.Socket),
@@ -88,7 +88,7 @@ configuring this module is as simple as this:
 
 # Initialising the Model
 
-@docs init, PortConfig
+@docs PortConfig, init
 
 
 # Connecting to the Socket
@@ -181,8 +181,6 @@ immediately.
 
 @docs PhoenixMsg, lastMsg
 
-@docs requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
-
 
 # Logging
 
@@ -198,6 +196,14 @@ use case where, in a deployed production environment, an admin is able to see
 all the logging, while regular users do not.
 
 @docs log, startLogging, stopLogging
+
+
+# Requesting Socket Information
+
+These functions allow you to request information from the socket. The request
+will go out through the `port` and come back as [SocketInfo](#SocketInfo).
+
+@docs requestConnectionState, requestEndpointURL, requestHasLogger, requestIsConnected, requestMakeRef, requestProtocol, requestSocketInfo
 
 -}
 
@@ -242,6 +248,40 @@ type Model
         , socketState : SocketState
         , timeoutPushes : Dict Int InternalPush
         }
+
+
+{-| A type alias representing the ports that are needed to communicate with JS.
+-}
+type alias PortConfig =
+    { phoenixSend :
+        { msg : String
+        , payload : Value
+        }
+        -> Cmd Msg
+    , socketReceiver :
+        ({ msg : String
+         , payload : Value
+         }
+         -> Msg
+        )
+        -> Sub Msg
+    , channelReceiver :
+        ({ topic : String
+         , msg : String
+         , payload : Value
+         }
+         -> Msg
+        )
+        -> Sub Msg
+    , presenceReceiver :
+        ({ topic : String
+         , msg : String
+         , payload : Value
+         }
+         -> Msg
+        )
+        -> Sub Msg
+    }
 
 
 {-| Initialize the [Model](#Model) by providing the `ports` that enable
@@ -294,40 +334,6 @@ init portConfig connectOptions =
         }
 
 
-{-| A type alias representing the ports that are needed to communicate with JS.
--}
-type alias PortConfig =
-    { phoenixSend :
-        { msg : String
-        , payload : Value
-        }
-        -> Cmd Msg
-    , socketReceiver :
-        ({ msg : String
-         , payload : Value
-         }
-         -> Msg
-        )
-        -> Sub Msg
-    , channelReceiver :
-        ({ topic : String
-         , msg : String
-         , payload : Value
-         }
-         -> Msg
-        )
-        -> Sub Msg
-    , presenceReceiver :
-        ({ topic : String
-         , msg : String
-         , payload : Value
-         }
-         -> Msg
-        )
-        -> Sub Msg
-    }
-
-
 
 {- Connecting to the Socket -}
 
@@ -375,15 +381,9 @@ Socket when connecting.
                 [ Socket.Timeout 7000
                 , Socket.HeartbeatIntervalMillis 2000
                 ]
+                |> Phoenix.addConnectOptions [ Socket.Timeout 5000 ]
         ...
         }
-
-    { model
-    | phoenix =
-        addConnectOptions
-            [ Socket.Timeout 5000 ]
-            model.phoenix
-    }
 
     -- List ConnectOption == [ Socket.Timeout 5000, Socket.HeartbeatIntervalMillis 2000 ]
 
@@ -400,6 +400,22 @@ Socket when connecting.
 
 **Note:** This will replace _all_ current
 [ConnectOption](Phoenix.Socket.ConnectOption)s that have already been set.
+
+    import Phoenix
+    import Phoenix.Socket as Socket
+    import Ports.Phoenix as Ports
+
+    init =
+        { phoenix =
+            Phoenix.init Ports.config
+                [ Socket.Timeout 7000
+                , Socket.HeartbeatIntervalMillis 2000
+                ]
+                |> Phoenix.setConnectOptions [ Socket.Timeout 5000 ]
+        ...
+        }
+
+    -- List ConnectOption == [ Socket.Timeout 5000 ]
 
 -}
 setConnectOptions : List Socket.ConnectOption -> Model -> Model
@@ -1379,7 +1395,7 @@ type PhoenixMsg
         case msg of
             ReceivedPhoenixMsg subMsg ->
                 let
-                    (phoenix, phoenxCmd) =
+                    (phoenix, phoenixCmd) =
                         Phoenix.update subMsg model.phoenix
                 in
                 case Phoenix.lastMsg phoenix of
@@ -1391,62 +1407,16 @@ type PhoenixMsg
                             Connected ->
                                 ...
 
-                            Disconnected reason code wasClean)) ->
+                            Disconnected {reason, code, wasClean} ->
                                 ...
 
-                    Message (Channel "topic:subTopic" "new_msg" payload) ->
+                    Message (Channel topic incoming_msg payload) ->
                         ...
 
 -}
 lastMsg : Model -> PhoenixMsg
 lastMsg (Model model) =
     model.phoenixMsg
-
-
-
-{- Request information about the Socket -}
-
-
-{-| -}
-requestConnectionState : Model -> Cmd Msg
-requestConnectionState (Model model) =
-    Socket.connectionState model.portConfig.phoenixSend
-
-
-{-| -}
-requestEndpointURL : Model -> Cmd Msg
-requestEndpointURL (Model model) =
-    Socket.endPointURL model.portConfig.phoenixSend
-
-
-{-| -}
-requestHasLogger : Model -> Cmd Msg
-requestHasLogger (Model model) =
-    Socket.hasLogger model.portConfig.phoenixSend
-
-
-{-| -}
-requestIsConnected : Model -> Cmd Msg
-requestIsConnected (Model model) =
-    Socket.isConnected model.portConfig.phoenixSend
-
-
-{-| -}
-requestMakeRef : Model -> Cmd Msg
-requestMakeRef (Model model) =
-    Socket.makeRef model.portConfig.phoenixSend
-
-
-{-| -}
-requestProtocol : Model -> Cmd Msg
-requestProtocol (Model model) =
-    Socket.protocol model.portConfig.phoenixSend
-
-
-{-| -}
-requestSocketInfo : Model -> Cmd Msg
-requestSocketInfo (Model model) =
-    Socket.info model.portConfig.phoenixSend
 
 
 
@@ -1502,6 +1472,52 @@ startLogging (Model model) =
 stopLogging : Model -> Cmd Msg
 stopLogging (Model model) =
     Socket.stopLogging model.portConfig.phoenixSend
+
+
+
+{- Request information about the Socket -}
+
+
+{-| -}
+requestConnectionState : Model -> Cmd Msg
+requestConnectionState (Model model) =
+    Socket.connectionState model.portConfig.phoenixSend
+
+
+{-| -}
+requestEndpointURL : Model -> Cmd Msg
+requestEndpointURL (Model model) =
+    Socket.endPointURL model.portConfig.phoenixSend
+
+
+{-| -}
+requestHasLogger : Model -> Cmd Msg
+requestHasLogger (Model model) =
+    Socket.hasLogger model.portConfig.phoenixSend
+
+
+{-| -}
+requestIsConnected : Model -> Cmd Msg
+requestIsConnected (Model model) =
+    Socket.isConnected model.portConfig.phoenixSend
+
+
+{-| -}
+requestMakeRef : Model -> Cmd Msg
+requestMakeRef (Model model) =
+    Socket.makeRef model.portConfig.phoenixSend
+
+
+{-| -}
+requestProtocol : Model -> Cmd Msg
+requestProtocol (Model model) =
+    Socket.protocol model.portConfig.phoenixSend
+
+
+{-| -}
+requestSocketInfo : Model -> Cmd Msg
+requestSocketInfo (Model model) =
+    Socket.info model.portConfig.phoenixSend
 
 
 
