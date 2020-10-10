@@ -544,11 +544,6 @@ join topic (Model model) =
                             }
                         |> join topic
 
-        Connecting ->
-            ( addChannelBeingJoined topic (Model model)
-            , Cmd.none
-            )
-
         Disconnected _ ->
             Model model
                 |> addChannelBeingJoined topic
@@ -821,17 +816,10 @@ pushIfConnected config (Model model) =
                 config
                 (Model model)
 
-        Connecting ->
-            ( Model model
-                |> addChannelBeingJoined config.push.topic
-                |> addPushToQueue config
-            , Cmd.none
-            )
-
         Disconnected _ ->
             ( Model model
                 |> addChannelBeingJoined config.push.topic
-                |> updateSocketState Connecting
+                |> addPushToQueue config
             , Socket.connect
                 model.connectOptions
                 (Just model.connectParams)
@@ -1319,7 +1307,6 @@ replacePresenceState topic state (Model model) =
 {-| -}
 type SocketState
     = Connected
-    | Connecting
     | Disconnected
         { reason : String
         , code : Int
