@@ -479,7 +479,7 @@ let ElmPhoenixWebSocket = {
 
         }
 
-        this.addIncoming({topic: params.topic, events: [params.event]})
+        this.addEvents({topic: params.topic, events: [params.event]})
     },
 
     /* allOn
@@ -507,10 +507,10 @@ let ElmPhoenixWebSocket = {
             }
         }
 
-        this.addIncoming(params)
+        this.addEvents(params)
     },
 
-    addIncoming(params) {
+    addEvents(params) {
         if (this.events[params.topic]) {
             this.events[params.topic].reduce((events, msg) => {
                 if(!events.includes(msg)) {
@@ -545,7 +545,7 @@ let ElmPhoenixWebSocket = {
             channel.off(params.event)
         }
 
-        this.dropIncoming({topic: params.topic, events: [params.event]})
+        this.dropEvents({topic: params.topic, events: [params.event]})
     },
 
     /* allOff
@@ -570,10 +570,10 @@ let ElmPhoenixWebSocket = {
             }
         }
 
-        this.dropIncoming(params)
+        this.dropEvents(params)
     },
 
-    dropIncoming(params) {
+    dropEvents(params) {
         let events = this.events[params.topic]
 
         if (events) {
