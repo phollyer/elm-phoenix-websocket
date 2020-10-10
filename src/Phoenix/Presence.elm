@@ -1,28 +1,9 @@
-module Phoenix.Presence exposing
-    ( PortIn, Topic, Presence, PresenceState, PresenceDiff, Msg(..), subscriptions
-    , decodeMetas
-    )
+module Phoenix.Presence exposing (Presence, PresenceState, PresenceDiff, Topic, Msg(..), PortIn, subscriptions)
 
-{-| Use this module to work directly with Phoenix
-[Presence](https://hexdocs.pm/phoenix/1.5.3/Phoenix.Presence.html#content).
+{-| This module is not intended to be used directly, the top level
+[Phoenix](Phoenix#) module provides a much nicer experience.
 
-Before you can receive presence information, you first need to connect to a
-[socket](Socket) and join a [channel](Channel). Once this is done, you can then
-[subscribe](#subscribe) to start receiving [Presence](#Presence) data as your
-users come and go.
-
-If you are new to Phoenix Presence, you will need to setup your backend
-channel as described
-[here](https://hexdocs.pm/phoenix/1.5.3/Phoenix.Presence.html#content).
-Currently, only the `metas` key is supported.
-]
-
-@docs PortIn, Topic, Presence, PresenceState, PresenceDiff, Msg, subscriptions
-
-
-# Decoders
-
-@docs decodeMetas
+@docs Presence, PresenceState, PresenceDiff, Topic, Msg, PortIn, subscriptions
 
 -}
 
@@ -31,29 +12,29 @@ import Json.Decode.Extra exposing (andMap)
 import Json.Encode as JE
 
 
-{-| A type alias representing the `port` function required to communicate with
-the accompanying JS.
+{-| A type alias representing the Channel topic id. For example
+`"topic:subTopic"`.
+-}
+type alias Topic =
+    String
+
+
+{-| A type alias representing the `port` function required to receive
+a [Msg](#Msg) from Phoenix Presence.
 
 You will find this `port` function in the
-[Port](https://github.com/phollyer/elm-phoenix-websocket/tree/master/src/Ports)
+[Port](https://github.com/phollyer/elm-phoenix-websocket/tree/master/ports)
 module.
 
 -}
 type alias PortIn msg =
-    ({ topic : String
+    ({ topic : Topic
      , msg : String
      , payload : JE.Value
      }
      -> msg
     )
     -> Sub msg
-
-
-{-| A type alias representing the channel topic. Use this to identify the
-channel a [Msg](#Msg) relates to.
--}
-type alias Topic =
-    String
 
 
 {-| A type alias representing a
@@ -66,13 +47,13 @@ type alias Presence =
 
 
 {-| A type alias representing a list of all [Presence](#Presence)s stored on
-the channel.
+the Channel.
 -}
 type alias PresenceState =
     List Presence
 
 
-{-| A type alias representing the `joins` and `leaves` on the channel as they
+{-| A type alias representing the `joins` and `leaves` on the Channel as they
 happen.
 -}
 type alias PresenceDiff =
@@ -81,11 +62,10 @@ type alias PresenceDiff =
     }
 
 
-{-| All of the presence msgs that can come from the channel.
+{-| All of the Presence `Msg`s that can come from the Channel.
 
-If you are using more than one channel, then you can check `Topic` to determine
-which channel the [Msg](#Msg) relates to. If you are only using a single
-channel, you can ignore `Topic`.
+If you are using more than one Channel, then you can check `Topic` to determine
+which Channel the [Msg](#Msg) relates to.
 
 `InvalidMsg` means that a msg has been received from the accompanying JS
 that cannot be handled. This should not happen, if it does, please raise an
@@ -100,7 +80,7 @@ type Msg
     | InvalidMsg Topic String
 
 
-{-| Subscribe to receive incoming presence msgs.
+{-| Subscribe to receive incoming Presence [Msg](#Msg)s.
 
     import Phoenix.Presence
     import Port
@@ -158,28 +138,7 @@ handleIn toMsg { topic, msg, payload } =
 
 
 
--- Decoders
-
-
-{-| Decode the metas for a Presence.
-
-Only you will know what `meta` information you are storing, so you will need to
-provide your own decoder.
-
--}
-decodeMetas : JD.Decoder a -> List Value -> List a
-decodeMetas customDecoder metas =
-    metas
-        |> List.filterMap
-            (decodeMeta customDecoder)
-
-
-decodeMeta : JD.Decoder a -> Value -> Maybe a
-decodeMeta customDecoder meta =
-    meta
-        |> JD.decodeValue
-            customDecoder
-        |> Result.toMaybe
+{- Decoders -}
 
 
 decodePresence : JD.Value -> Result JD.Error Presence

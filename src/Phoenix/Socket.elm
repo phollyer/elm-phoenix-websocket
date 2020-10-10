@@ -1,16 +1,13 @@
 module Phoenix.Socket exposing
     ( ConnectOption(..), Params, PortOut, connect
     , disconnect
-    , Msg(..), ClosedInfo, MessageConfig, AllInfo, Info(..), PortIn, subscriptions
+    , ClosedInfo, Topic, Event, Payload, MessageConfig, AllInfo, Info(..), Msg(..), PortIn, subscriptions
     , connectionState, endPointURL, hasLogger, info, isConnected, makeRef, protocol
     , log, startLogging, stopLogging
     )
 
-{-| Use this module to work directly with the socket.
-
-After connecting to the socket, you can then join one or more
-[channel](Phoenix.Channel)s and start sending and receiving messages to and from your
-channel(s).
+{-| This module is not intended to be used directly, the top level
+[Phoenix](Phoenix#) module provides a much nicer experience.
 
 
 # Connecting
@@ -25,7 +22,7 @@ channel(s).
 
 # Receiving Messages
 
-@docs Msg, ClosedInfo, MessageConfig, AllInfo, Info, PortIn, subscriptions
+@docs ClosedInfo, Topic, Event, Payload, MessageConfig, AllInfo, Info, Msg, PortIn, subscriptions
 
 
 # Socket Information
@@ -36,11 +33,9 @@ channel(s).
 # Logging
 
 Here you can log data to the console, and activate and deactive the socket's
-logger.
-
-But be warned **there is no safeguard during compilation** such as you get when
-you use `Debug.log`. Be sure to deactive the logging before you deploy to
-production.
+logger, but be warned, **there is no safeguard when you compile** such as you
+get when you use `Debug.log`. Be sure to deactive the logging before you deploy
+to production.
 
 However, the ability to easily toggle logging on and off leads to a possible
 use case where, in a deployed production environment, an admin is able to see
@@ -56,10 +51,10 @@ import Json.Encode as JE exposing (Value)
 import Json.Encode.Extra exposing (maybe)
 
 
-{-| The options that can be set on the socket when instantiating a
+{-| The options that can be set on the Socket when instantiating a
 `new Socket(url, options)` on the JS side.
 
-See <https://hexdocs.pm/phoenix/js/#socket> for more info on the options and
+See <https://hexdocs.pm/phoenix/js/#Socket> for more info on the options and
 the effect they have.
 
 However, there are two potential instances where we have to work around the
@@ -111,11 +106,11 @@ type alias Params =
     Value
 
 
-{-| A type alias representing the `port` function required to communicate with
-the accompanying JS.
+{-| A type alias representing the `port` function required to send messages out
+to the accompanying JS.
 
 You will find this `port` function in the
-[Port](https://github.com/phollyer/elm-phoenix-websocket/tree/master/src/Ports)
+[Port](https://github.com/phollyer/elm-phoenix-webSocket/tree/master/ports)
 module.
 
 -}
@@ -126,7 +121,7 @@ type alias PortOut msg =
     -> Cmd msg
 
 
-{-| Connect to the socket, providing any required
+{-| Connect to the Socket, providing any required
 [ConnectOption](#ConnectOption)s and `Params` as well as the `port` function
 to use.
 
@@ -156,11 +151,11 @@ to use.
 -}
 connect : List ConnectOption -> Maybe Params -> PortOut msg -> Cmd msg
 connect options maybeParams portOut =
-    let
-        payload =
+    portOut
+        { msg = "connect"
+        , payload =
             encodeConnectOptionsAndParams options maybeParams
-    in
-    portOut { msg = "connect", payload = payload }
+        }
 
 
 encodeConnectOptionsAndParams : List ConnectOption -> Maybe Value -> Value
@@ -211,7 +206,7 @@ encodeConnectOption option =
             ( "vsn", JE.string vsn )
 
 
-{-| Disconnect the socket.
+{-| Disconnect the Socket.
 
 The JS API provides for a callback function and additional params to be passed
 in to the `disconnect` function. In the context of using Elm, this doesn't make
@@ -231,48 +226,7 @@ disconnect portOut =
 -- Receiving
 
 
-{-| All of the messages you can receive from the socket.
-
-The data each [Msg](#Msg) carries should be self explanatory,
-except for maybe:
-
-  - `HasLoggerReply` - not all versions of
-    [PhoenixJS](https://hexdocs.pm/phoenix/js) have the `hasLogger` function.
-    Therefore, a value of `Nothing` means the function does not exist and therefore
-    could not be called, while a `Just` will carry the result of calling
-    `hasLogger` on the socket.
-
-  - `InvalidMsg` means that a message has been received from the accompanying JS
-    that cannot be handled. This should not happen, if it does, please raise an
-    [issue](https://github.com/phollyer/elm-phoenix-websocket/issues).
-
-The `Error` in a `Result` is a `Json.Decode.Error`. These should not occur, but
-will if the data received from the accompanying JS is of the wrong type, so I
-decided to leave the `Error` to be handled by the user of the package, rather
-than gloss over it with some kind of default.
-
--}
-type Msg
-    = Opened
-    | Closed (Result JD.Error ClosedInfo)
-    | Error (Result JD.Error String)
-    | Message (Result JD.Error MessageConfig)
-    | Info Info
-    | InvalidMsg String
-
-
-{-| -}
-type Info
-    = All (Result JD.Error AllInfo)
-    | ConnectionState (Result JD.Error String)
-    | EndPointURL (Result JD.Error String)
-    | HasLogger (Result JD.Error (Maybe Bool))
-    | IsConnected (Result JD.Error Bool)
-    | MakeRef (Result JD.Error String)
-    | Protocol (Result JD.Error String)
-
-
-{-| A type alias representing the information received when the socket closes.
+{-| A type alias representing the information received when the Socket closes.
 -}
 type alias ClosedInfo =
     { reason : String
@@ -281,33 +235,49 @@ type alias ClosedInfo =
     }
 
 
-{-| A type alias representing the raw message received by the socket. This
+{-| A type alias representing the Channel topic id. For example
+`"topic:subTopic"`.
+-}
+type alias Topic =
+    String
+
+
+{-| A type alias representing an event received from a Channel.
+-}
+type alias Event =
+    String
+
+
+{-| A type alias representing data that is received from a Channel.
+-}
+type alias Payload =
+    Value
+
+
+{-| A type alias representing the raw message received by the Socket. This
 arrives as a [Msg](#Msg) `Message`.
 
-You will need to decode `payload` yourself, as only you will know the structure
-of this `Value`. It will be whatever data has been sent back from Phoenix
-corresponding to `msg` so you will need to check this in order to select the
-correct decoder if you are sending different structures for different `msg`s.
-
-If you are using multiple channels, you will also need to check the `topic` to
-identify the channel that sent the `msg`.
-
-**NB** You won't need this if you choose to handle messages over
-[Channel](Phoenix.Channel#Msg)s.
+**Note:** You won't need this if you choose to handle [Event](#Event)s over
+[Channel](Phoenix.Channel)s.
 
 -}
 type alias MessageConfig =
     { joinRef : Maybe String
     , ref : Maybe String
-    , topic : String
-    , event : String
-    , payload : Value
+    , topic : Topic
+    , event : Event
+    , payload : Payload
     }
 
 
-{-| All of the info available about the socket. This arrive as a
-[Msg](#Msg) `InfoReply` and is the result of sending an `Info`
-[InfoRequest](#InfoRequest).
+{-| All of the info available about the Socket.
+
+**Note:** Not all versions of
+[PhoenixJS](https://hexdocs.pm/phoenix/js) have the `hasLogger` function.
+Therefore, a value of `Nothing` means the function does not exist and therefore
+could not be called, while a `Just` will carry the result of calling
+`hasLogger` on the Socket.
+
 -}
 type alias AllInfo =
     { connectionState : String
@@ -319,24 +289,58 @@ type alias AllInfo =
     }
 
 
+{-| Information received about the Socket.
+-}
+type Info
+    = All (Result JD.Error AllInfo)
+    | ConnectionState (Result JD.Error String)
+    | EndPointURL (Result JD.Error String)
+    | HasLogger (Result JD.Error (Maybe Bool))
+    | IsConnected (Result JD.Error Bool)
+    | MakeRef (Result JD.Error String)
+    | Protocol (Result JD.Error String)
+
+
+{-| All of the messages you can receive from the Socket.
+
+**Note 1:** `InvalidMsg` means that a message has been received from the
+accompanying JS that cannot be handled. This should not happen, if it does,
+please raise an
+[issue](https://github.com/phollyer/elm-phoenix-webSocket/issues).
+
+**Note 2:** The `Error` in a `Result` is a `Json.Decode.Error`. These should
+not occur, but will if the data received from the accompanying JS is of the
+wrong type, so I decided to leave the `Error` to be handled by the user of the
+package, rather than gloss over it with some kind of default.
+
+-}
+type Msg
+    = Opened
+    | Closed (Result JD.Error ClosedInfo)
+    | Error (Result JD.Error String)
+    | Message (Result JD.Error MessageConfig)
+    | Info Info
+    | InvalidMsg String
+
+
 {-| A type alias representing the `port` function required to receive
-the [Msg](#Msg) from the socket.
+the [Msg](#Msg) from the Socket.
 
 You will find this `port` function in the
-[Port](https://github.com/phollyer/elm-phoenix-websocket/tree/master/src/Ports)
+[Port](https://github.com/phollyer/elm-phoenix-webSocket/tree/master/ports)
 module.
 
 -}
 type alias PortIn msg =
     ({ msg : String
-     , payload : JE.Value
+     , payload : Value
      }
      -> msg
     )
     -> Sub msg
 
 
-{-| Subscribe to receive incoming socket msgs.
+{-| Subscribe to receive incoming Socket msgs.
 
     import Port
     import Socket
@@ -350,7 +354,7 @@ type alias PortIn msg =
     subscriptions _ =
         Socket.subscriptions
             SocketMsg
-            Port.socketReceiver
+            Port.SocketReceiver
 
 -}
 subscriptions : (Msg -> msg) -> PortIn msg -> Sub msg
@@ -542,7 +546,7 @@ package msg =
     -- info: foo {bar: "foo bar"}
 
 In order to receive any output in the console, you first need to activate the
-socket's logger. There are two ways to do this. You can use the
+Socket's logger. There are two ways to do this. You can use the
 [startLogging](#startLogging) function, or you can pass the `Logger True`
 [ConnectOption](#Phoenix.Socket#ConnectOption) to the [connect](#connect)
 function.
@@ -565,15 +569,15 @@ log kind msg data portOut =
         }
 
 
-{-| Activate the socket's logger function. This will log all messages that the
-socket sends and receives.
+{-| Activate the Socket's logger function. This will log all messages that the
+Socket sends and receives.
 -}
 startLogging : PortOut msg -> Cmd msg
 startLogging portOut =
     portOut (package "startLogging")
 
 
-{-| Deactivate the socket's logger function.
+{-| Deactivate the Socket's logger function.
 -}
 stopLogging : PortOut msg -> Cmd msg
 stopLogging portOut =
