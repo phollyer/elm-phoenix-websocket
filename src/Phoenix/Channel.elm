@@ -1,8 +1,8 @@
 module Phoenix.Channel exposing
-    ( JoinConfig, PortOut, join
+    ( Topic, Event, Payload, JoinConfig, PortOut, join
     , LeaveConfig, leave
-    , PushConfig, push, pushWithRef
-    , PortIn, Topic, OriginalPushMsg, NewPushMsg, Msg(..), subscriptions
+    , PushConfig, push
+    , PortIn, Msg(..), subscriptions
     , on, allOn, off, allOff
     )
 
@@ -14,7 +14,7 @@ you first need to connect to a [socket](Phoenix.Socket), and join the channels.
 
 # Joining
 
-@docs JoinConfig, PortOut, join
+@docs Topic, Event, Payload, JoinConfig, PortOut, join
 
 
 # Leaving
@@ -24,12 +24,12 @@ you first need to connect to a [socket](Phoenix.Socket), and join the channels.
 
 # Pushing
 
-@docs PushConfig, push, pushWithRef
+@docs PushConfig, push
 
 
 # Receiving
 
-@docs PortIn, Topic, OriginalPushMsg, NewPushMsg, Msg, subscriptions
+@docs PortIn, Msg, subscriptions
 
 
 # Custom Messages
@@ -43,22 +43,42 @@ import Json.Encode as JE exposing (Value)
 import Json.Encode.Extra exposing (maybe)
 
 
+{-| A type alias representing the Channel topic that a [Msg](#Msg) is received
+from. For example "topic:subTopic".
+-}
+type alias Topic =
+    String
+
+
+{-| A type alias representing an event sent to, or received from a Channel.
+-}
+type alias Event =
+    String
+
+
+{-| A type alias representing data that is sent, or received, with a Channel
+event.
+-}
+type alias Payload =
+    Value
+
+
 {-| A type alias representing the config for joining a channel.
 
-  - `topic` - the channel topic id, for example: `"topic:subtopic"`.
+  - `topic` - The channel topic id, for example: `"topic:subtopic"`.
 
-  - `payload` - optional data to be sent to the channel when joining.
+  - `payload` - Optional data to be sent to the channel when joining.
 
-  - `incoming` - A list of messages to receive on the Channel.
+  - `events` - A list of events to receive on the Channel.
 
-  - `timeout` - optional timeout, in ms, before retrying to join if the previous
+  - `timeout` - Optional timeout, in ms, before retrying to join if the previous
     attempt failed.
 
 -}
 type alias JoinConfig =
-    { topic : String
-    , payload : Maybe Value
-    , incoming : List String
+    { topic : Topic
+    , payload : Maybe Payload
+    , events : List Event
     , timeout : Maybe Int
     }
 
@@ -86,13 +106,14 @@ type alias PortOut msg =
     Channel.join
         { topic = "topic:subtopic"
         , payload = Nothing
+        , events = []
         , timeout = Nothing
         }
         Port.pheonixSend
 
 -}
 join : JoinConfig -> PortOut msg -> Cmd msg
-join { topic, payload, incoming, timeout } portOut =
+join { topic, payload, events, timeout } portOut =
     let
         payload_ =
             JE.object
@@ -105,7 +126,7 @@ join { topic, payload, incoming, timeout } portOut =
                         Nothing ->
                             JE.null
                   )
-                , ( "msgs", JE.list JE.string incoming )
+                , ( "events", JE.list JE.string events )
                 , ( "timeout"
                   , case timeout of
                         Just t ->
@@ -124,9 +145,9 @@ join { topic, payload, incoming, timeout } portOut =
 
 {-| A type alias representing the config for leaving a channel.
 
-  - `topic` - channel topic id, for example: `"topic:subtopic"`.
-  - `timeout` - optional timeout, in ms, before retrying to leave if the previous
-    attempt failed.
+  - `topic` - The channel topic id, for example: `"topic:subtopic"`.
+  - `timeout` - Optional timeout, in ms, before retrying to leave if the
+    previous attempt failed.
 
 -}
 type alias LeaveConfig =
@@ -171,22 +192,27 @@ leave { topic, timeout } portOut =
 
 {-| A type alias representing the config for pushing messages to a channel.
 
-  - `topic` - the channel topic id, for example: `"topic:subtopic"`.
+  - `topic` - The channel topic id, for example: `"topic:subtopic"`.
 
-  - `msg` - the msg to send to the channel.
+  - `event` - The event to send to the channel.
 
-  - `payload` - the data to be sent.
+  - `payload` - The data to be sent. If you don't need to send any data, set
+    this to
+    [Json.Encode.null](https://package.elm-lang.org/packages/elm/json/latest/Json-Encode#null) .
 
-  - `timeout` - optional timeout, in ms, before retrying to push if the previous
+  - `timeout` - Optional timeout, in ms, before retrying to push if the previous
     attempt failed.
+
+  - `ref` - Optional reference you can provide that you can later use to
+    identify the response to a push if you're sending lots of the same `msg`s.
 
 -}
 type alias PushConfig =
     { topic : String
-    , msg : String
+    , event : String
     , payload : Value
     , timeout : Maybe Int
-    , ref : Int
+    , ref : Maybe String
     }
 
 
@@ -198,56 +224,24 @@ type alias PushConfig =
 
     Channel.push
         { topic = "topic:subtopic"
-        , msg = "new_msg"
+        , event = "new_msg"
         , payload = JE.object [("msg", JE.string "Hello World")]
         , timeout = Nothing
+        , ref = Nothing
         }
         Port.pheonixSend
 
 -}
-push : { a | topic : String, msg : String, payload : Value, timeout : Maybe Int } -> PortOut msg -> Cmd msg
-push { topic, msg, payload, timeout } portOut =
+push : { a | topic : String, event : String, payload : Value, timeout : Maybe Int, ref : Maybe String } -> PortOut msg -> Cmd msg
+push { topic, event, payload, timeout, ref } portOut =
     let
         payload_ =
             JE.object
                 [ ( "topic", JE.string topic )
-                , ( "msg", JE.string msg )
+                , ( "event", JE.string event )
                 , ( "payload", payload )
                 , ( "timeout", maybe JE.int timeout )
-                ]
-    in
-    portOut
-        { msg = "push"
-        , payload = payload_
-        }
-
-
-{-| Push a message to a channel with a ref number to identify the response.
-
-    import Json.Encode as JE
-    import Phoenix.Channel as Channel
-    import Port
-
-    Channel.push
-        { topic = "topic:subtopic"
-        , msg = "new_msg"
-        , payload = JE.object [("msg", JE.string "Hello World")]
-        , timeout = Nothing
-        , ref = 1
-        }
-        Port.pheonixSend
-
--}
-pushWithRef : { a | topic : String, msg : String, payload : Value, timeout : Maybe Int, ref : Int } -> PortOut msg -> Cmd msg
-pushWithRef { topic, msg, payload, timeout, ref } portOut =
-    let
-        payload_ =
-            JE.object
-                [ ( "topic", JE.string topic )
-                , ( "msg", JE.string msg )
-                , ( "payload", payload )
-                , ( "timeout", maybe JE.int timeout )
-                , ( "ref", JE.int ref )
+                , ( "ref", maybe JE.string ref )
                 ]
     in
     portOut
@@ -265,7 +259,7 @@ module.
 
 -}
 type alias PortIn msg =
-    ({ topic : String
+    ({ topic : Topic
      , msg : String
      , payload : JE.Value
      }
@@ -274,51 +268,14 @@ type alias PortIn msg =
     -> Sub msg
 
 
-{-| A type alias representing the channel topic that a [Msg](#Msg) is received
-from.
--}
-type alias Topic =
-    String
-
-
-{-| A type alias representing a [push](#push) to a channel. Use this to
-identify which [push](#push) a [Msg](#Msg) relates to.
-
-So, if you sent the following [push](#push):
-
-    import Json.Encode as JE
-    import Phoenix.Channel as Channel
-    import Port
-
-    Channel.push
-        { topic = "topic:subtopic"
-        , msg = "new_msg"
-        , payload = JE.object [("msg", JE.string "Hello World")]
-        , timeout = Nothing
-        }
-        Port.pheonixSend
-
-`OriginalPushMsg` would be equal to `"new_msg"`.
-
--}
-type alias OriginalPushMsg =
-    String
-
-
-{-| A type alias representing a msg `push`ed or `broadcast` from a channel.
--}
-type alias NewPushMsg =
-    String
-
-
 {-| All of the msgs you can receive from the channel.
 
   - `Topic` - is the channel topic that the message came from.
-  - `OriginalPushMsg` - is the original `msg` that was [push](#push)ed to the
+
+  - `Event` - is the original `event` that was [push](#push)ed to the
     channel.
-  - `NewPushMsg` - is a `msg` that has been `push`ed or `broadcast` from a
-    channel.
-  - `Value` - is the payload received from the channel, with the exception of
+
+  - `Payload` - is the data received from the channel, with the exception of
     `JoinTimout` and `PushTimeout` where it will be the original payload.
 
 `InvalidMsg` means that a msg has been received from the accompanying JS
@@ -327,17 +284,17 @@ that cannot be handled. This should not happen, if it does, please raise an
 
 -}
 type Msg
-    = JoinOk Topic Value
-    | JoinError Topic Value
-    | JoinTimeout Topic Value
-    | PushOk Topic (Result JD.Error OriginalPushMsg) (Result JD.Error Value) (Result JD.Error Int)
-    | PushError Topic (Result JD.Error OriginalPushMsg) (Result JD.Error Value) (Result JD.Error Int)
-    | PushTimeout Topic (Result JD.Error OriginalPushMsg) (Result JD.Error Value) (Result JD.Error Int)
-    | Message Topic (Result JD.Error NewPushMsg) (Result JD.Error Value)
+    = JoinOk Topic Payload
+    | JoinError Topic Payload
+    | JoinTimeout Topic Payload
+    | PushOk Topic (Result JD.Error Event) (Result JD.Error Payload) (Result JD.Error Int)
+    | PushError Topic (Result JD.Error Event) (Result JD.Error Payload) (Result JD.Error Int)
+    | PushTimeout Topic (Result JD.Error Event) (Result JD.Error Payload) (Result JD.Error Int)
+    | Message Topic (Result JD.Error Event) (Result JD.Error Payload)
     | Error Topic
     | LeaveOk Topic
     | Closed Topic
-    | InvalidMsg Topic String Value
+    | InvalidMsg Topic String Payload
 
 
 {-| Subscribe to receive incoming channel [Msg](#Msg)s.
@@ -377,9 +334,9 @@ handleIn toMsg { topic, msg, payload } =
 
         "PushOk" ->
             let
-                msg_ =
+                event =
                     JD.decodeValue
-                        (JD.field "msg" JD.string)
+                        (JD.field "event" JD.string)
                         payload
 
                 payload_ =
@@ -392,13 +349,13 @@ handleIn toMsg { topic, msg, payload } =
                         (JD.field "ref" JD.int)
                         payload
             in
-            toMsg (PushOk topic msg_ payload_ ref)
+            toMsg (PushOk topic event payload_ ref)
 
         "PushError" ->
             let
-                msg_ =
+                event =
                     JD.decodeValue
-                        (JD.field "msg" JD.string)
+                        (JD.field "event" JD.string)
                         payload
 
                 payload_ =
@@ -411,13 +368,13 @@ handleIn toMsg { topic, msg, payload } =
                         (JD.field "ref" JD.int)
                         payload
             in
-            toMsg (PushError topic msg_ payload_ ref)
+            toMsg (PushError topic event payload_ ref)
 
         "PushTimeout" ->
             let
-                msg_ =
+                event =
                     JD.decodeValue
-                        (JD.field "msg" JD.string)
+                        (JD.field "event" JD.string)
                         payload
 
                 payload_ =
@@ -430,13 +387,13 @@ handleIn toMsg { topic, msg, payload } =
                         (JD.field "ref" JD.int)
                         payload
             in
-            toMsg (PushTimeout topic msg_ payload_ ref)
+            toMsg (PushTimeout topic event payload_ ref)
 
         "Message" ->
             let
-                msg_ =
+                event =
                     JD.decodeValue
-                        (JD.field "msg" JD.string)
+                        (JD.field "event" JD.string)
                         payload
 
                 payload_ =
@@ -444,7 +401,7 @@ handleIn toMsg { topic, msg, payload } =
                         (JD.field "payload" JD.value)
                         payload
             in
-            toMsg (Message topic msg_ payload_)
+            toMsg (Message topic event payload_)
 
         "Error" ->
             toMsg (Error topic)
@@ -461,55 +418,55 @@ handleIn toMsg { topic, msg, payload } =
 
 {-| Switch an incoming message on.
 -}
-on : { topic : String, msg : String } -> PortOut msg -> Cmd msg
-on { topic, msg } portOut =
+on : { topic : String, event : String } -> PortOut msg -> Cmd msg
+on { topic, event } portOut =
     portOut
         { msg = "on"
         , payload =
             JE.object
                 [ ( "topic", JE.string topic )
-                , ( "msg", JE.string msg )
+                , ( "event", JE.string event )
                 ]
         }
 
 
 {-| Switch a list of incoming messages on.
 -}
-allOn : { topic : String, msgs : List String } -> PortOut msg -> Cmd msg
-allOn { topic, msgs } portOut =
+allOn : { topic : String, events : List String } -> PortOut msg -> Cmd msg
+allOn { topic, events } portOut =
     portOut
         { msg = "allOn"
         , payload =
             JE.object
                 [ ( "topic", JE.string topic )
-                , ( "msgs", JE.list JE.string msgs )
+                , ( "events", JE.list JE.string events )
                 ]
         }
 
 
 {-| Switch an incoming message off.
 -}
-off : { topic : String, msg : String } -> PortOut msg -> Cmd msg
-off { topic, msg } portOut =
+off : { topic : String, event : String } -> PortOut msg -> Cmd msg
+off { topic, event } portOut =
     portOut
         { msg = "off"
         , payload =
             JE.object
                 [ ( "topic", JE.string topic )
-                , ( "msg", JE.string msg )
+                , ( "event", JE.string event )
                 ]
         }
 
 
 {-| Switch a list of incoming messages on.
 -}
-allOff : { topic : String, msgs : List String } -> PortOut msg -> Cmd msg
-allOff { topic, msgs } portOut =
+allOff : { topic : String, events : List String } -> PortOut msg -> Cmd msg
+allOff { topic, events } portOut =
     portOut
         { msg = "allOff"
         , payload =
             JE.object
                 [ ( "topic", JE.string topic )
-                , ( "msgs", JE.list JE.string msgs )
+                , ( "events", JE.list JE.string events )
                 ]
         }

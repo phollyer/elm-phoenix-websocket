@@ -42,12 +42,12 @@ let ElmPhoenixWebSocket = {
     */
     channels: {},
 
-    /* A map of lists of incoming channel events with the topic as the key.
+    /* A map of lists of events channel events with the topic as the key.
 
        This is used to store the events so that they can be sent over from
        Elm prior to the relevant channel being created.
     */
-    incoming: {},
+    events: {},
 
     /* The Phoenix Presence class imported with `import {Presence} from "phoenix"`.
 
@@ -118,8 +118,9 @@ let ElmPhoenixWebSocket = {
         let self = this
 
         this.socket = new this.phoenixSocket(this.url, this.setOptionsAndParams(data))
-        this.socket.onMessage( resp => self.socketSend("Message", resp))
         this.socket.onError( resp => self.socketSend("Error", {reason: "Unknown"}))
+        this.socket.onMessage( resp => self.socketSend("Message", resp))
+
         this.socket.onOpen( resp => {
             self.socketSend("Opened", resp)
             self.info()
@@ -350,6 +351,10 @@ let ElmPhoenixWebSocket = {
 
     logger(kind, msg, data) { console.log(`${kind}: ${msg}`, data) },
 
+
+
+
+
     /********** Channel **********/
 
     /* join
@@ -364,8 +369,8 @@ let ElmPhoenixWebSocket = {
                 Optional data to be sent to the channel, such as
                 authentication params.
 
-            msgs <list string>
-                The msgs expected to come from the channel.
+            events <list string>
+                The events expected to come from the channel.
 
             timeout <maybe int>
                 Optional timeout in ms.
@@ -406,21 +411,21 @@ let ElmPhoenixWebSocket = {
 
         this.allOn(params)
 
-        this.allOn({topic: params.topic, msgs: this.incoming[params.topic]})
+        this.allOn({topic: params.topic, events: this.events[params.topic]})
 
         return channel
     },
 
     /* push
 
-        Push a msg to the server with data.
+        Push an event to the server with data.
 
         params <object>
             topic <string>
                 The topic of the channel to push to.
 
-            msg <string>
-                The msg to send to the channel.
+            event <string>
+                The event to send to the channel.
 
             payload <object>
                 The data to send.
@@ -436,24 +441,24 @@ let ElmPhoenixWebSocket = {
 
         let push = {}
 
-        /* Push the msg and payload to the server, with or without a custom
+        /* Push the event and payload to the server, with or without a custom
            timeout.
         */
         if(params.timeout) {
-            push = channel.push(params.msg, params.payload, params.timeout)
+            push = channel.push(params.event, params.payload, params.timeout)
         } else {
-            push = channel.push(params.msg, params.payload)
+            push = channel.push(params.event, params.payload)
         }
 
         push
-            .receive("ok", (payload) => self.channelSend(params.topic, "PushOk", {msg: params.msg, payload: payload, ref: params.ref || 0}))
-            .receive("error", (payload) => self.channelSend(params.topic, "PushError", {msg: params.msg, payload: payload, ref: params.ref || 0}))
-            .receive("timeout", () => self.channelSend(params.topic, "PushTimeout", {msg: params.msg, payload: params.payload, ref: params.ref || 0}))
+            .receive("ok", (payload) => self.channelSend(params.topic, "PushOk", {event: params.event, payload: payload, ref: params.ref || 0}))
+            .receive("error", (payload) => self.channelSend(params.topic, "PushError", {event: params.event, payload: payload, ref: params.ref || 0}))
+            .receive("timeout", () => self.channelSend(params.topic, "PushTimeout", {event: params.event, payload: params.payload, ref: params.ref || 0}))
     },
 
     /* on
 
-        Subscribe to a channel msg.
+        Subscribe to a channel event.
 
         Store them it be re-used if a channel is disconnected by the user, so
         that it doesn't have to be sent over again from Elm.
@@ -462,24 +467,24 @@ let ElmPhoenixWebSocket = {
             topic <string>
                 The topic of the channel to subscribe to.
 
-            msg <string>
-                The msg to subscribe to.
+            event <string>
+                The event to subscribe to.
     */
     on(params) {
         self = this
         let channel = this.find(params.topic)
 
         if (channel) {
-            channel.on(params.msg, payload => self.channelSend(params.topic, "Message", {msg: params.msg, payload: payload}))
+            channel.on(params.event, payload => self.channelSend(params.topic, "Message", {event: params.event, payload: payload}))
 
         }
 
-        this.addIncoming({topic: params.topic, msgs: [params.msg]})
+        this.addIncoming({topic: params.topic, events: [params.event]})
     },
 
     /* allOn
 
-        Subscribe to channel msgs.
+        Subscribe to channel events.
 
         Store them to be re-used if a channel is disconnected by the user, so
         that they don't have to be sent over again from Elm.
@@ -488,8 +493,8 @@ let ElmPhoenixWebSocket = {
             topic <string>
                 The topic of the channel to subscribe to.
 
-            msgs <list string>
-                The msgs to subscribe to.
+            events <list string>
+                The events to subscribe to.
     */
     allOn(params) {
         self = this
@@ -497,8 +502,8 @@ let ElmPhoenixWebSocket = {
         let channel = this.find(params.topic)
 
         if (channel) {
-            for (let i = 0; i < params.msgs.length; i++) {
-                channel.on(params.msgs[i], payload => self.channelSend(params.topic, "Message", {msg: params.msgs[i], payload: payload}))
+            for (let i = 0; i < params.events.length; i++) {
+                channel.on(params.events[i], payload => self.channelSend(params.topic, "Message", {msg: params.events[i], payload: payload}))
             }
         }
 
@@ -506,30 +511,30 @@ let ElmPhoenixWebSocket = {
     },
 
     addIncoming(params) {
-        if (this.incoming[params.topic]) {
-            this.incoming[params.topic].reduce((allMsgs, msg) => {
-                if(!allMsgs.includes(msg)) {
-                    allMsgs.push(msg)
+        if (this.events[params.topic]) {
+            this.events[params.topic].reduce((events, msg) => {
+                if(!events.includes(msg)) {
+                    events.push(msg)
                 }
 
-                return allMsgs
-            }, params.msgs)
+                return events
+            }, params.events)
         } else {
-            this.incoming[params.topic] = params.msgs
+            this.events[params.topic] = params.events
         }
     },
 
 
     /* off
 
-        Turn off a subscription to a channel msg.
+        Turn off a subscription to a channel event.
 
         params <object>
             topic <string>
                 The topic of the channel to unsubscribe to.
 
-            msg <string>
-                The msg to unsubscribe to.
+            event <string>
+                The event to unsubscribe to.
     */
     off(params) {
         self = this
@@ -537,22 +542,22 @@ let ElmPhoenixWebSocket = {
         let channel = this.find(params.topic)
 
         if (channel) {
-            channel.off(params.msg)
+            channel.off(params.event)
         }
 
-        this.dropIncoming({topic: params.topic, msgs: [params.msg]})
+        this.dropIncoming({topic: params.topic, events: [params.event]})
     },
 
     /* allOff
 
-        Turn off subscriptions to channel msgs.
+        Turn off subscriptions to channel events.
 
         params <object>
             topic <string>
                 The topic of the channel to subscribe to.
 
-            msgs <list string>
-                The msgs to subscribe to.
+            events <list string>
+                The events to subscribe to.
     */
     allOff(params) {
         self = this
@@ -560,8 +565,8 @@ let ElmPhoenixWebSocket = {
         let channel = this.find(params.topic)
 
         if (channel) {
-            for (let i = 0; i < params.msgs.length; i++) {
-                channel.off(params.msgs[i])
+            for (let i = 0; i < params.events.length; i++) {
+                channel.off(params.events[i])
             }
         }
 
@@ -569,10 +574,10 @@ let ElmPhoenixWebSocket = {
     },
 
     dropIncoming(params) {
-        let incoming = this.incoming[params.topic]
+        let events = this.events[params.topic]
 
-        if (incoming) {
-            incoming.filter( msg => !params.msgs.includes(msg))
+        if (events) {
+            events.filter( msg => !params.events.includes(msg))
         }
     },
 
