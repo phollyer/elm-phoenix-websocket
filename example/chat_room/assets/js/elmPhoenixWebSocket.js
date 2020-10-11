@@ -577,7 +577,7 @@ let ElmPhoenixWebSocket = {
         let events = this.events[params.topic]
 
         if (events) {
-            events.filter( msg => !params.events.includes(msg))
+            events.filter( event => !params.events.includes(event))
         }
     },
 
@@ -708,7 +708,7 @@ let ElmPhoenixWebSocket = {
             (id, current, leftPres) => self.presenceSend(topic, "Leave", (this.packageForElm(id, leftPres)))
         )
 
-        this.presenceSend(topic, "State",{list: this.phoenixPresence.list(newPresence, (id, metas) => (this.packageForElm(id, metas)))})
+        this.presenceSend(topic, "State",{list: this.phoenixPresence.list(newPresence, (id, presence) => (this.packageForElm(id, presence)))})
 
         this.presences[topic] = newPresence
     },
@@ -749,12 +749,17 @@ let ElmPhoenixWebSocket = {
         presence <object>
             The raw presence data received from the server.
 
-                {"id1": metas}
+        The metas key will always be present.
 
-        Returns:
-            {id: "id1", metas: metas}
+        The user key may be present if the fetch/2 callback is being used in
+        the Elixir Presence module to fetch user information from the DB.
+
+        The whole presence Object is also provided in order to enable decoding
+        of additional data stored on the Presence that can't be foreseen.
     */
-    packageForElm(id, presence) { return {id: id, metas: presence.metas} },
+    packageForElm(id, presence) {
+        return {id: id, metas: presence.metas, user: presence.user || null, presence: presence}
+    },
 
 
     /* presenceSend
