@@ -1343,14 +1343,22 @@ type ChannelResponse
 
 {-| A type alias representing a Presence on a Channel.
 
-  - `id` - The `id` used to identify the Presence map in the `Presence.track/3`
+  - `id` - The `id` used to identify the Presence map in the
+    [Presence.track/3](https://hexdocs.pm/phoenix/Phoenix.Presence.html#c:track/3)
     Elixir function. The recommended approach is to use the users' `id`.
 
-  - `metas`- A list of metadata as stored in the `Presence.track/3` function.
+  - `metas`- A list of metadata as stored in the
+    [Presence.track/3](https://hexdocs.pm/phoenix/Phoenix.Presence.html#c:track/3)
+    function.
 
   - `user` - The user data that is pulled from the DB and stored on the
-    Presence in the `fetch/2` callback function. This is the recommended
-    approach for storing user data on the Presence.
+    Presence in the
+    [fetch/2](https://hexdocs.pm/phoenix/Phoenix.Presence.html#c:fetch/2)
+    Elixir callback function. This is the recommended approach for storing user
+    data on the Presence. If
+    [fetch/2](https://hexdocs.pm/phoenix/Phoenix.Presence.html#c:fetch/2) is
+    not being used then `user` will be equal to
+    [Json.Encode.null](https://package.elm-lang.org/packages/elm/json/latest/Json-Encode#null).
 
   - `presence` - The whole Presence map. This provides a way to access any
     additional data that is stored on the Presence.
@@ -1618,11 +1626,11 @@ queuedPushes (Model model) =
 
     pushQueued
         (\push -> push.topic == "topic:subTopic")
-        model
+        model.phoenix
 
     pushQueued
         (\push -> push.ref == "custom ref")
-        model
+        model.phoenix
 
 -}
 pushQueued : (Push -> Bool) -> Model -> Bool
@@ -1673,11 +1681,11 @@ with it's [RetryStrategy](#RetryStrategy).
 
     pushTimedOut
         (\push -> push.topic == "topic:subTopic")
-        model
+        model.phoenix
 
     pushTimedOut
         (\push -> push.ref == "custom ref")
-        model
+        model.phoenix
 
 -}
 pushTimedOut : (Push -> Bool) -> Model -> Bool
