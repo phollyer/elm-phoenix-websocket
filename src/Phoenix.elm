@@ -10,7 +10,7 @@ module Phoenix exposing
     , Msg, update
     , SocketState(..)
     , OriginalPayload, PushRef, ChannelResponse(..)
-    , Presence, PresenceState, PresenceDiff, PresenceEvent(..)
+    , Presence, PresenceDiff, PresenceEvent(..)
     , Error(..)
     , InvalidMsg(..)
     , PhoenixMsg(..), phoenixMsg
@@ -181,7 +181,7 @@ immediately.
 
 ### Phoenix Presence
 
-@docs Presence, PresenceState, PresenceDiff, PresenceEvent
+@docs Presence, PresenceDiff, PresenceEvent
 
 
 ### Errors
@@ -272,7 +272,7 @@ type Model
         , presenceDiff : Dict Topic (List PresenceDiff)
         , presenceJoin : Dict Topic (List Presence)
         , presenceLeave : Dict Topic (List Presence)
-        , presenceState : Dict Topic PresenceState
+        , presenceState : Dict Topic (List Presence)
         , pushCount : Int
         , queuedPushes : Dict Int InternalPush
         , socketInfo : SocketInfo.Info
@@ -1329,7 +1329,7 @@ addPresenceLeave topic presence (Model model) =
         (Model model)
 
 
-replacePresenceState : Topic -> PresenceState -> Model -> Model
+replacePresenceState : Topic -> List Presence -> Model -> Model
 replacePresenceState topic state (Model model) =
     updatePresenceState
         (Dict.insert topic state model.presenceState)
@@ -1437,11 +1437,6 @@ type alias Presence =
 
 
 {-| -}
-type alias PresenceState =
-    List Presence
-
-
-{-| -}
 type alias PresenceDiff =
     { joins : List Presence
     , leaves : List Presence
@@ -1452,7 +1447,7 @@ type alias PresenceDiff =
 type PresenceEvent
     = Join Topic Presence
     | Leave Topic Presence
-    | State Topic PresenceState
+    | State Topic (List Presence)
     | Diff Topic PresenceDiff
 
 
@@ -1978,7 +1973,7 @@ updatePresenceLeave presence (Model model) =
         }
 
 
-updatePresenceState : Dict String PresenceState -> Model -> Model
+updatePresenceState : Dict String (List Presence) -> Model -> Model
 updatePresenceState state (Model model) =
     Model
         { model
