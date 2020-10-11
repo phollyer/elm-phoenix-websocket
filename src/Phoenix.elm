@@ -1396,7 +1396,7 @@ type ChannelResponse
 -- MyAppWeb.MyChannel.ex
 
 def handle_info(:after_join, socket) do
-  {:ok, _} = Presence.track(socket, user_id, %{
+  {:ok, _} = Presence.track(socket, socket.assigns.user_id, %{
     online_at: System.os_time(:millisecond)
   })
 
@@ -1412,11 +1412,11 @@ defmodule MyAppWeb.Presence do
     otp_app: :my_app,
     pubsub_server: MyApp.PubSub
 
-def fetch(_topic, presences) do
-  query =
-    from u in User,
-    where: u.id in ^Map.keys(presences),
-    select: {u.id, u}
+  def fetch(_topic, presences) do
+    query =
+      from u in User,
+      where: u.id in ^Map.keys(presences),
+      select: {u.id, u}
 
     users = query |> Repo.all() |> Enum.into(%{})
 
