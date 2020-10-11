@@ -1777,7 +1777,8 @@ pushTimeoutCountdown compareFunc (Model model) =
                 Nothing
 
 
-{-| Cancel a [Push](#Push).
+{-| Cancel a [Push](#Push), regardless of if it is in the queue to be sent when
+its' Channel joins, or if it has timed out.
 -}
 dropPush : (Push -> Bool) -> Model -> Model
 dropPush compare model =
