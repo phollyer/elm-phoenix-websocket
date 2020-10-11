@@ -4,7 +4,7 @@ module Phoenix exposing
     , connect, addConnectOptions, setConnectOptions, Payload, setConnectParams
     , Topic, join, Event, JoinConfig, addJoinConfig
     , LeaveConfig, leave
-    , RetryStrategy(..), Push, push, pushAll, dropQueuedPush, dropTimeoutPush, dropPush
+    , RetryStrategy(..), Push, push, pushAll
     , subscriptions
     , addEvents, dropEvents
     , Msg, update
@@ -16,8 +16,9 @@ module Phoenix exposing
     , PhoenixMsg(..), phoenixMsg
     , socketState, isConnected, connectionState, endPointURL, protocol
     , queuedChannels, channelQueued, joinedChannels, channelJoined
-    , queuedPushes, timeoutPushes
-    , pushQueued, pushTimedOut, pushTimeoutCountdown
+    , queuedPushes, pushQueued, dropQueuedPush
+    , timeoutPushes, pushTimedOut, dropTimeoutPush, pushTimeoutCountdown
+    , dropPush
     , presenceState, presenceDiff, presenceJoins, presenceLeaves, lastPresenceJoin, lastPresenceLeave
     , log, startLogging, stopLogging
     )
@@ -148,7 +149,7 @@ immediately.
 
 ## Pushing
 
-@docs RetryStrategy, Push, push, pushAll, dropQueuedPush, dropTimeoutPush, dropPush
+@docs RetryStrategy, Push, push, pushAll
 
 
 ## Receiving
@@ -201,34 +202,23 @@ immediately.
 # Helpers
 
 
-## Socket Information
+## Socket
 
 @docs socketState, isConnected, connectionState, endPointURL, protocol
 
 
-## Channel Information
+## Channels
 
 @docs queuedChannels, channelQueued, joinedChannels, channelJoined
 
 
-## Push Information
+## Pushes
 
-The following functions enable you to retrieve information about pushes that
-are waiting to be sent, either becuase they are waiting for the Channel to be
-joined, or they have timed out, and are waiting to be sent again.
+@docs queuedPushes, pushQueued, dropQueuedPush
 
-@docs queuedPushes, timeoutPushes
+@docs timeoutPushes, pushTimedOut, dropTimeoutPush, pushTimeoutCountdown
 
-These functions provide information about a specifc push. You provide a
-function that takes a push and returns a `Bool`.
-
-Depending on the pushes you are sending, this is where it can be useful to set
-a unique `ref` on each [Push](#Push) you send. Your comparison function can
-then match on the `ref`.
-
-    \push -> push.ref == ref
-
-@docs pushQueued, pushTimedOut, pushTimeoutCountdown
+@docs dropPush
 
 
 ## Presence Information
@@ -949,42 +939,6 @@ addTimeoutPush internalConfig (Model model) =
         (Model model)
 
 
-{-| Cancel a queued [Push](#Push) that is waiting for it's Channel to
-[join](#join).
--}
-dropQueuedPush : (Push -> Bool) -> Model -> Model
-dropQueuedPush compare (Model model) =
-    updateQueuedPushes
-        (Dict.filter
-            (\_ internalPush -> not (compare internalPush.push))
-            model.queuedPushes
-        )
-        (Model model)
-
-
-{-| Cancel a timed out [Push](#Push).
--}
-dropTimeoutPush : (Push -> Bool) -> Model -> Model
-dropTimeoutPush compare (Model model) =
-    updateTimeoutPushes
-        (Dict.filter
-            (\_ internalPush ->
-                not (compare internalPush.push)
-            )
-            model.timeoutPushes
-        )
-        (Model model)
-
-
-{-| Cancel a [Push](#Push).
--}
-dropPush : (Push -> Bool) -> Model -> Model
-dropPush compare model =
-    model
-        |> dropQueuedPush compare
-        |> dropTimeoutPush compare
-
-
 
 {- Receiving -}
 
@@ -1660,35 +1614,24 @@ sent.
 queuedPushes : Model -> Dict Topic (List Push)
 queuedPushes (Model model) =
     Dict.foldl
-        (\_ v n ->
-            let
-                p =
-                    v.push
-
-                topic =
-                    p.topic
-            in
+        (\_ internalPush queued ->
             Dict.update
-                topic
-                (\maybeList ->
-                    case maybeList of
+                internalPush.push.topic
+                (\maybeQueue ->
+                    case maybeQueue of
                         Nothing ->
-                            Just [ p ]
+                            Just [ internalPush.push ]
 
-                        Just list ->
-                            Just (p :: list)
+                        Just queue ->
+                            Just (internalPush.push :: queue)
                 )
-                n
+                queued
         )
         Dict.empty
         model.queuedPushes
 
 
-{-| Determine if a Push is in the queue to be sent.
-
-    pushQueued
-        (\push -> push.topic == "topic:subTopic")
-        model.phoenix
+{-| Determine if a Push is in the queue to be sent when its' Channel joins.
 
     pushQueued
         (\push -> push.ref == "custom ref")
@@ -1705,6 +1648,24 @@ pushQueued compareFunc (Model model) =
         |> not
 
 
+{-| Cancel a queued [Push](#Push) that is waiting for its' Channel to
+[join](#join).
+
+    dropQueuedPush
+        (\push -> push.topic == "topic:subTopic")
+        model.phoenix
+
+-}
+dropQueuedPush : (Push -> Bool) -> Model -> Model
+dropQueuedPush compare (Model model) =
+    updateQueuedPushes
+        (Dict.filter
+            (\_ internalPush -> not (compare internalPush.push))
+            model.queuedPushes
+        )
+        (Model model)
+
+
 {-| Pushes that have timed out and are waiting to be sent again in accordance
 with their [RetryStrategy](#RetryStrategy).
 
@@ -1714,25 +1675,18 @@ Pushes with a [RetryStrategy](#RetryStrategy) of `Drop`, won't make it here.
 timeoutPushes : Model -> Dict String (List Push)
 timeoutPushes (Model model) =
     Dict.foldl
-        (\_ v n ->
-            let
-                p =
-                    v.push
-
-                topic =
-                    p.topic
-            in
+        (\_ internalPush queued ->
             Dict.update
-                topic
-                (\maybeList ->
-                    case maybeList of
+                internalPush.push.topic
+                (\maybeQueue ->
+                    case maybeQueue of
                         Nothing ->
-                            Just [ p ]
+                            Just [ internalPush.push ]
 
-                        Just list ->
-                            Just (p :: list)
+                        Just queue ->
+                            Just (internalPush.push :: queue)
                 )
-                n
+                queued
         )
         Dict.empty
         model.timeoutPushes
@@ -1740,10 +1694,6 @@ timeoutPushes (Model model) =
 
 {-| Determine if a Push has timed out and will be tried again in accordance
 with it's [RetryStrategy](#RetryStrategy).
-
-    pushTimedOut
-        (\push -> push.topic == "topic:subTopic")
-        model.phoenix
 
     pushTimedOut
         (\push -> push.ref == "custom ref")
@@ -1758,6 +1708,25 @@ pushTimedOut compareFunc (Model model) =
         |> Tuple.first
         |> Dict.isEmpty
         |> not
+
+
+{-| Cancel a timed out [Push](#Push).
+
+    dropTimeoutPush
+        (\push -> push.topic == "topic:subTopic")
+        model.phoenix
+
+-}
+dropTimeoutPush : (Push -> Bool) -> Model -> Model
+dropTimeoutPush compare (Model model) =
+    updateTimeoutPushes
+        (Dict.filter
+            (\_ internalPush ->
+                not (compare internalPush.push)
+            )
+            model.timeoutPushes
+        )
+        (Model model)
 
 
 {-| Maybe get the number of seconds until a push is retried.
@@ -1795,6 +1764,15 @@ pushTimeoutCountdown compareFunc (Model model) =
 
             [] ->
                 Nothing
+
+
+{-| Cancel a [Push](#Push).
+-}
+dropPush : (Push -> Bool) -> Model -> Model
+dropPush compare model =
+    model
+        |> dropQueuedPush compare
+        |> dropTimeoutPush compare
 
 
 
