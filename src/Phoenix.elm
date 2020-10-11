@@ -4,7 +4,7 @@ module Phoenix exposing
     , connect, addConnectOptions, setConnectOptions, Payload, setConnectParams
     , Topic, join, Event, JoinConfig, addJoinConfig
     , LeaveConfig, leave
-    , RetryStrategy(..), Push, push, pushAll
+    , RetryStrategy(..), Push, push, pushAll, cancelPush
     , subscriptions
     , addEvents, dropEvents
     , Msg, update
@@ -148,7 +148,7 @@ immediately.
 
 ## Pushing
 
-@docs RetryStrategy, Push, push, pushAll
+@docs RetryStrategy, Push, push, pushAll, cancelPush
 
 
 ## Receiving
@@ -947,6 +947,34 @@ addTimeoutPush internalConfig (Model model) =
     updateTimeoutPushes
         (Dict.insert internalConfig.ref internalConfig model.timeoutPushes)
         (Model model)
+
+
+{-| Cancel a [Push](#Push).
+-}
+cancelPush : (Push -> Bool) -> Model -> Model
+cancelPush compare (Model model) =
+    if pushQueued compare (Model model) then
+        updateQueuedPushes
+            (Dict.filter
+                (\_ internalPush ->
+                    not (compare internalPush.push)
+                )
+                model.queuedPushes
+            )
+            (Model model)
+
+    else if pushTimedOut compare (Model model) then
+        updateTimeoutPushes
+            (Dict.filter
+                (\_ internalPush ->
+                    not (compare internalPush.push)
+                )
+                model.timeoutPushes
+            )
+            (Model model)
+
+    else
+        Model model
 
 
 
