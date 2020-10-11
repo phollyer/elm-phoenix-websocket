@@ -503,7 +503,7 @@ let ElmPhoenixWebSocket = {
 
         if (channel) {
             for (let i = 0; i < params.events.length; i++) {
-                channel.on(params.events[i], payload => self.channelSend(params.topic, "Message", {msg: params.events[i], payload: payload}))
+                channel.on(params.events[i], payload => self.channelSend(params.topic, "Message", {event: params.events[i], payload: payload}))
             }
         }
 
@@ -577,7 +577,7 @@ let ElmPhoenixWebSocket = {
         let events = this.events[params.topic]
 
         if (events) {
-            events.filter( msg => !params.events.includes(msg))
+            events.filter( event => !params.events.includes(event))
         }
     },
 
