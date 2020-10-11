@@ -258,7 +258,7 @@ type Msg
     | SendMessage
     | MsgTextFocusedIn
     | MsgTextFocusedOut
-    | SocketMsg Socket.MsgIn
+    | SocketMsg Socket.Msg
     | ChannelMsg Channel.Msg
     | PresenceMsg Presence.Msg
     | NoOp
@@ -266,6 +266,10 @@ type Msg
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    let
+        _ =
+            Debug.log "" msg
+    in
     case msg of
         ChangedUsername name ->
             ( { model
@@ -412,6 +416,10 @@ update msg model =
         -- Receive a message from another user
         -- Scroll the viewport so that the message is displayed
         ChannelMsg (Channel.Message _ msgResult payloadResult) ->
+            let
+                _ =
+                    Debug.log "" ( msgResult, payloadResult )
+            in
             case ( msgResult, payloadResult ) of
                 ( Ok "new_msg", Ok payload ) ->
                     ( { model
@@ -506,8 +514,9 @@ joinChannel : JE.Value -> Cmd Msg
 joinChannel payload =
     Channel.join
         { topic = topic
-        , timeout = Nothing
         , payload = Just payload
+        , events = []
+        , timeout = Nothing
         }
         Port.phoenixSend
 
@@ -521,12 +530,13 @@ The second `Value` parameter is the payload.
 
 -}
 push : String -> JE.Value -> Cmd Msg
-push msg payload =
+push event payload =
     Channel.push
         { topic = topic
-        , msg = msg
+        , event = event
         , timeout = Nothing
         , payload = payload
+        , ref = Nothing
         }
         Port.phoenixSend
 
@@ -549,9 +559,9 @@ channel. This needs to be invoked **after** we receive the
 -}
 setupIncomingEvents : Cmd Msg
 setupIncomingEvents =
-    Channel.on
+    Channel.allOn
         { topic = topic
-        , msgs = incomingMsgs
+        , events = incomingMsgs
         }
         Port.phoenixSend
 

@@ -1,5 +1,6 @@
 port module Ports exposing
     ( channelReceiver
+    , config
     , phoenixSend
     , presenceReceiver
     , socketReceiver
@@ -13,6 +14,22 @@ Copy this module into your Elm `src`, or copy the functions into an existing
 -}
 
 import Json.Encode exposing (Value)
+
+
+{-| Helper function for use with the Phoenix module.
+
+    import Phoenix
+    import Ports.Phoenix as Ports
+
+    Phoenix.init Ports.config []
+
+-}
+config =
+    { phoenixSend = phoenixSend
+    , socketReceiver = socketReceiver
+    , channelReceiver = channelReceiver
+    , presenceReceiver = presenceReceiver
+    }
 
 
 {-| Send messages out to the accompanying JS file.
