@@ -1294,6 +1294,20 @@ update msg (Model model) =
                 |> sendTimeoutPushes
 
 
+timeoutTick : Model -> Model
+timeoutTick (Model model) =
+    updateTimeoutPushes
+        (Dict.map
+            (\_ internalPushConfig ->
+                updateTimeoutTick
+                    (internalPushConfig.timeoutTick + 1)
+                    internalPushConfig
+            )
+            model.timeoutPushes
+        )
+        (Model model)
+
+
 addPresenceDiff : Topic -> PresenceDiff -> Model -> Model
 addPresenceDiff topic diff (Model model) =
     updatePresenceDiff
@@ -1831,24 +1845,6 @@ lastPresenceLeave topic (Model model) =
     Dict.get topic model.presenceLeave
         |> Maybe.withDefault []
         |> List.head
-
-
-
-{- Timeout Events -}
-
-
-timeoutTick : Model -> Model
-timeoutTick (Model model) =
-    updateTimeoutPushes
-        (Dict.map
-            (\_ internalPushConfig ->
-                updateTimeoutTick
-                    (internalPushConfig.timeoutTick + 1)
-                    internalPushConfig
-            )
-            model.timeoutPushes
-        )
-        (Model model)
 
 
 
