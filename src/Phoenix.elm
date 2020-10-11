@@ -2,7 +2,7 @@ module Phoenix exposing
     ( Model
     , PortConfig, init
     , connect, addConnectOptions, setConnectOptions, Payload, setConnectParams
-    , Topic, Event, join, JoinConfig, addJoinConfig
+    , Topic, join, Event, JoinConfig, addJoinConfig
     , LeaveConfig, leave
     , RetryStrategy(..), Push, push, pushAll
     , subscriptions
@@ -124,7 +124,7 @@ function.
 If you want to send any params to the Channel when you join at the Elixir end
 you can use the [addJoinConfig](#addJoinConfig) function.
 
-@docs Topic, Event, join, JoinConfig, addJoinConfig
+@docs Topic, join, Event, JoinConfig, addJoinConfig
 
 
 # Leaving a Channel
@@ -558,9 +558,9 @@ Channel.
 So if you have this handler in your Elixir Channel:
 
     def handle_in("new_msg", %{"msg" => msg, "id" => id}, socket) do
-        broadcast(socket, "send_msg", %{id: id, text: msg})
+      broadcast(socket, "send_msg", %{id: id, text: msg})
 
-        {:reply, :ok, socket}
+      {:reply, :ok, socket}
     end
 
 You would [Push](#Push) the `"new_msg"` `Event` and pattern match on the
@@ -662,7 +662,7 @@ dropJoinedChannel topic (Model model) =
 {- Talking to Channels -}
 
 
-{-| The retry strategy to use when a push times out.
+{-| The retry strategy to use if a push times out.
 
   - `Drop` - Drop the push and don't try again.
 
@@ -695,14 +695,16 @@ type RetryStrategy
 
   - `payload` - The params to send with the message. If you don't need to
     send any params, set this to
-    [Json.Encode.null](https://package.elm-lang.org/packages/elm/json/latest/Json-Encode#null) .
+    [Json.Encode.null](https://package.elm-lang.org/packages/elm/json/latest/Json-Encode#null).
+    I decided not to make this a `Maybe` because it is expected that most of
+    the time something will be sent.
 
   - `timeout` - Optional timeout in milliseconds to set on the push request.
 
   - `retryStrategy` - The retry strategy to use when the push times out.
 
   - `ref` - Optional reference you can provide that you can later use to
-    identify the response to a push if you're sending lots of the same `event`s.
+    identify the push.
 
 -}
 type alias Push =
