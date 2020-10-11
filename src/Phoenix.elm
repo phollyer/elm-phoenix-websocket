@@ -768,8 +768,8 @@ addPushToQueue pushConfig (Model model) =
         (Model model)
 
 
-dropQueuedPush : Int -> Model -> Model
-dropQueuedPush ref (Model model) =
+dropQueuedInternalPush : Int -> Model -> Model
+dropQueuedInternalPush ref (Model model) =
     updateQueuedPushes
         (Dict.remove ref model.queuedPushes)
         (Model model)
@@ -1148,7 +1148,7 @@ update msg (Model model) =
                                             Just ""
                             in
                             ( Model model
-                                |> dropQueuedPush internalRef
+                                |> dropQueuedInternalPush internalRef
                                 |> updatePhoenixMsg (ChannelResponse (PushError topic msg_ pushRef payload))
                             , Cmd.none
                             )
@@ -1169,7 +1169,7 @@ update msg (Model model) =
                                             Just ""
                             in
                             ( Model model
-                                |> dropQueuedPush internalRef
+                                |> dropQueuedInternalPush internalRef
                                 |> updatePhoenixMsg (ChannelResponse (PushOk topic msg_ pushRef payload))
                             , Cmd.none
                             )
@@ -1188,7 +1188,7 @@ update msg (Model model) =
 
                                         responseModel =
                                             Model model
-                                                |> dropQueuedPush internalConfig.ref
+                                                |> dropQueuedInternalPush internalConfig.ref
                                                 |> updatePhoenixMsg
                                                     (ChannelResponse (PushTimeout topic msg_ pushRef payload))
                                     in
