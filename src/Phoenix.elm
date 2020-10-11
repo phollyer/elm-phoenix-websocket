@@ -9,7 +9,7 @@ module Phoenix exposing
     , Msg, update
     , SocketState(..)
     , OriginalPayload, PushRef, ChannelResponse(..)
-    , PresenceEvent(..)
+    , Presence, PresenceState, PresenceDiff, PresenceEvent(..)
     , Error(..)
     , InvalidMsg(..)
     , PhoenixMsg(..), phoenixMsg
@@ -17,6 +17,7 @@ module Phoenix exposing
     , queuedChannels, channelQueued, joinedChannels, channelJoined
     , queuedPushes, timeoutPushes
     , pushQueued, pushTimedOut, pushTimeoutCountdown
+    , presenceState, presenceDiff, presenceJoins, presenceLeaves, lastPresenceJoin, lastPresenceLeave
     , log, startLogging, stopLogging
     )
 
@@ -171,9 +172,9 @@ immediately.
 
 @docs OriginalPayload, PushRef, ChannelResponse
 
-### Pheonix Presence
+### Phoenix Presence
 
-@docs PresenceEvent
+@docs Presence, PresenceState, PresenceDiff, PresenceEvent
 
 
 ### Errors
@@ -226,6 +227,8 @@ then match on the `ref`.
 
 ## Presence Information
 
+@docs presenceState, presenceDiff, presenceJoins, presenceLeaves, lastPresenceJoin, lastPresenceLeave
+
 
 ## Debugging and Error Handling
 
@@ -267,14 +270,14 @@ type Model
         , joinedChannels : Set Topic
         , connectOptions : List Socket.ConnectOption
         , connectParams : Payload
-        , incomingChannelMessages : Dict String (List String)
-        , joinConfigs : Dict String JoinConfig
+        , incomingChannelMessages : Dict Topic (List String)
+        , joinConfigs : Dict Topic JoinConfig
         , phoenixMsg : PhoenixMsg
         , portConfig : PortConfig
-        , presenceDiff : Dict String (List Presence.PresenceDiff)
-        , presenceJoin : Dict String (List Presence.Presence)
-        , presenceLeave : Dict String (List Presence.Presence)
-        , presenceState : Dict String Presence.PresenceState
+        , presenceDiff : Dict Topic (List PresenceDiff)
+        , presenceJoin : Dict Topic (List Presence)
+        , presenceLeave : Dict Topic (List Presence)
+        , presenceState : Dict Topic PresenceState
         , pushCount : Int
         , queuedPushes : Dict Int InternalPush
         , socketInfo : SocketInfo.Info
@@ -1276,28 +1279,28 @@ update msg (Model model) =
                 |> sendTimeoutPushes
 
 
-addPresenceDiff : Topic -> Presence.PresenceDiff -> Model -> Model
+addPresenceDiff : Topic -> PresenceDiff -> Model -> Model
 addPresenceDiff topic diff (Model model) =
     updatePresenceDiff
         (Dict.prependOne topic diff model.presenceDiff)
         (Model model)
 
 
-addPresenceJoin : Topic -> Presence.Presence -> Model -> Model
+addPresenceJoin : Topic -> Presence -> Model -> Model
 addPresenceJoin topic presence (Model model) =
     updatePresenceJoin
         (Dict.prependOne topic presence model.presenceJoin)
         (Model model)
 
 
-addPresenceLeave : Topic -> Presence.Presence -> Model -> Model
+addPresenceLeave : Topic -> Presence -> Model -> Model
 addPresenceLeave topic presence (Model model) =
     updatePresenceLeave
         (Dict.prependOne topic presence model.presenceLeave)
         (Model model)
 
 
-replacePresenceState : Topic -> Presence.PresenceState -> Model -> Model
+replacePresenceState : Topic -> PresenceState -> Model -> Model
 replacePresenceState topic state (Model model) =
     updatePresenceState
         (Dict.insert topic state model.presenceState)
@@ -1338,12 +1341,82 @@ type ChannelResponse
     | LeaveOk Topic
 
 
+{-| A type alias representing a Presence on a Channel.
+
+  - `id` - The `id` used to identify the Presence map in the `Presence.track/3`
+    Elixir function. The recommended approach is to use the users' `id`.
+
+  - `metas`- A list of metadata as stored in the `Presence.track/3` function.
+
+  - `user` - The user data that is pulled from the DB and stored on the
+    Presence in the `fetch/2` callback function. This is the recommended
+    approach for storing user data on the Presence.
+
+  - `presence` - The whole Presence map. This provides a way to access any
+    additional data that is stored on the Presence.
+
+```
+-- MyAppWeb.MyChannel.ex
+
+def handle_info(:after_join, socket) do
+  {:ok, _} = Presence.track(socket, user_id, %{
+    online_at: System.os_time(:millisecond)
+  })
+
+  push(socket, "presence_state", Presence.list(socket))
+
+  {:noreply, socket}
+end
+
+-- MyAppWeb.Presence.ex
+
+defmodule MyAppWeb.Presence do
+  use Phoenix.Presence,
+    otp_app: :my_app,
+    pubsub_server: MyApp.PubSub
+
+def fetch(_topic, presences) do
+  query =
+    from u in User,
+    where: u.id in ^Map.keys(presences),
+    select: {u.id, u}
+
+    users = query |> Repo.all() |> Enum.into(%{})
+
+    for {key, %{metas: metas}} <- presences, into: %{} do
+      {key, %{metas: metas, user: users[key]}}
+    end
+  end
+end
+```
+
+-}
+type alias Presence =
+    { id : String
+    , metas : List Value
+    , user : Value
+    , presence : Value
+    }
+
+
+{-| -}
+type alias PresenceState =
+    List Presence
+
+
+{-| -}
+type alias PresenceDiff =
+    { joins : List Presence
+    , leaves : List Presence
+    }
+
+
 {-| -}
 type PresenceEvent
-    = Join Topic Presence.Presence
-    | Leave Topic Presence.Presence
-    | State Topic Presence.PresenceState
-    | Diff Topic Presence.PresenceDiff
+    = Join Topic Presence
+    | Leave Topic Presence
+    | State Topic PresenceState
+    | Diff Topic PresenceDiff
 
 
 {-| The `Error` type is received when the JS `onError` function fires for the
@@ -1652,6 +1725,62 @@ pushTimeoutCountdown compareFunc (Model model) =
 
 
 
+{- Presence -}
+
+
+{-| A list of Presences on the Channel referenced by [Topic](#Topic).
+-}
+presenceState : Topic -> Model -> List Presence
+presenceState topic (Model model) =
+    Dict.get topic model.presenceState
+        |> Maybe.withDefault []
+
+
+{-| A list of Presence diffs on the Channel referenced by [Topic](#Topic).
+-}
+presenceDiff : Topic -> Model -> List PresenceDiff
+presenceDiff topic (Model model) =
+    Dict.get topic model.presenceDiff
+        |> Maybe.withDefault []
+
+
+{-| A list of Presences that have joined the Channel referenced by
+[Topic](#Topic).
+-}
+presenceJoins : Topic -> Model -> List Presence
+presenceJoins topic (Model model) =
+    Dict.get topic model.presenceJoin
+        |> Maybe.withDefault []
+
+
+{-| A list of Presences that have left the Channel referenced by
+[Topic](#Topic).
+-}
+presenceLeaves : Topic -> Model -> List Presence
+presenceLeaves topic (Model model) =
+    Dict.get topic model.presenceLeave
+        |> Maybe.withDefault []
+
+
+{-| Maybe the last Presence to join the Channel referenced by [Topic](#Topic).
+-}
+lastPresenceJoin : Topic -> Model -> Maybe Presence
+lastPresenceJoin topic (Model model) =
+    Dict.get topic model.presenceJoin
+        |> Maybe.withDefault []
+        |> List.head
+
+
+{-| Maybe the last Presence to leave the Channel referenced by [Topic](#Topic).
+-}
+lastPresenceLeave : Topic -> Model -> Maybe Presence
+lastPresenceLeave topic (Model model) =
+    Dict.get topic model.presenceLeave
+        |> Maybe.withDefault []
+        |> List.head
+
+
+
 {- Timeout Events -}
 
 
@@ -1776,7 +1905,7 @@ updatePhoenixMsg msg (Model model) =
         }
 
 
-updatePresenceDiff : Dict String (List Presence.PresenceDiff) -> Model -> Model
+updatePresenceDiff : Dict String (List PresenceDiff) -> Model -> Model
 updatePresenceDiff diff (Model model) =
     Model
         { model
@@ -1784,7 +1913,7 @@ updatePresenceDiff diff (Model model) =
         }
 
 
-updatePresenceJoin : Dict String (List Presence.Presence) -> Model -> Model
+updatePresenceJoin : Dict String (List Presence) -> Model -> Model
 updatePresenceJoin presence (Model model) =
     Model
         { model
@@ -1792,7 +1921,7 @@ updatePresenceJoin presence (Model model) =
         }
 
 
-updatePresenceLeave : Dict String (List Presence.Presence) -> Model -> Model
+updatePresenceLeave : Dict String (List Presence) -> Model -> Model
 updatePresenceLeave presence (Model model) =
     Model
         { model
@@ -1800,7 +1929,7 @@ updatePresenceLeave presence (Model model) =
         }
 
 
-updatePresenceState : Dict String Presence.PresenceState -> Model -> Model
+updatePresenceState : Dict String PresenceState -> Model -> Model
 updatePresenceState state (Model model) =
     Model
         { model

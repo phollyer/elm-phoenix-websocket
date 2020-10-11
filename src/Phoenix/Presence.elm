@@ -43,6 +43,8 @@ type alias PortIn msg =
 type alias Presence =
     { id : String
     , metas : List Value
+    , user : Value
+    , presence : Value
     }
 
 
@@ -154,6 +156,8 @@ presenceDecoder =
         Presence
         |> andMap (JD.field "id" JD.string)
         |> andMap (JD.field "metas" (JD.list JD.value))
+        |> andMap (JD.field "user" JD.value)
+        |> andMap (JD.field "presence" JD.value)
 
 
 decodeDiff : JE.Value -> Result JD.Error PresenceDiff
