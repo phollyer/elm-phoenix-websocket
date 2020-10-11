@@ -871,11 +871,6 @@ sendTimeoutPushes (Model model) =
                             internalConfig.timeoutTick == max
 
                         Backoff [] Nothing ->
-                            {- TODO:
-
-                               This internal push needs to be filtered out or
-                               it will hang around forever.
-                            -}
                             False
 
                         Drop ->
@@ -903,7 +898,13 @@ sendTimeoutPushes (Model model) =
                     )
     in
     Model model
-        |> updateTimeoutPushes toKeep
+        |> updateTimeoutPushes
+            (Dict.filter
+                (\_ internalPush ->
+                    not (internalPush.retryStrategy == Backoff [] Nothing)
+                )
+                toKeep
+            )
         |> sendAllPushes toGo
 
 
@@ -1728,6 +1729,9 @@ dropTimeoutPush compare (Model model) =
 
 
 {-| Maybe get the number of seconds until a push is retried.
+
+This is useful if you want to show a countdown timer to your users.
+
 -}
 pushTimeoutCountdown : (Push -> Bool) -> Model -> Maybe Int
 pushTimeoutCountdown compareFunc (Model model) =
