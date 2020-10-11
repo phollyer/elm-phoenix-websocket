@@ -3,6 +3,7 @@ module Phoenix exposing
     , PortConfig, init
     , connect, addConnectOptions, setConnectOptions, Payload, setConnectParams
     , Topic, Event, join, JoinConfig, addJoinConfig
+    , LeaveConfig, leave
     , RetryStrategy(..), Push, push, pushAll
     , subscriptions
     , addEvents, dropEvents
@@ -124,6 +125,11 @@ If you want to send any params to the Channel when you join at the Elixir end
 you can use the [addJoinConfig](#addJoinConfig) function.
 
 @docs Topic, Event, join, JoinConfig, addJoinConfig
+
+
+# Leaving a Channel
+
+@docs LeaveConfig, leave
 
 
 # Talking to Channels
@@ -495,26 +501,6 @@ type alias Topic =
     String
 
 
-{-| A type alias representing an event that is sent to, or received from, a
-Channel.
-
-So if you have this handler in your Elixir Channel:
-
-    def handle_in("new_msg", %{"msg" => msg, "id" => id}, socket) do
-        broadcast(socket, "send_msg", %{id: id, text: msg})
-
-        {:reply, :ok, socket}
-    end
-
-You would [Push](#Push) the `"new_msg"` `Event` and pattern match on the
-`"send_msg"` `Event` when you handle the [ChannelEvent](#PhoenixMsg) in your
-`update` function.
-
--}
-type alias Event =
-    String
-
-
 {-| Join a Channel referenced by the [Topic](#Topic).
 
 Connecting to the Socket is automatic if it has not already been opened.
@@ -551,6 +537,39 @@ join topic (Model model) =
             Model model
                 |> addChannelBeingJoined topic
                 |> connect
+
+
+{-| -}
+type alias LeaveConfig =
+    { topic : Topic
+    , timeout : Maybe Int
+    }
+
+
+{-| -}
+leave : LeaveConfig -> Model -> Cmd Msg
+leave config (Model model) =
+    Channel.leave config model.portConfig.phoenixSend
+
+
+{-| A type alias representing an event that is sent to, or received from, a
+Channel.
+
+So if you have this handler in your Elixir Channel:
+
+    def handle_in("new_msg", %{"msg" => msg, "id" => id}, socket) do
+        broadcast(socket, "send_msg", %{id: id, text: msg})
+
+        {:reply, :ok, socket}
+    end
+
+You would [Push](#Push) the `"new_msg"` `Event` and pattern match on the
+`"send_msg"` `Event` when you handle the [ChannelEvent](#PhoenixMsg) in your
+`update` function.
+
+-}
+type alias Event =
+    String
 
 
 {-| A type alias representing the optional config to use when joining a
