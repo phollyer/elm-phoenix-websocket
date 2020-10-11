@@ -775,7 +775,7 @@ dropQueuedPush ref (Model model) =
         (Model model)
 
 
-{-| Send a list of [Push](#Push)es to Elixir.
+{-| Send a list of [Push](#Push)es to their Channels.
 
 The [Push](#Push)es will be batched together and sent as a single `Cmd`. The
 order in which they will arrive at the Elixir end is unknown.
