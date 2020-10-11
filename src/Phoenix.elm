@@ -4,7 +4,7 @@ module Phoenix exposing
     , connect, addConnectOptions, setConnectOptions, Payload, setConnectParams
     , Topic, join, Event, JoinConfig, addJoinConfig
     , LeaveConfig, leave
-    , RetryStrategy(..), Push, push, pushAll, cancelPush
+    , RetryStrategy(..), Push, push, pushAll, dropQueuedPush, dropTimeoutPush, dropPush
     , subscriptions
     , addEvents, dropEvents
     , Msg, update
@@ -148,7 +148,7 @@ immediately.
 
 ## Pushing
 
-@docs RetryStrategy, Push, push, pushAll, cancelPush
+@docs RetryStrategy, Push, push, pushAll, dropQueuedPush, dropTimeoutPush, dropPush
 
 
 ## Receiving
@@ -700,7 +700,7 @@ type RetryStrategy
 
   - `ref` - Optional reference you can provide that you can later use to
     identify the push. This is useful when using functions that need to find
-    the push in order to do their thing, such as [cancelPush](#cancelPush) or
+    the push in order to do their thing, such as [dropPush](#dropPush) or
     [pushTimeoutCountdown](#pushTimeoutCountdown).
 
 -}
@@ -949,32 +949,40 @@ addTimeoutPush internalConfig (Model model) =
         (Model model)
 
 
+{-| Cancel a queued [Push](#Push) that is waiting for it's Channel to
+[join](#join).
+-}
+dropQueuedPush : (Push -> Bool) -> Model -> Model
+dropQueuedPush compare (Model model) =
+    updateQueuedPushes
+        (Dict.filter
+            (\_ internalPush -> not (compare internalPush.push))
+            model.queuedPushes
+        )
+        (Model model)
+
+
+{-| Cancel a timed out [Push](#Push).
+-}
+dropTimeoutPush : (Push -> Bool) -> Model -> Model
+dropTimeoutPush compare (Model model) =
+    updateTimeoutPushes
+        (Dict.filter
+            (\_ internalPush ->
+                not (compare internalPush.push)
+            )
+            model.timeoutPushes
+        )
+        (Model model)
+
+
 {-| Cancel a [Push](#Push).
 -}
-cancelPush : (Push -> Bool) -> Model -> Model
-cancelPush compare (Model model) =
-    if pushQueued compare (Model model) then
-        updateQueuedPushes
-            (Dict.filter
-                (\_ internalPush ->
-                    not (compare internalPush.push)
-                )
-                model.queuedPushes
-            )
-            (Model model)
-
-    else if pushTimedOut compare (Model model) then
-        updateTimeoutPushes
-            (Dict.filter
-                (\_ internalPush ->
-                    not (compare internalPush.push)
-                )
-                model.timeoutPushes
-            )
-            (Model model)
-
-    else
-        Model model
+dropPush : (Push -> Bool) -> Model -> Model
+dropPush compare model =
+    model
+        |> dropQueuedPush compare
+        |> dropTimeoutPush compare
 
 
 
