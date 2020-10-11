@@ -266,7 +266,6 @@ type Model
         , joinedChannels : Set Topic
         , connectOptions : List Socket.ConnectOption
         , connectParams : Payload
-        , incomingChannelMessages : Dict Topic (List String)
         , joinConfigs : Dict Topic JoinConfig
         , phoenixMsg : PhoenixMsg
         , portConfig : PortConfig
@@ -345,7 +344,6 @@ init portConfig options =
         , joinedChannels = Set.empty
         , connectOptions = options
         , connectParams = JE.null
-        , incomingChannelMessages = Dict.empty
         , joinConfigs = Dict.empty
         , phoenixMsg = NoOp
         , portConfig = portConfig
