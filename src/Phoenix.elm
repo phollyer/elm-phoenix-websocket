@@ -668,23 +668,18 @@ dropJoinedChannel topic (Model model) =
 
   - `Every second` - The number of seconds to wait between retries.
 
-  - `Backoff [List seconds] max` - A backoff strategy enabling you to increase
+  - `Backoff [List seconds] (Maybe max)` - A backoff strategy enabling you to increase
     the delay between retries. When the list has been exhausted, `max` will be
-    used for each subsequent attempt.
+    used for each subsequent attempt, if max is `Nothing`, the push will then
+    be dropped, which is useful if you want to limit the number of retries.
 
-        Backoff [ 1, 5, 10, 20 ] 30
-
-    An empty list will use the `max` value and is equivalent to `Every second`.
-
-        -- Backoff [] 10 == Every 10
-
-
+        Backoff [ 1, 5, 10, 20 ] (Just 30)
 
 -}
 type RetryStrategy
     = Drop
     | Every Int
-    | Backoff (List Int) Int
+    | Backoff (List Int) (Maybe Int)
 
 
 {-| A type alias representing the config for pushing a message to a Channel.
@@ -882,8 +877,16 @@ sendTimeoutPushes (Model model) =
                         Backoff (head :: _) _ ->
                             internalConfig.timeoutTick == head
 
-                        Backoff [] max ->
+                        Backoff [] (Just max) ->
                             internalConfig.timeoutTick == max
+
+                        Backoff [] Nothing ->
+                            {- TODO:
+
+                               This internal push needs to be filtered out or
+                               it will hang around forever.
+                            -}
+                            False
 
                         Drop ->
                             -- This branch should never match because
@@ -1746,8 +1749,11 @@ pushTimeoutCountdown compareFunc (Model model) =
                     Backoff (seconds :: _) _ ->
                         Just (seconds - first.timeoutTick)
 
-                    Backoff [] max ->
+                    Backoff [] (Just max) ->
                         Just (max - first.timeoutTick)
+
+                    Backoff [] Nothing ->
+                        Nothing
 
             [] ->
                 Nothing
