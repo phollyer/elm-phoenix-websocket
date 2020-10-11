@@ -688,18 +688,20 @@ type RetryStrategy
 
   - `event` - The event to send to the Channel.
 
-  - `payload` - The params to send with the message. If you don't need to
-    send any params, set this to
+  - `payload` - The params to send with the push. If you don't need to send
+    any params, set this to
     [Json.Encode.null](https://package.elm-lang.org/packages/elm/json/latest/Json-Encode#null).
     I decided not to make this a `Maybe` because it is expected that most of
     the time something will be sent.
 
   - `timeout` - Optional timeout in milliseconds to set on the push request.
 
-  - `retryStrategy` - The retry strategy to use when the push times out.
+  - `retryStrategy` - The retry strategy to use if the push times out.
 
   - `ref` - Optional reference you can provide that you can later use to
-    identify the push.
+    identify the push. This is useful when using functions that need to find
+    the push in order to do their thing, such as [cancelPush](#cancelPush) or
+    [pushTimeoutCountdown](#pushTimeoutCountdown).
 
 -}
 type alias Push =
