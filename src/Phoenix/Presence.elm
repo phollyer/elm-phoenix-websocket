@@ -5,8 +5,9 @@ module Phoenix.Presence exposing
     , PortIn, subscriptions
     )
 
-{-| This module is not intended to be used directly, the top level
-[Phoenix](Phoenix#) module provides a much nicer experience.
+{-| This module can be used to receive Presence messages from your Channels
+from anywhere in your Elm program without needing to add anything to your
+Model. That is all it does and all it is intended to do.
 
 @docs Presence, PresenceDiff
 

@@ -6,8 +6,14 @@ module Phoenix.Channel exposing
     , on, allOn, off, allOff
     )
 
-{-| This module is not intended to be used directly, the top level
-[Phoenix](Phoenix#) module provides a much nicer experience.
+{-| This module can be used to talk directly to PhoenixJS without needing to
+add anything to your Model. You can send and receive messages to and from your
+Channels from anywhere in your Elm program. That is all it does and all it is
+intended to do.
+
+If you want more functionality, the top level [Phoenix](Phoenix#) module
+takes care of a lot of the low level stuff such as automatically joining to
+your Channels.
 
 
 # Joining
