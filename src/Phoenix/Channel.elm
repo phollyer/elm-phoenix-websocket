@@ -333,36 +333,16 @@ handleIn toMsg { topic, msg, payload } =
             toMsg (JoinTimeout topic payload)
 
         "PushOk" ->
-            case JD.decodeValue pushDecoder payload of
-                Ok pushOk ->
-                    toMsg (PushOk topic pushOk.event pushOk.payload pushOk.ref)
-
-                Result.Err error ->
-                    toMsg (DecoderError (JD.errorToString error))
+            decodePushResponse toMsg topic PushOk payload
 
         "PushError" ->
-            case JD.decodeValue pushDecoder payload of
-                Ok pushError ->
-                    toMsg (PushError topic pushError.event pushError.payload pushError.ref)
-
-                Result.Err error ->
-                    toMsg (DecoderError (JD.errorToString error))
+            decodePushResponse toMsg topic PushError payload
 
         "PushTimeout" ->
-            case JD.decodeValue pushDecoder payload of
-                Ok pushTimeout ->
-                    toMsg (PushTimeout topic pushTimeout.event pushTimeout.payload pushTimeout.ref)
-
-                Result.Err error ->
-                    toMsg (DecoderError (JD.errorToString error))
+            decodePushResponse toMsg topic PushTimeout payload
 
         "Message" ->
-            case JD.decodeValue messageDecoder payload of
-                Ok message ->
-                    toMsg (Message topic message.event message.payload)
-
-                Result.Err error ->
-                    toMsg (DecoderError (JD.errorToString error))
+            decodeEvent toMsg topic Message payload
 
         "Error" ->
             toMsg (Error topic)
@@ -375,6 +355,10 @@ handleIn toMsg { topic, msg, payload } =
 
         _ ->
             toMsg (InvalidMsg topic msg payload)
+
+
+
+{- Incoming Events -}
 
 
 {-| Switch an incoming event on.
@@ -437,6 +421,16 @@ allOff { topic, events } portOut =
 {- Decoders -}
 
 
+decodePushResponse : (Msg -> msg) -> Topic -> (Topic -> Event -> Payload -> Int -> Msg) -> Value -> msg
+decodePushResponse toMsg topic pushMsg payload =
+    case JD.decodeValue pushDecoder payload of
+        Ok push_ ->
+            toMsg (pushMsg topic push_.event push_.payload push_.ref)
+
+        Result.Err error ->
+            toMsg (DecoderError (JD.errorToString error))
+
+
 type alias PushResponse =
     { event : String
     , payload : Value
@@ -453,15 +447,25 @@ pushDecoder =
         |> andMap (JD.field "ref" JD.int)
 
 
-type alias MessageResponse =
+decodeEvent : (Msg -> msg) -> Topic -> (Topic -> Event -> Payload -> Msg) -> Value -> msg
+decodeEvent toMsg topic eventMsg payload =
+    case JD.decodeValue eventDecoder payload of
+        Ok event ->
+            toMsg (eventMsg topic event.event event.payload)
+
+        Result.Err error ->
+            toMsg (DecoderError (JD.errorToString error))
+
+
+type alias EventIn =
     { event : String
     , payload : Value
     }
 
 
-messageDecoder : JD.Decoder MessageResponse
-messageDecoder =
+eventDecoder : JD.Decoder EventIn
+eventDecoder =
     JD.succeed
-        MessageResponse
+        EventIn
         |> andMap (JD.field "event" JD.string)
         |> andMap (JD.field "payload" JD.value)
