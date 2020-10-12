@@ -218,8 +218,7 @@ accompanying JS file accordingly.
 -}
 disconnect : PortOut msg -> Cmd msg
 disconnect portOut =
-    portOut <|
-        package "disconnect"
+    portOut (package "disconnect")
 
 
 
@@ -262,11 +261,11 @@ arrives as a [Msg](#Msg) `Message`.
 
 -}
 type alias MessageConfig =
-    { joinRef : Maybe String
-    , ref : Maybe String
-    , topic : Topic
+    { topic : Topic
     , event : Event
     , payload : Payload
+    , joinRef : Maybe String
+    , ref : Maybe String
     }
 
 
@@ -361,133 +360,47 @@ type alias PortIn msg =
 -}
 subscriptions : (Msg -> msg) -> PortIn msg -> Sub msg
 subscriptions msg portIn =
-    portIn <|
-        handleIn msg
+    portIn (handleMessage msg)
 
 
-handleIn : (Msg -> msg) -> { msg : String, payload : JE.Value } -> msg
-handleIn toMsg { msg, payload } =
+handleMessage : (Msg -> msg) -> { msg : String, payload : JE.Value } -> msg
+handleMessage toMsg { msg, payload } =
     case msg of
+        "Error" ->
+            toMsg Error
+
         "Opened" ->
             toMsg Opened
 
         "Closed" ->
-            case JD.decodeValue closedDecoder payload of
-                Ok closed ->
-                    toMsg (Closed closed)
-
-                Result.Err error ->
-                    toMsg (DecoderError (JD.errorToString error))
-
-        "Error" ->
-            toMsg Error
+            decodeClosed toMsg payload
 
         "Message" ->
-            case JD.decodeValue messageDecoder payload of
-                Ok message ->
-                    if message.event == "phx_reply" then
-                        toMsg (Heartbeat message)
-
-                    else
-                        toMsg (Message message)
-
-                Result.Err error ->
-                    toMsg (DecoderError (JD.errorToString error))
+            decodeMessage toMsg payload
 
         "ConnectionState" ->
-            case JD.decodeValue JD.string payload of
-                Ok state ->
-                    toMsg (Info (ConnectionState state))
-
-                Result.Err error ->
-                    toMsg (DecoderError (JD.errorToString error))
+            decodeInfo toMsg ConnectionState JD.string payload
 
         "EndPointURL" ->
-            case JD.decodeValue JD.string payload of
-                Ok endpoint ->
-                    toMsg (Info (EndPointURL endpoint))
-
-                Result.Err error ->
-                    toMsg (DecoderError (JD.errorToString error))
+            decodeInfo toMsg EndPointURL JD.string payload
 
         "HasLogger" ->
-            case JD.decodeValue (JD.maybe JD.bool) payload of
-                Ok hasLogger_ ->
-                    toMsg (Info (HasLogger hasLogger_))
-
-                Result.Err error ->
-                    toMsg (DecoderError (JD.errorToString error))
+            decodeInfo toMsg HasLogger (JD.maybe JD.bool) payload
 
         "Info" ->
-            case JD.decodeValue infoDecoder payload of
-                Ok socketInfo ->
-                    toMsg (Info (All socketInfo))
-
-                Result.Err error ->
-                    toMsg (DecoderError (JD.errorToString error))
+            decodeInfo toMsg All infoDecoder payload
 
         "IsConnected" ->
-            case JD.decodeValue JD.bool payload of
-                Ok endpoint ->
-                    toMsg (Info (IsConnected endpoint))
-
-                Result.Err error ->
-                    toMsg (DecoderError (JD.errorToString error))
+            decodeInfo toMsg IsConnected JD.bool payload
 
         "MakeRef" ->
-            case JD.decodeValue JD.string payload of
-                Ok endpoint ->
-                    toMsg (Info (MakeRef endpoint))
-
-                Result.Err error ->
-                    toMsg (DecoderError (JD.errorToString error))
+            decodeInfo toMsg MakeRef JD.string payload
 
         "Protocol" ->
-            case JD.decodeValue JD.string payload of
-                Ok endpoint ->
-                    toMsg (Info (Protocol endpoint))
-
-                Result.Err error ->
-                    toMsg (DecoderError (JD.errorToString error))
+            decodeInfo toMsg Protocol JD.string payload
 
         _ ->
             toMsg (InvalidMsg msg)
-
-
-
--- Decoders
-
-
-closedDecoder : JD.Decoder ClosedInfo
-closedDecoder =
-    JD.succeed
-        ClosedInfo
-        |> andMap (JD.field "reason" JD.string)
-        |> andMap (JD.field "code" JD.int)
-        |> andMap (JD.field "wasClean" JD.bool)
-
-
-infoDecoder : JD.Decoder AllInfo
-infoDecoder =
-    JD.succeed
-        AllInfo
-        |> andMap (JD.field "connectionState" JD.string)
-        |> andMap (JD.field "endPointURL" JD.string)
-        |> andMap (JD.field "hasLogger" (JD.maybe JD.bool))
-        |> andMap (JD.field "isConnected" JD.bool)
-        |> andMap (JD.field "nextMessageRef" JD.string)
-        |> andMap (JD.field "protocol" JD.string)
-
-
-messageDecoder : JD.Decoder MessageConfig
-messageDecoder =
-    JD.succeed
-        MessageConfig
-        |> andMap (JD.maybe (JD.field "join_ref" JD.string))
-        |> andMap (JD.maybe (JD.field "ref" JD.string))
-        |> andMap (JD.field "topic" JD.string)
-        |> andMap (JD.field "event" JD.string)
-        |> andMap (JD.field "payload" JD.value)
 
 
 
@@ -597,3 +510,73 @@ startLogging portOut =
 stopLogging : PortOut msg -> Cmd msg
 stopLogging portOut =
     portOut (package "stopLogging")
+
+
+
+{- Decoders -}
+
+
+decodeClosed : (Msg -> msg) -> Value -> msg
+decodeClosed toMsg payload =
+    case JD.decodeValue closedDecoder payload of
+        Ok closed ->
+            toMsg (Closed closed)
+
+        Result.Err error ->
+            toMsg (DecoderError (JD.errorToString error))
+
+
+closedDecoder : JD.Decoder ClosedInfo
+closedDecoder =
+    JD.succeed
+        ClosedInfo
+        |> andMap (JD.field "reason" JD.string)
+        |> andMap (JD.field "code" JD.int)
+        |> andMap (JD.field "wasClean" JD.bool)
+
+
+decodeInfo : (Msg -> msg) -> (a -> Info) -> JD.Decoder a -> Value -> msg
+decodeInfo toMsg okMsg decoder payload =
+    case JD.decodeValue decoder payload of
+        Ok val ->
+            toMsg (Info (okMsg val))
+
+        Err error ->
+            toMsg (DecoderError (JD.errorToString error))
+
+
+infoDecoder : JD.Decoder AllInfo
+infoDecoder =
+    JD.succeed
+        AllInfo
+        |> andMap (JD.field "connectionState" JD.string)
+        |> andMap (JD.field "endPointURL" JD.string)
+        |> andMap (JD.field "hasLogger" (JD.maybe JD.bool))
+        |> andMap (JD.field "isConnected" JD.bool)
+        |> andMap (JD.field "nextMessageRef" JD.string)
+        |> andMap (JD.field "protocol" JD.string)
+
+
+decodeMessage : (Msg -> msg) -> Value -> msg
+decodeMessage toMsg payload =
+    case JD.decodeValue messageDecoder payload of
+        Ok message ->
+            if message.event == "phx_reply" then
+                toMsg (Heartbeat message)
+
+            else
+                toMsg (Message message)
+
+        Result.Err error ->
+            toMsg (DecoderError (JD.errorToString error))
+
+
+messageDecoder : JD.Decoder MessageConfig
+messageDecoder =
+    JD.succeed
+        MessageConfig
+        |> andMap (JD.field "topic" JD.string)
+        |> andMap (JD.field "event" JD.string)
+        |> andMap (JD.field "payload" JD.value)
+        |> andMap (JD.maybe (JD.field "join_ref" JD.string))
+        |> andMap (JD.maybe (JD.field "ref" JD.string))
