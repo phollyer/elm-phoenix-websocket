@@ -23,8 +23,63 @@ import Json.Decode.Extra exposing (andMap)
 import Json.Encode as JE
 
 
-{-| A type alias representing a
-[Presence](https://hexdocs.pm/phoenix/1.5.3/Phoenix.Presence.html#content).
+{-| A type alias representing a Presence on a Channel.
+
+  - `id` - The `id` used to identify the Presence map in the
+    [Presence.track/3](https://hexdocs.pm/phoenix/Phoenix.Presence.html#c:track/3)
+    Elixir function. The recommended approach is to use the users' `id`.
+
+  - `metas`- A list of metadata as stored in the
+    [Presence.track/3](https://hexdocs.pm/phoenix/Phoenix.Presence.html#c:track/3)
+    Elixir function.
+
+  - `user` - The user data that is pulled from the DB and stored on the
+    Presence in the
+    [fetch/2](https://hexdocs.pm/phoenix/Phoenix.Presence.html#c:fetch/2)
+    Elixir callback function. This is the recommended approach for storing user
+    data on the Presence. If
+    [fetch/2](https://hexdocs.pm/phoenix/Phoenix.Presence.html#c:fetch/2) is
+    not being used then `user` will be equal to
+    [Json.Encode.null](https://package.elm-lang.org/packages/elm/json/latest/Json-Encode#null).
+
+  - `presence` - The whole Presence map. This provides a way to access any
+    additional data that is stored on the Presence.
+
+```
+-- MyAppWeb.MyChannel.ex
+
+def handle_info(:after_join, socket) do
+  {:ok, _} = Presence.track(socket, socket.assigns.user_id, %{
+    online_at: System.os_time(:millisecond)
+  })
+
+  push(socket, "presence_state", Presence.list(socket))
+
+  {:noreply, socket}
+end
+
+-- MyAppWeb.Presence.ex
+
+defmodule MyAppWeb.Presence do
+  use Phoenix.Presence,
+    otp_app: :my_app,
+    pubsub_server: MyApp.PubSub
+
+  def fetch(_topic, presences) do
+    query =
+      from u in User,
+      where: u.id in ^Map.keys(presences),
+      select: {u.id, u}
+
+    users = query |> Repo.all() |> Enum.into(%{})
+
+    for {key, %{metas: metas}} <- presences, into: %{} do
+      {key, %{metas: metas, user: users[key]}}
+    end
+  end
+end
+```
+
 -}
 type alias Presence =
     { id : String
@@ -55,8 +110,9 @@ type alias Topic =
 If you are using more than one Channel, then you can check `Topic` to determine
 which Channel the [Msg](#Msg) relates to.
 
-`InvalidMsg` means that a msg has been received from the accompanying JS
-that cannot be handled. This should not happen, if it does, please raise an
+`DecoderError` and `InvalidMsg` mean that a message has been received from the
+accompanying JS that cannot be handled. This should not happen, but will if the
+JS and this module are out of sync, if it does, please raise an
 [issue](https://github.com/phollyer/elm-phoenix-websocket/issues).
 
 -}
@@ -89,8 +145,8 @@ type alias PortIn msg =
 
 {-| Subscribe to receive incoming Presence [Msg](#Msg)s.
 
-    import Phoenix.Presence
-    import Port
+    import Phoenix.Presence as Presence
+    import Ports.Phoenix as Port
 
     type Msg
       = PresenceMsg Presence.Msg
@@ -121,36 +177,16 @@ handleIn : (Msg -> msg) -> Package -> msg
 handleIn toMsg { topic, msg, payload } =
     case msg of
         "Join" ->
-            case decodePresence payload of
-                Ok presence ->
-                    toMsg (Join topic presence)
-
-                Result.Err error ->
-                    toMsg (DecoderError (JD.errorToString error))
+            decodePresence toMsg topic Join presenceDecoder payload
 
         "Leave" ->
-            case decodePresence payload of
-                Ok presence ->
-                    toMsg (Leave topic presence)
-
-                Result.Err error ->
-                    toMsg (DecoderError (JD.errorToString error))
+            decodePresence toMsg topic Leave presenceDecoder payload
 
         "State" ->
-            case decodeState payload of
-                Ok state ->
-                    toMsg (State topic state)
-
-                Result.Err error ->
-                    toMsg (DecoderError (JD.errorToString error))
+            decodePresence toMsg topic State stateDecoder payload
 
         "Diff" ->
-            case decodeDiff payload of
-                Ok diff ->
-                    toMsg (Diff topic diff)
-
-                Result.Err error ->
-                    toMsg (DecoderError (JD.errorToString error))
+            decodePresence toMsg topic Diff diffDecoder payload
 
         _ ->
             toMsg (InvalidMsg topic msg)
@@ -160,11 +196,14 @@ handleIn toMsg { topic, msg, payload } =
 {- Decoders -}
 
 
-decodePresence : JD.Value -> Result JD.Error Presence
-decodePresence payload =
-    JD.decodeValue
-        presenceDecoder
-        payload
+decodePresence : (Msg -> msg) -> Topic -> (Topic -> a -> Msg) -> JD.Decoder a -> Value -> msg
+decodePresence toMsg topic presenceMsg decoder payload =
+    case JD.decodeValue decoder payload of
+        Ok presence ->
+            toMsg (presenceMsg topic presence)
+
+        Err error ->
+            toMsg (DecoderError (JD.errorToString error))
 
 
 presenceDecoder : JD.Decoder Presence
@@ -177,26 +216,12 @@ presenceDecoder =
         |> andMap (JD.field "presence" JD.value)
 
 
-decodeDiff : JE.Value -> Result JD.Error PresenceDiff
-decodeDiff payload =
-    JD.decodeValue
-        diffDecoder
-        payload
-
-
 diffDecoder : JD.Decoder PresenceDiff
 diffDecoder =
     JD.succeed
         PresenceDiff
         |> andMap (JD.field "joins" listDecoder)
         |> andMap (JD.field "leaves" listDecoder)
-
-
-decodeState : Value -> Result JD.Error (List Presence)
-decodeState payload =
-    JD.decodeValue
-        stateDecoder
-        payload
 
 
 stateDecoder : JD.Decoder (List Presence)
