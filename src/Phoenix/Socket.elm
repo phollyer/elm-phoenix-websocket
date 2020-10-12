@@ -1,7 +1,7 @@
 module Phoenix.Socket exposing
     ( ConnectOption(..), Params, PortOut, connect
     , disconnect
-    , ClosedInfo, Topic, Event, Payload, ChannelMessage, AllInfo, Info(..), InternalError(..), Msg(..), PortIn, subscriptions
+    , ClosedInfo, Topic, Event, Payload, ChannelMessage, PresenceMessage, HeartbeatMessage, AllInfo, Info(..), InternalError(..), Msg(..), PortIn, subscriptions
     , connectionState, endPointURL, info, isConnected, makeRef, protocol
     , allMessagesOn, allMessagesOff
     , channelMessagesOn, channelMessagesOff
@@ -32,7 +32,7 @@ the Socket.
 
 # Receiving Messages
 
-@docs ClosedInfo, Topic, Event, Payload, ChannelMessage, AllInfo, Info, InternalError, Msg, PortIn, subscriptions
+@docs ClosedInfo, Topic, Event, Payload, ChannelMessage, PresenceMessage, HeartbeatMessage, AllInfo, Info, InternalError, Msg, PortIn, subscriptions
 
 
 # Socket Information
