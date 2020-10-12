@@ -3,7 +3,6 @@ module Internal.SocketInfo exposing
     , init
     , updateConnectionState
     , updateEndPointURL
-    , updateHasLogger
     , updateIsConnected
     , updateMakeRef
     , updateProtocol
@@ -13,7 +12,6 @@ module Internal.SocketInfo exposing
 type alias Info =
     { connectionState : String
     , endPointURL : String
-    , hasLogger : Maybe Bool
     , isConnected : Bool
     , makeRef : String
     , protocol : String
@@ -24,7 +22,6 @@ init : Info
 init =
     { connectionState = ""
     , endPointURL = ""
-    , hasLogger = Nothing
     , isConnected = False
     , makeRef = ""
     , protocol = ""
@@ -40,13 +37,6 @@ updateEndPointURL : String -> Info -> Info
 updateEndPointURL endPointURL socketInfo =
     { socketInfo
         | endPointURL = endPointURL
-    }
-
-
-updateHasLogger : Maybe Bool -> Info -> Info
-updateHasLogger hasLogger socketInfo =
-    { socketInfo
-        | hasLogger = hasLogger
     }
 
 

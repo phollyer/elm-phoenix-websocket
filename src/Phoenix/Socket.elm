@@ -2,7 +2,7 @@ module Phoenix.Socket exposing
     ( ConnectOption(..), Params, PortOut, connect
     , disconnect
     , ClosedInfo, Topic, Event, Payload, MessageConfig, AllInfo, Info(..), Msg(..), PortIn, subscriptions
-    , connectionState, endPointURL, hasLogger, info, isConnected, makeRef, protocol
+    , connectionState, endPointURL, info, isConnected, makeRef, protocol
     , log, startLogging, stopLogging
     )
 
@@ -27,7 +27,9 @@ module Phoenix.Socket exposing
 
 # Socket Information
 
-@docs connectionState, endPointURL, hasLogger, info, isConnected, makeRef, protocol
+Request information about the Socket.
+
+@docs connectionState, endPointURL, info, isConnected, makeRef, protocol
 
 
 # Logging
@@ -126,8 +128,8 @@ type alias PortOut msg =
 to use.
 
     import Json.Encode as JE
-    import Port
-    import Socket
+    import Phoenix.Socket as Socket
+    import Ports.Phoenix as Port
 
     -- A simple connection
 
@@ -254,11 +256,7 @@ type alias Payload =
 
 
 {-| A type alias representing the raw message received by the Socket. This
-arrives as a [Msg](#Msg) `Message`.
-
-**Note:** You won't need this if you choose to handle [Event](#Event)s over
-[Channel](Phoenix.Channel)s.
-
+arrives as a `Message` or `Heartbeat` [Msg](#Msg).
 -}
 type alias MessageConfig =
     { topic : Topic
@@ -269,19 +267,11 @@ type alias MessageConfig =
     }
 
 
-{-| All of the info available about the Socket.
-
-**Note:** Not all versions of
-[PhoenixJS](https://hexdocs.pm/phoenix/js) have the `hasLogger` function.
-Therefore, a value of `Nothing` means the function does not exist and therefore
-could not be called, while a `Just` will carry the result of calling
-`hasLogger` on the Socket.
-
+{-| A type alias representing all of the info available about the Socket.
 -}
 type alias AllInfo =
     { connectionState : String
     , endPointURL : String
-    , hasLogger : Maybe Bool
     , isConnected : Bool
     , makeRef : String
     , protocol : String
@@ -294,7 +284,6 @@ type Info
     = All AllInfo
     | ConnectionState String
     | EndPointURL String
-    | HasLogger (Maybe Bool)
     | IsConnected Bool
     | MakeRef String
     | Protocol String
@@ -302,15 +291,10 @@ type Info
 
 {-| All of the messages you can receive from the Socket.
 
-**Note 1:** `InvalidMsg` means that a message has been received from the
-accompanying JS that cannot be handled. This should not happen, if it does,
-please raise an
-[issue](https://github.com/phollyer/elm-phoenix-webSocket/issues).
-
-**Note 2:** The `Error` in a `Result` is a `Json.Decode.Error`. These should
-not occur, but will if the data received from the accompanying JS is of the
-wrong type, so I decided to leave the `Error` to be handled by the user of the
-package, rather than gloss over it with some kind of default.
+`DecoderError` and `InvalidMsg` mean that a message has been received from the
+accompanying JS that cannot be handled. This should not happen, but will if the
+JS and this module are out of sync, if it does, please raise an
+[issue](https://github.com/phollyer/elm-phoenix-websocket/issues).
 
 -}
 type Msg
@@ -325,7 +309,7 @@ type Msg
 
 
 {-| A type alias representing the `port` function required to receive
-the [Msg](#Msg) from the Socket.
+a [Msg](#Msg) from the Socket.
 
 You will find this `port` function in the
 [Port](https://github.com/phollyer/elm-phoenix-webSocket/tree/master/ports)
@@ -341,10 +325,10 @@ type alias PortIn msg =
     -> Sub msg
 
 
-{-| Subscribe to receive incoming Socket msgs.
+{-| Subscribe to receive incoming Socket messages.
 
-    import Port
-    import Socket
+    import Phoenix.Socket as Socket
+    import Ports.Phoenix as Port
 
     type Msg
       = SocketMsg Socket.Msg
@@ -355,7 +339,7 @@ type alias PortIn msg =
     subscriptions _ =
         Socket.subscriptions
             SocketMsg
-            Port.SocketReceiver
+            Port.socketReceiver
 
 -}
 subscriptions : (Msg -> msg) -> PortIn msg -> Sub msg
@@ -383,9 +367,6 @@ handleMessage toMsg { msg, payload } =
 
         "EndPointURL" ->
             decodeInfo toMsg EndPointURL JD.string payload
-
-        "HasLogger" ->
-            decodeInfo toMsg HasLogger (JD.maybe JD.bool) payload
 
         "Info" ->
             decodeInfo toMsg All infoDecoder payload
@@ -417,12 +398,6 @@ connectionState portOut =
 endPointURL : PortOut msg -> Cmd msg
 endPointURL portOut =
     portOut (package "endPointURL")
-
-
-{-| -}
-hasLogger : PortOut msg -> Cmd msg
-hasLogger portOut =
-    portOut (package "hasLogger")
 
 
 {-| -}
@@ -551,7 +526,6 @@ infoDecoder =
         AllInfo
         |> andMap (JD.field "connectionState" JD.string)
         |> andMap (JD.field "endPointURL" JD.string)
-        |> andMap (JD.field "hasLogger" (JD.maybe JD.bool))
         |> andMap (JD.field "isConnected" JD.bool)
         |> andMap (JD.field "nextMessageRef" JD.string)
         |> andMap (JD.field "protocol" JD.string)
