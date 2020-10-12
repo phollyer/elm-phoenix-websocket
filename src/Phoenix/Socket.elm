@@ -1,7 +1,7 @@
 module Phoenix.Socket exposing
     ( ConnectOption(..), Params, PortOut, connect
     , disconnect
-    , ClosedInfo, Topic, Event, Payload, MessageConfig, InternalError(..), AllInfo, Info(..), Msg(..), PortIn, subscriptions
+    , ClosedInfo, Topic, Event, Payload, MessageConfig, AllInfo, Info(..), InternalError(..), Msg(..), PortIn, subscriptions
     , connectionState, endPointURL, info, isConnected, makeRef, protocol
     , log, startLogging, stopLogging
     )
@@ -28,7 +28,7 @@ the Socket.
 
 # Receiving Messages
 
-@docs ClosedInfo, Topic, Event, Payload, MessageConfig, InternalError, AllInfo, Info, Msg, PortIn, subscriptions
+@docs ClosedInfo, Topic, Event, Payload, MessageConfig, AllInfo, Info, InternalError, Msg, PortIn, subscriptions
 
 
 # Socket Information
@@ -295,19 +295,19 @@ type Info
     | Protocol String
 
 
-{-| -}
+{-| An `InternalError` should never happen, but if it does, it is because the
+JS is out of sync with this package.
+
+If you ever receive this message, please
+[raise an issue](https://github.com/phollyer/elm-phoenix-websocket/issues).
+
+-}
 type InternalError
     = DecoderError String
     | InvalidMessage String
 
 
 {-| All of the messages you can receive from the Socket.
-
-`DecoderError` and `InvalidMsg` mean that a message has been received from the
-accompanying JS that cannot be handled. This should not happen, but will if the
-JS and this module are out of sync, if it does, please raise an
-[issue](https://github.com/phollyer/elm-phoenix-websocket/issues).
-
 -}
 type Msg
     = Opened

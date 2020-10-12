@@ -103,20 +103,22 @@ type alias Topic =
     String
 
 
+{-| An `InternalError` should never happen, but if it does, it is because the
+JS is out of sync with this package.
+
+If you ever receive this message, please
+[raise an issue](https://github.com/phollyer/elm-phoenix-websocket/issues).
+
+-}
 type InternalError
     = DecoderError String
     | InvalidMessage Topic String
 
 
-{-| All of the Presence `Msg`s that can come from the Channel.
+{-| All of the Presence messages that can come from the Channel.
 
-If you are using more than one Channel, then you can check `Topic` to determine
-which Channel the [Msg](#Msg) relates to.
-
-`DecoderError` and `InvalidMsg` mean that a message has been received from the
-accompanying JS that cannot be handled. This should not happen, but will if the
-JS and this module are out of sync, if it does, please raise an
-[issue](https://github.com/phollyer/elm-phoenix-websocket/issues).
+If you are using more than one Channel, then you can pattern match on `Topic`
+to determine which Channel the [Msg](#Msg) relates to.
 
 -}
 type Msg

@@ -1426,21 +1426,13 @@ type Error
     | Socket
 
 
-{-| The `InvalidMsg` type is received when a message comes in from JS that
-cannot be handled. This should never happen, but if it does, it is because the
+{-| An `InternalError` should never happen, but if it does, it is because the
 JS is out of sync with this package.
 
 If you ever receive this message, please
 [raise an issue](https://github.com/phollyer/elm-phoenix-websocket/issues).
 
 -}
-type InvalidMsg
-    = SocketMsg String
-    | ChannelMsg Topic String Payload
-    | PresenceMsg Topic String
-
-
-{-| -}
 type InternalError
     = DecoderError String
     | InvalidMessage String
