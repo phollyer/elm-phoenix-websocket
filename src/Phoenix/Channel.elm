@@ -2,7 +2,7 @@ module Phoenix.Channel exposing
     ( Topic, Event, Payload, JoinConfig, PortOut, join
     , LeaveConfig, leave
     , PushConfig, push
-    , PortIn, DecoderError(..), Msg(..), subscriptions
+    , PortIn, Msg(..), subscriptions
     , on, allOn, off, allOff
     )
 
@@ -27,7 +27,7 @@ module Phoenix.Channel exposing
 
 # Receiving
 
-@docs PortIn, DecoderError, Msg, subscriptions
+@docs PortIn, Msg, subscriptions
 
 
 # Custom Events
@@ -267,11 +267,6 @@ type alias PortIn msg =
     -> Sub msg
 
 
-{-| -}
-type DecoderError
-    = Err String
-
-
 {-| All of the msgs you can receive from the Channel.
 
   - `Topic` - is the Channel topic that the message came from.
@@ -298,7 +293,7 @@ type Msg
     | Error Topic
     | LeaveOk Topic
     | Closed Topic
-    | DecoderError DecoderError
+    | DecoderError String
     | InvalidMsg Topic String Payload
 
 
@@ -343,7 +338,7 @@ handleIn toMsg { topic, msg, payload } =
                     toMsg (PushOk topic pushOk.event pushOk.payload pushOk.ref)
 
                 Result.Err error ->
-                    toMsg (DecoderError (Err (JD.errorToString error)))
+                    toMsg (DecoderError (JD.errorToString error))
 
         "PushError" ->
             case JD.decodeValue pushDecoder payload of
@@ -351,7 +346,7 @@ handleIn toMsg { topic, msg, payload } =
                     toMsg (PushError topic pushError.event pushError.payload pushError.ref)
 
                 Result.Err error ->
-                    toMsg (DecoderError (Err (JD.errorToString error)))
+                    toMsg (DecoderError (JD.errorToString error))
 
         "PushTimeout" ->
             case JD.decodeValue pushDecoder payload of
@@ -359,7 +354,7 @@ handleIn toMsg { topic, msg, payload } =
                     toMsg (PushTimeout topic pushTimeout.event pushTimeout.payload pushTimeout.ref)
 
                 Result.Err error ->
-                    toMsg (DecoderError (Err (JD.errorToString error)))
+                    toMsg (DecoderError (JD.errorToString error))
 
         "Message" ->
             case JD.decodeValue messageDecoder payload of
@@ -367,7 +362,7 @@ handleIn toMsg { topic, msg, payload } =
                     toMsg (Message topic message.event message.payload)
 
                 Result.Err error ->
-                    toMsg (DecoderError (Err (JD.errorToString error)))
+                    toMsg (DecoderError (JD.errorToString error))
 
         "Error" ->
             toMsg (Error topic)

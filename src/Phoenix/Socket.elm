@@ -1,7 +1,7 @@
 module Phoenix.Socket exposing
     ( ConnectOption(..), Params, PortOut, connect
     , disconnect
-    , ClosedInfo, Topic, Event, Payload, MessageConfig, AllInfo, Info(..), DecoderError(..), Msg(..), PortIn, subscriptions
+    , ClosedInfo, Topic, Event, Payload, MessageConfig, AllInfo, Info(..), Msg(..), PortIn, subscriptions
     , connectionState, endPointURL, hasLogger, info, isConnected, makeRef, protocol
     , log, startLogging, stopLogging
     )
@@ -22,7 +22,7 @@ module Phoenix.Socket exposing
 
 # Receiving Messages
 
-@docs ClosedInfo, Topic, Event, Payload, MessageConfig, AllInfo, Info, DecoderError, Msg, PortIn, subscriptions
+@docs ClosedInfo, Topic, Event, Payload, MessageConfig, AllInfo, Info, Msg, PortIn, subscriptions
 
 
 # Socket Information
@@ -301,11 +301,6 @@ type Info
     | Protocol String
 
 
-{-| -}
-type DecoderError
-    = Err String
-
-
 {-| All of the messages you can receive from the Socket.
 
 **Note 1:** `InvalidMsg` means that a message has been received from the
@@ -326,7 +321,7 @@ type Msg
     | Message MessageConfig
     | Info Info
     | Heartbeat MessageConfig
-    | DecoderError DecoderError
+    | DecoderError String
     | InvalidMsg String
 
 
@@ -382,9 +377,7 @@ handleIn toMsg { msg, payload } =
                     toMsg (Closed closed)
 
                 Result.Err error ->
-                    toMsg <|
-                        DecoderError <|
-                            Err (JD.errorToString error)
+                    toMsg (DecoderError (JD.errorToString error))
 
         "Error" ->
             toMsg Error
@@ -399,9 +392,7 @@ handleIn toMsg { msg, payload } =
                         toMsg (Message message)
 
                 Result.Err error ->
-                    toMsg <|
-                        DecoderError <|
-                            Err (JD.errorToString error)
+                    toMsg (DecoderError (JD.errorToString error))
 
         "ConnectionState" ->
             case JD.decodeValue JD.string payload of
@@ -409,9 +400,7 @@ handleIn toMsg { msg, payload } =
                     toMsg (Info (ConnectionState state))
 
                 Result.Err error ->
-                    toMsg <|
-                        DecoderError <|
-                            Err (JD.errorToString error)
+                    toMsg (DecoderError (JD.errorToString error))
 
         "EndPointURL" ->
             case JD.decodeValue JD.string payload of
@@ -419,9 +408,7 @@ handleIn toMsg { msg, payload } =
                     toMsg (Info (EndPointURL endpoint))
 
                 Result.Err error ->
-                    toMsg <|
-                        DecoderError <|
-                            Err (JD.errorToString error)
+                    toMsg (DecoderError (JD.errorToString error))
 
         "HasLogger" ->
             case JD.decodeValue (JD.maybe JD.bool) payload of
@@ -429,9 +416,7 @@ handleIn toMsg { msg, payload } =
                     toMsg (Info (HasLogger hasLogger_))
 
                 Result.Err error ->
-                    toMsg <|
-                        DecoderError <|
-                            Err (JD.errorToString error)
+                    toMsg (DecoderError (JD.errorToString error))
 
         "Info" ->
             case JD.decodeValue infoDecoder payload of
@@ -439,9 +424,7 @@ handleIn toMsg { msg, payload } =
                     toMsg (Info (All socketInfo))
 
                 Result.Err error ->
-                    toMsg <|
-                        DecoderError <|
-                            Err (JD.errorToString error)
+                    toMsg (DecoderError (JD.errorToString error))
 
         "IsConnected" ->
             case JD.decodeValue JD.bool payload of
@@ -449,9 +432,7 @@ handleIn toMsg { msg, payload } =
                     toMsg (Info (IsConnected endpoint))
 
                 Result.Err error ->
-                    toMsg <|
-                        DecoderError <|
-                            Err (JD.errorToString error)
+                    toMsg (DecoderError (JD.errorToString error))
 
         "MakeRef" ->
             case JD.decodeValue JD.string payload of
@@ -459,9 +440,7 @@ handleIn toMsg { msg, payload } =
                     toMsg (Info (MakeRef endpoint))
 
                 Result.Err error ->
-                    toMsg <|
-                        DecoderError <|
-                            Err (JD.errorToString error)
+                    toMsg (DecoderError (JD.errorToString error))
 
         "Protocol" ->
             case JD.decodeValue JD.string payload of
@@ -469,9 +448,7 @@ handleIn toMsg { msg, payload } =
                     toMsg (Info (Protocol endpoint))
 
                 Result.Err error ->
-                    toMsg <|
-                        DecoderError <|
-                            Err (JD.errorToString error)
+                    toMsg (DecoderError (JD.errorToString error))
 
         _ ->
             toMsg (InvalidMsg msg)

@@ -1142,7 +1142,7 @@ update msg (Model model) =
                             , Cmd.none
                             )
 
-                Channel.DecoderError (Channel.Err _) ->
+                Channel.DecoderError _ ->
                     ( Model model
                     , Cmd.none
                     )
@@ -1232,7 +1232,7 @@ update msg (Model model) =
                         _ ->
                             ( Model model, Cmd.none )
 
-                Socket.DecoderError (Socket.Err _) ->
+                Socket.DecoderError _ ->
                     ( Model model
                     , Cmd.none
                     )
