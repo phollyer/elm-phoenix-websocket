@@ -44,10 +44,8 @@ Request information about the Socket.
 
 # Message Control
 
-These functions enable control over what messages flow into Elm through the
-`socketReceiver` `port` function.
-
-This only affects the PhoenixJS `onMessage` handler.
+These functions enable control over what messages the PhoenixJS `onMessage`
+handler forwards on to Elm.
 
 @docs allMessagesOn, allMessagesOff
 
