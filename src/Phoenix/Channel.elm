@@ -1,7 +1,7 @@
 module Phoenix.Channel exposing
     ( Topic, Event, Payload, JoinConfig, PortOut, join
     , LeaveConfig, leave
-    , PushConfig, push
+    , push
     , PortIn, Msg(..), subscriptions
     , on, allOn, off, allOff
     )
@@ -22,7 +22,7 @@ module Phoenix.Channel exposing
 
 # Pushing
 
-@docs PushConfig, push
+@docs push
 
 
 # Receiving
@@ -30,7 +30,12 @@ module Phoenix.Channel exposing
 @docs PortIn, Msg, subscriptions
 
 
-# Custom Events
+# Incoming Events
+
+These are events that are `push`ed or `broadcast` from your Elixir Channels. It
+is necessary to set up the JS event listeners so that the events can be
+captured and sent on to Elm. These functions turn those event listeners on and
+off.
 
 @docs on, allOn, off, allOff
 
@@ -65,9 +70,9 @@ type alias Payload =
 
   - `topic` - The Channel topic id, for example: `"topic:subtopic"`.
 
-  - `payload` - Optional data to be sent to the Channel when joining.
-
   - `events` - A list of events to receive on the Channel.
+
+  - `payload` - Optional data to be sent to the Channel when joining.
 
   - `timeout` - Optional timeout, in ms, before retrying to join if the previous
     attempt failed.
@@ -75,8 +80,8 @@ type alias Payload =
 -}
 type alias JoinConfig =
     { topic : Topic
-    , payload : Maybe Payload
     , events : List Event
+    , payload : Maybe Payload
     , timeout : Maybe Int
     }
 
@@ -99,7 +104,7 @@ type alias PortOut msg =
 {-| Join a Channel.
 
     import Phoenix.Channel as Channel
-    import Port
+    import Ports.Phoenix as Port
 
     Channel.join
         { topic = "topic:subtopic"
@@ -150,7 +155,7 @@ join { topic, payload, events, timeout } portOut =
 
 -}
 type alias LeaveConfig =
-    { topic : String
+    { topic : Topic
     , timeout : Maybe Int
     }
 
@@ -158,7 +163,7 @@ type alias LeaveConfig =
 {-| Leave a Channel.
 
     import Phoenix.Channel as Channel
-    import Port
+    import Ports.Phoenix as Port
 
     Channel.leave
         { topic = "topic:subtopic"
@@ -189,42 +194,21 @@ leave { topic, timeout } portOut =
         }
 
 
-{-| A type alias representing the config for pushing to a Channel.
-
-  - `topic` - The Channel topic id, for example: `"topic:subtopic"`.
-
-  - `event` - The event to send to the Channel.
-
-  - `payload` - The data to be sent. If you don't need to send any data, set
-    this to
-    [Json.Encode.null](https://package.elm-lang.org/packages/elm/json/latest/Json-Encode#null) .
-
-  - `timeout` - Optional timeout, in ms, before retrying to push if the previous
-    attempt failed.
-
-  - `ref` - Optional reference you can provide that you can later use to
-    identify the response to a push if you're sending lots of the same `event`s.
-
--}
-type alias PushConfig =
-    { topic : Topic
-    , event : Event
-    , payload : Payload
-    , timeout : Maybe Int
-    , ref : Maybe String
-    }
-
-
 {-| Push to a Channel.
+
+The optional `ref` is returned with the response to the Push so that you can
+use it to identify the push later on if needed.
 
     import Json.Encode as JE
     import Phoenix.Channel as Channel
-    import Port
+    import Ports.Phoenix as Port
 
     Channel.push
         { topic = "topic:subtopic"
         , event = "new_msg"
-        , payload = JE.object [("msg", JE.string "Hello World")]
+        , payload =
+            JE.object
+                [("msg", JE.string "Hello World")]
         , timeout = Nothing
         , ref = Nothing
         }
@@ -277,8 +261,9 @@ type alias PortIn msg =
   - `Payload` - is the data received from the Channel, with the exception of
     `JoinTimout` and `PushTimeout` where it will be the original payload.
 
-`InvalidMsg` means that a msg has been received from the accompanying JS
-that cannot be handled. This should not happen, if it does, please raise an
+`DecoderError` and `InvalidMsg` mean that a message has been received from the
+accompanying JS that cannot be handled. This should not happen, but will if the
+JS and this module are out of sync, if it does, please raise an
 [issue](https://github.com/phollyer/elm-phoenix-websocket/issues).
 
 -}
@@ -300,7 +285,7 @@ type Msg
 {-| Subscribe to receive incoming Channel [Msg](#Msg)s.
 
     import Phoenix.Channel as Channel
-    import Port
+    import Ports.Phoenix as Port
 
     type Msg
       = ChannelMsg Channel.Msg
@@ -311,7 +296,7 @@ type Msg
     subscriptions _ =
         Channel.subscriptions
             ChannelMsg
-            Port.ChannelReceiver
+            Port.channelReceiver
 
 -}
 subscriptions : (Msg -> msg) -> PortIn msg -> Sub msg
