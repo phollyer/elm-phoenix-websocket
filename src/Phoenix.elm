@@ -1152,53 +1152,38 @@ update msg (Model model) =
 
         ReceivedPresenceMsg presenceMsg ->
             case presenceMsg of
-                Presence.Diff topic diffResult ->
-                    case diffResult of
-                        Ok diff ->
-                            ( Model model
-                                |> addPresenceDiff topic diff
-                                |> updatePhoenixMsg (PresenceEvent (Diff topic diff))
-                            , Cmd.none
-                            )
+                Presence.Diff topic diff ->
+                    ( Model model
+                        |> addPresenceDiff topic diff
+                        |> updatePhoenixMsg (PresenceEvent (Diff topic diff))
+                    , Cmd.none
+                    )
 
-                        _ ->
-                            ( Model model, Cmd.none )
+                Presence.Join topic join_ ->
+                    ( Model model
+                        |> addPresenceJoin topic join_
+                        |> updatePhoenixMsg (PresenceEvent (Join topic join_))
+                    , Cmd.none
+                    )
 
-                Presence.Join topic presenceResult ->
-                    case presenceResult of
-                        Ok presence ->
-                            ( Model model
-                                |> addPresenceJoin topic presence
-                                |> updatePhoenixMsg (PresenceEvent (Join topic presence))
-                            , Cmd.none
-                            )
+                Presence.Leave topic leave_ ->
+                    ( Model model
+                        |> addPresenceLeave topic leave_
+                        |> updatePhoenixMsg (PresenceEvent (Leave topic leave_))
+                    , Cmd.none
+                    )
 
-                        _ ->
-                            ( Model model, Cmd.none )
+                Presence.State topic state ->
+                    ( Model model
+                        |> replacePresenceState topic state
+                        |> updatePhoenixMsg (PresenceEvent (State topic state))
+                    , Cmd.none
+                    )
 
-                Presence.Leave topic presenceResult ->
-                    case presenceResult of
-                        Ok presence ->
-                            ( Model model
-                                |> addPresenceLeave topic presence
-                                |> updatePhoenixMsg (PresenceEvent (Leave topic presence))
-                            , Cmd.none
-                            )
-
-                        _ ->
-                            ( Model model, Cmd.none )
-
-                Presence.State topic stateResult ->
-                    case stateResult of
-                        Ok state ->
-                            ( Model model
-                                |> replacePresenceState topic state
-                                |> updatePhoenixMsg (PresenceEvent (State topic state))
-                            , Cmd.none
-                            )
-
-                        _ ->
-                            ( Model model, Cmd.none )
+                Presence.DecoderError _ ->
+                    ( Model model
+                    , Cmd.none
+                    )
 
                 Presence.InvalidMsg topic message ->
                     ( updatePhoenixMsg (InvalidMsg (PresenceMsg topic message)) (Model model)
