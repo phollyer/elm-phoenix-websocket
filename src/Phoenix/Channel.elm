@@ -2,7 +2,7 @@ module Phoenix.Channel exposing
     ( Topic, Event, Payload, JoinConfig, PortOut, join
     , LeaveConfig, leave
     , PushConfig, push
-    , PortIn, Msg(..), subscriptions
+    , PortIn, DecoderError(..), Msg(..), subscriptions
     , on, allOn, off, allOff
     )
 
@@ -27,7 +27,7 @@ module Phoenix.Channel exposing
 
 # Receiving
 
-@docs PortIn, Msg, subscriptions
+@docs PortIn, DecoderError, Msg, subscriptions
 
 
 # Custom Events
@@ -37,6 +37,7 @@ module Phoenix.Channel exposing
 -}
 
 import Json.Decode as JD
+import Json.Decode.Extra exposing (andMap)
 import Json.Encode as JE exposing (Value)
 import Json.Encode.Extra exposing (maybe)
 
@@ -266,6 +267,11 @@ type alias PortIn msg =
     -> Sub msg
 
 
+{-| -}
+type DecoderError
+    = Err String
+
+
 {-| All of the msgs you can receive from the Channel.
 
   - `Topic` - is the Channel topic that the message came from.
@@ -285,13 +291,14 @@ type Msg
     = JoinOk Topic Payload
     | JoinError Topic Payload
     | JoinTimeout Topic Payload
-    | PushOk Topic (Result JD.Error Event) (Result JD.Error Payload) (Result JD.Error Int)
-    | PushError Topic (Result JD.Error Event) (Result JD.Error Payload) (Result JD.Error Int)
-    | PushTimeout Topic (Result JD.Error Event) (Result JD.Error Payload) (Result JD.Error Int)
-    | Message Topic (Result JD.Error Event) (Result JD.Error Payload)
+    | PushOk Topic Event Payload Int
+    | PushError Topic Event Payload Int
+    | PushTimeout Topic Event Payload Int
+    | Message Topic Event Payload
     | Error Topic
     | LeaveOk Topic
     | Closed Topic
+    | DecoderError DecoderError
     | InvalidMsg Topic String Payload
 
 
@@ -331,75 +338,36 @@ handleIn toMsg { topic, msg, payload } =
             toMsg (JoinTimeout topic payload)
 
         "PushOk" ->
-            let
-                event =
-                    JD.decodeValue
-                        (JD.field "event" JD.string)
-                        payload
+            case JD.decodeValue pushDecoder payload of
+                Ok pushOk ->
+                    toMsg (PushOk topic pushOk.event pushOk.payload pushOk.ref)
 
-                payload_ =
-                    JD.decodeValue
-                        (JD.field "payload" JD.value)
-                        payload
-
-                ref =
-                    JD.decodeValue
-                        (JD.field "ref" JD.int)
-                        payload
-            in
-            toMsg (PushOk topic event payload_ ref)
+                Result.Err error ->
+                    toMsg (DecoderError (Err (JD.errorToString error)))
 
         "PushError" ->
-            let
-                event =
-                    JD.decodeValue
-                        (JD.field "event" JD.string)
-                        payload
+            case JD.decodeValue pushDecoder payload of
+                Ok pushError ->
+                    toMsg (PushError topic pushError.event pushError.payload pushError.ref)
 
-                payload_ =
-                    JD.decodeValue
-                        (JD.field "payload" JD.value)
-                        payload
-
-                ref =
-                    JD.decodeValue
-                        (JD.field "ref" JD.int)
-                        payload
-            in
-            toMsg (PushError topic event payload_ ref)
+                Result.Err error ->
+                    toMsg (DecoderError (Err (JD.errorToString error)))
 
         "PushTimeout" ->
-            let
-                event =
-                    JD.decodeValue
-                        (JD.field "event" JD.string)
-                        payload
+            case JD.decodeValue pushDecoder payload of
+                Ok pushTimeout ->
+                    toMsg (PushTimeout topic pushTimeout.event pushTimeout.payload pushTimeout.ref)
 
-                payload_ =
-                    JD.decodeValue
-                        (JD.field "payload" JD.value)
-                        payload
-
-                ref =
-                    JD.decodeValue
-                        (JD.field "ref" JD.int)
-                        payload
-            in
-            toMsg (PushTimeout topic event payload_ ref)
+                Result.Err error ->
+                    toMsg (DecoderError (Err (JD.errorToString error)))
 
         "Message" ->
-            let
-                event =
-                    JD.decodeValue
-                        (JD.field "event" JD.string)
-                        payload
+            case JD.decodeValue messageDecoder payload of
+                Ok message ->
+                    toMsg (Message topic message.event message.payload)
 
-                payload_ =
-                    JD.decodeValue
-                        (JD.field "payload" JD.value)
-                        payload
-            in
-            toMsg (Message topic event payload_)
+                Result.Err error ->
+                    toMsg (DecoderError (Err (JD.errorToString error)))
 
         "Error" ->
             toMsg (Error topic)
@@ -468,3 +436,37 @@ allOff { topic, events } portOut =
                 , ( "events", JE.list JE.string events )
                 ]
         }
+
+
+
+{- Decoders -}
+
+
+type alias PushResponse =
+    { event : String
+    , payload : Value
+    , ref : Int
+    }
+
+
+pushDecoder : JD.Decoder PushResponse
+pushDecoder =
+    JD.succeed
+        PushResponse
+        |> andMap (JD.field "event" JD.string)
+        |> andMap (JD.field "payload" JD.value)
+        |> andMap (JD.field "ref" JD.int)
+
+
+type alias MessageResponse =
+    { event : String
+    , payload : Value
+    }
+
+
+messageDecoder : JD.Decoder MessageResponse
+messageDecoder =
+    JD.succeed
+        MessageResponse
+        |> andMap (JD.field "event" JD.string)
+        |> andMap (JD.field "payload" JD.value)

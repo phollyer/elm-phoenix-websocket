@@ -1080,87 +1080,72 @@ update msg (Model model) =
                     , Cmd.none
                     )
 
-                Channel.Message topic msgResult payloadResult ->
-                    case ( msgResult, payloadResult ) of
-                        ( Ok event, Ok payload ) ->
-                            ( updatePhoenixMsg (ChannelEvent topic event payload) (Model model), Cmd.none )
+                Channel.Message topic event payload ->
+                    ( updatePhoenixMsg (ChannelEvent topic event payload) (Model model), Cmd.none )
 
-                        _ ->
-                            ( Model model, Cmd.none )
-
-                Channel.PushError topic msgResult payloadResult refResult ->
-                    case ( msgResult, payloadResult, refResult ) of
-                        ( Ok msg_, Ok payload, Ok internalRef ) ->
-                            let
-                                pushRef =
-                                    case Dict.get internalRef model.queuedPushes of
-                                        Just internalConfig ->
-                                            internalConfig.push.ref
-
-                                        Nothing ->
-                                            Just ""
-                            in
-                            ( Model model
-                                |> dropQueuedInternalPush internalRef
-                                |> updatePhoenixMsg (ChannelResponse (PushError topic msg_ pushRef payload))
-                            , Cmd.none
-                            )
-
-                        _ ->
-                            ( Model model, Cmd.none )
-
-                Channel.PushOk topic msgResult payloadResult refResult ->
-                    case ( msgResult, payloadResult, refResult ) of
-                        ( Ok msg_, Ok payload, Ok internalRef ) ->
-                            let
-                                pushRef =
-                                    case Dict.get internalRef model.queuedPushes of
-                                        Just internalConfig ->
-                                            internalConfig.push.ref
-
-                                        Nothing ->
-                                            Just ""
-                            in
-                            ( Model model
-                                |> dropQueuedInternalPush internalRef
-                                |> updatePhoenixMsg (ChannelResponse (PushOk topic msg_ pushRef payload))
-                            , Cmd.none
-                            )
-
-                        _ ->
-                            ( Model model, Cmd.none )
-
-                Channel.PushTimeout topic msgResult payloadResult refResult ->
-                    case ( msgResult, payloadResult, refResult ) of
-                        ( Ok msg_, Ok payload, Ok internalRef ) ->
-                            case Dict.get internalRef model.queuedPushes of
+                Channel.PushError topic event payload ref ->
+                    let
+                        pushRef =
+                            case Dict.get ref model.queuedPushes of
                                 Just internalConfig ->
-                                    let
-                                        pushRef =
-                                            internalConfig.push.ref
-
-                                        responseModel =
-                                            Model model
-                                                |> dropQueuedInternalPush internalConfig.ref
-                                                |> updatePhoenixMsg
-                                                    (ChannelResponse (PushTimeout topic msg_ pushRef payload))
-                                    in
-                                    case internalConfig.retryStrategy of
-                                        Drop ->
-                                            ( responseModel, Cmd.none )
-
-                                        _ ->
-                                            ( addTimeoutPush internalConfig responseModel, Cmd.none )
+                                    internalConfig.push.ref
 
                                 Nothing ->
-                                    ( updatePhoenixMsg
-                                        (ChannelResponse (PushTimeout topic msg_ Nothing payload))
-                                        (Model model)
-                                    , Cmd.none
-                                    )
+                                    Nothing
+                    in
+                    ( Model model
+                        |> dropQueuedInternalPush ref
+                        |> updatePhoenixMsg (ChannelResponse (PushError topic event pushRef payload))
+                    , Cmd.none
+                    )
 
-                        _ ->
-                            ( Model model, Cmd.none )
+                Channel.PushOk topic event payload ref ->
+                    let
+                        pushRef =
+                            case Dict.get ref model.queuedPushes of
+                                Just internalConfig ->
+                                    internalConfig.push.ref
+
+                                Nothing ->
+                                    Nothing
+                    in
+                    ( Model model
+                        |> dropQueuedInternalPush ref
+                        |> updatePhoenixMsg (ChannelResponse (PushOk topic event pushRef payload))
+                    , Cmd.none
+                    )
+
+                Channel.PushTimeout topic event payload ref ->
+                    case Dict.get ref model.queuedPushes of
+                        Just internalConfig ->
+                            let
+                                pushRef =
+                                    internalConfig.push.ref
+
+                                responseModel =
+                                    Model model
+                                        |> dropQueuedInternalPush ref
+                                        |> updatePhoenixMsg
+                                            (ChannelResponse (PushTimeout topic event pushRef payload))
+                            in
+                            case internalConfig.retryStrategy of
+                                Drop ->
+                                    ( responseModel, Cmd.none )
+
+                                _ ->
+                                    ( addTimeoutPush internalConfig responseModel, Cmd.none )
+
+                        Nothing ->
+                            ( updatePhoenixMsg
+                                (ChannelResponse (PushTimeout topic event Nothing payload))
+                                (Model model)
+                            , Cmd.none
+                            )
+
+                Channel.DecoderError (Channel.Err _) ->
+                    ( Model model
+                    , Cmd.none
+                    )
 
                 Channel.InvalidMsg topic invalidMsg payload ->
                     ( updatePhoenixMsg (InvalidMsg (ChannelMsg topic invalidMsg payload)) (Model model), Cmd.none )
