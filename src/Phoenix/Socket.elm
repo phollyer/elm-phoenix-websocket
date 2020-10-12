@@ -490,15 +490,6 @@ closedDecoder =
         |> andMap (JD.field "wasClean" JD.bool)
 
 
-errorDecoder : JD.Decoder String
-errorDecoder =
-    JD.oneOf
-        [ JD.field "reason" JD.string
-        , JD.field "error" JD.string
-        , JD.string
-        ]
-
-
 infoDecoder : JD.Decoder AllInfo
 infoDecoder =
     JD.succeed
