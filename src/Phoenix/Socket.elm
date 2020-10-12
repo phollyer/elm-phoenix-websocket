@@ -1,8 +1,12 @@
 module Phoenix.Socket exposing
     ( ConnectOption(..), Params, PortOut, connect
     , disconnect
-    , ClosedInfo, Topic, Event, Payload, MessageConfig, AllInfo, Info(..), InternalError(..), Msg(..), PortIn, subscriptions
+    , ClosedInfo, Topic, Event, Payload, ChannelMessage, AllInfo, Info(..), InternalError(..), Msg(..), PortIn, subscriptions
     , connectionState, endPointURL, info, isConnected, makeRef, protocol
+    , allMessagesOn, allMessagesOff
+    , channelMessagesOn, channelMessagesOff
+    , presenceMessagesOn, presenceMessagesOff
+    , heartbeatMessagesOn, heartbeatMessagesOff
     , log, startLogging, stopLogging
     )
 
@@ -28,7 +32,7 @@ the Socket.
 
 # Receiving Messages
 
-@docs ClosedInfo, Topic, Event, Payload, MessageConfig, AllInfo, Info, InternalError, Msg, PortIn, subscriptions
+@docs ClosedInfo, Topic, Event, Payload, ChannelMessage, AllInfo, Info, InternalError, Msg, PortIn, subscriptions
 
 
 # Socket Information
@@ -36,6 +40,22 @@ the Socket.
 Request information about the Socket.
 
 @docs connectionState, endPointURL, info, isConnected, makeRef, protocol
+
+
+# Message Control
+
+These functions enable control over what messages flow into Elm through the
+`socketReceiver` `port` function.
+
+This only affects the PhoenixJS `onMessage` handler.
+
+@docs allMessagesOn, allMessagesOff
+
+@docs channelMessagesOn, channelMessagesOff
+
+@docs presenceMessagesOn, presenceMessagesOff
+
+@docs heartbeatMessagesOn, heartbeatMessagesOff
 
 
 # Logging
@@ -261,15 +281,33 @@ type alias Payload =
     Value
 
 
-{-| A type alias representing the raw message received by the Socket. This
-arrives as a `Message` or `Heartbeat` [Msg](#Msg).
+{-| A type alias representing a raw Channel message received by the Socket.
 -}
-type alias MessageConfig =
+type alias ChannelMessage =
     { topic : Topic
     , event : Event
     , payload : Payload
     , joinRef : Maybe String
     , ref : Maybe String
+    }
+
+
+{-| A type alias representing a raw Presence message received by the Socket.
+-}
+type alias PresenceMessage =
+    { topic : Topic
+    , event : Event
+    , payload : Payload
+    }
+
+
+{-| A type alias representing a raw Heartbeat received by the Socket.
+-}
+type alias HeartbeatMessage =
+    { topic : Topic
+    , event : Event
+    , payload : Payload
+    , ref : String
     }
 
 
@@ -313,8 +351,9 @@ type Msg
     = Opened
     | Closed ClosedInfo
     | Error
-    | Message MessageConfig
-    | Heartbeat MessageConfig
+    | Channel ChannelMessage
+    | Presence PresenceMessage
+    | Heartbeat HeartbeatMessage
     | Info Info
     | InternalError InternalError
 
@@ -370,8 +409,14 @@ handleMessage toMsg { msg, payload } =
         "Closed" ->
             decodeClosed toMsg payload
 
-        "Message" ->
-            decodeMessage toMsg payload
+        "Channel" ->
+            decodeMessage toMsg Channel channelDecoder payload
+
+        "Presence" ->
+            decodeMessage toMsg Presence presenceDecoder payload
+
+        "Heartbeat" ->
+            decodeMessage toMsg Heartbeat heartbeatDecoder payload
 
         "ConnectionState" ->
             decodeInfo toMsg ConnectionState JD.string payload
@@ -440,6 +485,58 @@ package msg =
     { msg = msg
     , payload = JE.null
     }
+
+
+
+{- Message Control -}
+
+
+{-| -}
+allMessagesOn : PortOut msg -> Cmd msg
+allMessagesOn portOut =
+    portOut (package "allMessagesOn")
+
+
+{-| -}
+allMessagesOff : PortOut msg -> Cmd msg
+allMessagesOff portOut =
+    portOut (package "allMessagesOff")
+
+
+{-| -}
+channelMessagesOn : PortOut msg -> Cmd msg
+channelMessagesOn portOut =
+    portOut (package "channelMessagesOn")
+
+
+{-| -}
+channelMessagesOff : PortOut msg -> Cmd msg
+channelMessagesOff portOut =
+    portOut (package "channelMessagesOff")
+
+
+{-| -}
+presenceMessagesOn : PortOut msg -> Cmd msg
+presenceMessagesOn portOut =
+    portOut (package "presenceMessagesOn")
+
+
+{-| -}
+presenceMessagesOff : PortOut msg -> Cmd msg
+presenceMessagesOff portOut =
+    portOut (package "presenceMessagesOff")
+
+
+{-| -}
+heartbeatMessagesOn : PortOut msg -> Cmd msg
+heartbeatMessagesOn portOut =
+    portOut (package "heartbeatMessagesOn")
+
+
+{-| -}
+heartbeatMessagesOff : PortOut msg -> Cmd msg
+heartbeatMessagesOff portOut =
+    portOut (package "heartbeatMessagesOff")
 
 
 
@@ -542,26 +639,41 @@ infoDecoder =
         |> andMap (JD.field "protocol" JD.string)
 
 
-decodeMessage : (Msg -> msg) -> Value -> msg
-decodeMessage toMsg payload =
-    case JD.decodeValue messageDecoder payload of
+decodeMessage : (Msg -> msg) -> (a -> Msg) -> JD.Decoder a -> Value -> msg
+decodeMessage toMsg okMsg decoder payload =
+    case JD.decodeValue decoder payload of
         Ok message ->
-            if message.event == "phx_reply" then
-                toMsg (Heartbeat message)
-
-            else
-                toMsg (Message message)
+            toMsg (okMsg message)
 
         Result.Err error ->
             toMsg (InternalError (DecoderError (JD.errorToString error)))
 
 
-messageDecoder : JD.Decoder MessageConfig
-messageDecoder =
+channelDecoder : JD.Decoder ChannelMessage
+channelDecoder =
     JD.succeed
-        MessageConfig
+        ChannelMessage
         |> andMap (JD.field "topic" JD.string)
         |> andMap (JD.field "event" JD.string)
         |> andMap (JD.field "payload" JD.value)
         |> andMap (JD.maybe (JD.field "join_ref" JD.string))
         |> andMap (JD.maybe (JD.field "ref" JD.string))
+
+
+presenceDecoder : JD.Decoder PresenceMessage
+presenceDecoder =
+    JD.succeed
+        PresenceMessage
+        |> andMap (JD.field "topic" JD.string)
+        |> andMap (JD.field "event" JD.string)
+        |> andMap (JD.field "payload" JD.value)
+
+
+heartbeatDecoder : JD.Decoder HeartbeatMessage
+heartbeatDecoder =
+    JD.succeed
+        HeartbeatMessage
+        |> andMap (JD.field "topic" JD.string)
+        |> andMap (JD.field "event" JD.string)
+        |> andMap (JD.field "payload" JD.value)
+        |> andMap (JD.field "ref" JD.string)

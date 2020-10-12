@@ -8,7 +8,7 @@ module Phoenix exposing
     , subscriptions
     , addEvents, dropEvents
     , Msg, update
-    , SocketState(..)
+    , SocketState(..), SocketMessage(..)
     , OriginalPayload, PushRef, ChannelResponse(..)
     , Presence, PresenceDiff, PresenceEvent(..)
     , Error(..)
@@ -172,7 +172,7 @@ immediately.
 
 ### Socket
 
-@docs SocketState
+@docs SocketState, SocketMessage
 
 
 ### Channel
@@ -1216,13 +1216,18 @@ update msg (Model model) =
                     , Cmd.none
                     )
 
-                Socket.Message message ->
-                    ( updatePhoenixMsg (SocketMessage message) (Model model)
+                Socket.Channel message ->
+                    ( updatePhoenixMsg (SocketMessage (ChannelMessage message)) (Model model)
+                    , Cmd.none
+                    )
+
+                Socket.Presence message ->
+                    ( updatePhoenixMsg (SocketMessage (PresenceMessage message)) (Model model)
                     , Cmd.none
                     )
 
                 Socket.Heartbeat message ->
-                    ( updatePhoenixMsg (Heartbeat message) (Model model)
+                    ( updatePhoenixMsg (SocketMessage (Heartbeat message)) (Model model)
                     , Cmd.none
                     )
 
@@ -1305,6 +1310,29 @@ type SocketState
         { reason : String
         , code : Int
         , wasClean : Bool
+        }
+
+
+{-| The messages that can come in from the Socket.
+-}
+type SocketMessage
+    = ChannelMessage
+        { topic : Topic
+        , event : Event
+        , payload : Value
+        , joinRef : Maybe String
+        , ref : Maybe String
+        }
+    | PresenceMessage
+        { topic : Topic
+        , event : Event
+        , payload : Value
+        }
+    | Heartbeat
+        { topic : String
+        , event : String
+        , payload : Value
+        , ref : String
         }
 
 
@@ -1443,24 +1471,11 @@ type InternalError
 type PhoenixMsg
     = NoOp
     | StateChanged SocketState
+    | SocketMessage SocketMessage
     | ChannelResponse ChannelResponse
     | ChannelEvent Topic Event Payload
     | ChannelClosed Topic
     | PresenceEvent PresenceEvent
-    | SocketMessage
-        { joinRef : Maybe String
-        , ref : Maybe String
-        , topic : String
-        , event : String
-        , payload : Value
-        }
-    | Heartbeat
-        { joinRef : Maybe String
-        , ref : Maybe String
-        , topic : String
-        , event : String
-        , payload : Value
-        }
     | Error Error
     | InternalError InternalError
 
