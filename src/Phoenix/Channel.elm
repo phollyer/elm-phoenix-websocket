@@ -72,7 +72,7 @@ type alias Payload =
 
   - `events` - A list of events to receive on the Channel.
 
-  - `payload` - Optional data to be sent to the Channel when joining.
+  - `payload` - Data to be sent to the Channel when joining. If nothing
 
   - `timeout` - Optional timeout, in ms, before retrying to join if the previous
     attempt failed.
@@ -81,7 +81,7 @@ type alias Payload =
 type alias JoinConfig =
     { topic : Topic
     , events : List Event
-    , payload : Maybe Payload
+    , payload : Payload
     , timeout : Maybe Int
     }
 
@@ -116,33 +116,16 @@ type alias PortOut msg =
 
 -}
 join : JoinConfig -> PortOut msg -> Cmd msg
-join { topic, payload, events, timeout } portOut =
-    let
-        payload_ =
-            JE.object
-                [ ( "topic", JE.string topic )
-                , ( "payload"
-                  , case payload of
-                        Just data ->
-                            data
-
-                        Nothing ->
-                            JE.null
-                  )
-                , ( "events", JE.list JE.string events )
-                , ( "timeout"
-                  , case timeout of
-                        Just t ->
-                            JE.int t
-
-                        Nothing ->
-                            JE.null
-                  )
-                ]
-    in
+join { topic, events, payload, timeout } portOut =
     portOut
         { msg = "join"
-        , payload = payload_
+        , payload =
+            JE.object
+                [ ( "topic", JE.string topic )
+                , ( "events", JE.list JE.string events )
+                , ( "payload", payload )
+                , ( "timeout", maybe JE.int timeout )
+                ]
         }
 
 
@@ -174,23 +157,13 @@ type alias LeaveConfig =
 -}
 leave : LeaveConfig -> PortOut msg -> Cmd msg
 leave { topic, timeout } portOut =
-    let
-        payload_ =
-            JE.object
-                [ ( "topic", JE.string topic )
-                , ( "timeout"
-                  , case timeout of
-                        Just t ->
-                            JE.int t
-
-                        Nothing ->
-                            JE.null
-                  )
-                ]
-    in
     portOut
         { msg = "leave"
-        , payload = payload_
+        , payload =
+            JE.object
+                [ ( "topic", JE.string topic )
+                , ( "timeout", maybe JE.int timeout )
+                ]
         }
 
 
@@ -217,8 +190,9 @@ use it to identify the push later on if needed.
 -}
 push : { a | topic : Topic, event : Event, payload : Payload, timeout : Maybe Int, ref : Maybe String } -> PortOut msg -> Cmd msg
 push { topic, event, payload, timeout, ref } portOut =
-    let
-        payload_ =
+    portOut
+        { msg = "push"
+        , payload =
             JE.object
                 [ ( "topic", JE.string topic )
                 , ( "event", JE.string event )
@@ -226,10 +200,6 @@ push { topic, event, payload, timeout, ref } portOut =
                 , ( "timeout", maybe JE.int timeout )
                 , ( "ref", maybe JE.string ref )
                 ]
-    in
-    portOut
-        { msg = "push"
-        , payload = payload_
         }
 
 
@@ -301,8 +271,7 @@ type Msg
 -}
 subscriptions : (Msg -> msg) -> PortIn msg -> Sub msg
 subscriptions msg portIn =
-    portIn <|
-        handleIn msg
+    portIn (handleIn msg)
 
 
 handleIn : (Msg -> msg) -> { topic : String, msg : String, payload : JE.Value } -> msg

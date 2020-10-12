@@ -515,7 +515,7 @@ join topic (Model model) =
                     Model model
                         |> addJoinConfig
                             { topic = topic
-                            , payload = Nothing
+                            , payload = JE.null
                             , events = []
                             , timeout = Nothing
                             }
@@ -565,7 +565,7 @@ Channel.
 
   - `topic` - The channel topic id, for example: `"topic:subTopic"`.
 
-  - `payload` - Optional data to be sent to the Channel when joining.
+  - `payload` - Data to be sent to the Channel when joining.
 
   - `events` - A list of events to receive from the Channel.
 
@@ -575,7 +575,7 @@ Channel.
 -}
 type alias JoinConfig =
     { topic : Topic
-    , payload : Maybe Payload
+    , payload : Payload
     , events : List Event
     , timeout : Maybe Int
     }
