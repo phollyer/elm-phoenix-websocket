@@ -347,7 +347,7 @@ subscriptions msg portIn =
     portIn (handleMessage msg)
 
 
-handleMessage : (Msg -> msg) -> { msg : String, payload : JE.Value } -> msg
+handleMessage : (Msg -> msg) -> { msg : String, payload : Value } -> msg
 handleMessage toMsg { msg, payload } =
     case msg of
         "Error" ->
@@ -424,7 +424,7 @@ protocol portOut =
     portOut (package "protocol")
 
 
-package : String -> { msg : String, payload : JE.Value }
+package : String -> { msg : String, payload : Value }
 package msg =
     { msg = msg
     , payload = JE.null
@@ -461,7 +461,7 @@ function.
 -}
 log : String -> String -> Value -> PortOut msg -> Cmd msg
 log kind msg data portOut =
-    portOut <|
+    portOut
         { msg = "log"
         , payload =
             JE.object
