@@ -1228,72 +1228,44 @@ update msg (Model model) =
                         |> updatePhoenixMsg (StateChanged Connected)
                         |> joinChannels model.queuedChannels
 
-                Socket.Closed infoResult ->
-                    case infoResult of
-                        Ok info ->
+                Socket.Closed closedInfo ->
+                    ( Model model
+                        |> updateSocketState (Disconnected closedInfo)
+                        |> updatePhoenixMsg (StateChanged (Disconnected closedInfo))
+                    , Cmd.none
+                    )
+
+                Socket.Error ->
+                    ( updatePhoenixMsg (Error Socket) (Model model)
+                    , Cmd.none
+                    )
+
+                Socket.Message message ->
+                    ( updatePhoenixMsg (SocketMessage message) (Model model)
+                    , Cmd.none
+                    )
+
+                Socket.Heartbeat message ->
+                    ( updatePhoenixMsg (Heartbeat message) (Model model)
+                    , Cmd.none
+                    )
+
+                Socket.Info socketInfo ->
+                    case socketInfo of
+                        Socket.All info ->
                             ( Model model
-                                |> updateSocketState (Disconnected info)
-                                |> updatePhoenixMsg (StateChanged (Disconnected info))
+                                |> updateSocketInfo info
+                                |> updatePhoenixMsg NoOp
                             , Cmd.none
                             )
 
                         _ ->
                             ( Model model, Cmd.none )
 
-                Socket.Error result ->
-                    case result of
-                        Ok _ ->
-                            ( updatePhoenixMsg (Error Socket) (Model model)
-                            , Cmd.none
-                            )
-
-                        Err _ ->
-                            ( Model model
-                            , Cmd.none
-                            )
-
-                Socket.Message result ->
-                    case result of
-                        Ok message ->
-                            ( updatePhoenixMsg (SocketMessage message) (Model model)
-                            , Cmd.none
-                            )
-
-                        Err _ ->
-                            ( Model model
-                            , Cmd.none
-                            )
-
-                Socket.Heartbeat result ->
-                    case result of
-                        Ok message ->
-                            ( updatePhoenixMsg (Heartbeat message) (Model model)
-                            , Cmd.none
-                            )
-
-                        Err _ ->
-                            ( Model model
-                            , Cmd.none
-                            )
-
-                Socket.Info infoResponse ->
-                    case infoResponse of
-                        Socket.All result ->
-                            case result of
-                                Ok info ->
-                                    ( Model model
-                                        |> updateSocketInfo info
-                                        |> updatePhoenixMsg NoOp
-                                    , Cmd.none
-                                    )
-
-                                Err _ ->
-                                    ( Model model
-                                    , Cmd.none
-                                    )
-
-                        _ ->
-                            ( updatePhoenixMsg NoOp (Model model), Cmd.none )
+                Socket.DecoderError (Socket.Err _) ->
+                    ( Model model
+                    , Cmd.none
+                    )
 
                 Socket.InvalidMsg message ->
                     ( updatePhoenixMsg (InvalidMsg (SocketMsg message)) (Model model)
