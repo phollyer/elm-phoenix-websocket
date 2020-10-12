@@ -226,10 +226,7 @@ immediately.
 @docs presenceState, presenceDiff, presenceJoins, presenceLeaves, lastPresenceJoin, lastPresenceLeave
 
 
-## Debugging and Error Handling
-
-
-### Logging
+## Logging
 
 Here you can log data to the console, and activate and deactive the socket's
 logger, but be warned, **there is no safeguard when you compile** such as you
