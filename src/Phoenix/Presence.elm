@@ -1,7 +1,6 @@
 module Phoenix.Presence exposing
     ( Presence, PresenceDiff
-    , Topic
-    , Msg(..)
+    , Topic, InternalError(..), Msg(..)
     , PortIn, subscriptions
     )
 
@@ -11,9 +10,7 @@ Model. That is all it does and all it is intended to do.
 
 @docs Presence, PresenceDiff
 
-@docs Topic
-
-@docs Msg
+@docs Topic, InternalError, Msg
 
 @docs PortIn, subscriptions
 
@@ -106,6 +103,11 @@ type alias Topic =
     String
 
 
+type InternalError
+    = DecoderError String
+    | InvalidMessage Topic String
+
+
 {-| All of the Presence `Msg`s that can come from the Channel.
 
 If you are using more than one Channel, then you can check `Topic` to determine
@@ -122,8 +124,7 @@ type Msg
     | Leave Topic Presence
     | State Topic (List Presence)
     | Diff Topic PresenceDiff
-    | DecoderError String
-    | InvalidMsg Topic String
+    | InternalError InternalError
 
 
 {-| A type alias representing the `port` function required to receive
@@ -182,7 +183,7 @@ handleIn toMsg { topic, msg, payload } =
             decodePresence toMsg topic Diff diffDecoder payload
 
         _ ->
-            toMsg (InvalidMsg topic msg)
+            toMsg (InternalError (InvalidMessage topic msg))
 
 
 
@@ -196,7 +197,7 @@ decodePresence toMsg topic presenceMsg decoder payload =
             toMsg (presenceMsg topic presence)
 
         Err error ->
-            toMsg (DecoderError (JD.errorToString error))
+            toMsg (InternalError (DecoderError (JD.errorToString error)))
 
 
 presenceDecoder : JD.Decoder Presence

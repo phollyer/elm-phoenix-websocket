@@ -1,7 +1,7 @@
 module Phoenix.Socket exposing
     ( ConnectOption(..), Params, PortOut, connect
     , disconnect
-    , ClosedInfo, Topic, Event, Payload, MessageConfig, AllInfo, Info(..), Msg(..), PortIn, subscriptions
+    , ClosedInfo, Topic, Event, Payload, MessageConfig, InternalError(..), AllInfo, Info(..), Msg(..), PortIn, subscriptions
     , connectionState, endPointURL, info, isConnected, makeRef, protocol
     , log, startLogging, stopLogging
     )
@@ -28,7 +28,7 @@ the Socket.
 
 # Receiving Messages
 
-@docs ClosedInfo, Topic, Event, Payload, MessageConfig, AllInfo, Info, Msg, PortIn, subscriptions
+@docs ClosedInfo, Topic, Event, Payload, MessageConfig, InternalError, AllInfo, Info, Msg, PortIn, subscriptions
 
 
 # Socket Information
@@ -295,6 +295,12 @@ type Info
     | Protocol String
 
 
+{-| -}
+type InternalError
+    = DecoderError String
+    | InvalidMessage String
+
+
 {-| All of the messages you can receive from the Socket.
 
 `DecoderError` and `InvalidMsg` mean that a message has been received from the
@@ -308,10 +314,9 @@ type Msg
     | Closed ClosedInfo
     | Error
     | Message MessageConfig
-    | Info Info
     | Heartbeat MessageConfig
-    | DecoderError String
-    | InvalidMsg String
+    | Info Info
+    | InternalError InternalError
 
 
 {-| A type alias representing the `port` function required to receive
@@ -387,7 +392,7 @@ handleMessage toMsg { msg, payload } =
             decodeInfo toMsg Protocol JD.string payload
 
         _ ->
-            toMsg (InvalidMsg msg)
+            toMsg (InternalError (InvalidMessage msg))
 
 
 
@@ -504,7 +509,7 @@ decodeClosed toMsg payload =
             toMsg (Closed closed)
 
         Result.Err error ->
-            toMsg (DecoderError (JD.errorToString error))
+            toMsg (InternalError (DecoderError (JD.errorToString error)))
 
 
 closedDecoder : JD.Decoder ClosedInfo
@@ -523,7 +528,7 @@ decodeInfo toMsg okMsg decoder payload =
             toMsg (Info (okMsg val))
 
         Err error ->
-            toMsg (DecoderError (JD.errorToString error))
+            toMsg (InternalError (DecoderError (JD.errorToString error)))
 
 
 infoDecoder : JD.Decoder AllInfo
@@ -548,7 +553,7 @@ decodeMessage toMsg payload =
                 toMsg (Message message)
 
         Result.Err error ->
-            toMsg (DecoderError (JD.errorToString error))
+            toMsg (InternalError (DecoderError (JD.errorToString error)))
 
 
 messageDecoder : JD.Decoder MessageConfig

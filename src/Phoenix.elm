@@ -12,7 +12,7 @@ module Phoenix exposing
     , OriginalPayload, PushRef, ChannelResponse(..)
     , Presence, PresenceDiff, PresenceEvent(..)
     , Error(..)
-    , InvalidMsg(..)
+    , InternalError(..)
     , PhoenixMsg(..), phoenixMsg
     , socketState, isConnected, connectionState, endPointURL, protocol
     , queuedChannels, channelQueued, joinedChannels, channelJoined
@@ -189,9 +189,9 @@ immediately.
 @docs Error
 
 
-### Invalid Messages
+### Internal Errors
 
-@docs InvalidMsg
+@docs InternalError
 
 
 ### PhoenixMsg
@@ -1142,13 +1142,17 @@ update msg (Model model) =
                             , Cmd.none
                             )
 
-                Channel.DecoderError _ ->
-                    ( Model model
-                    , Cmd.none
-                    )
+                Channel.InternalError errorType ->
+                    case errorType of
+                        Channel.DecoderError error ->
+                            ( updatePhoenixMsg (InternalError (DecoderError ("Channel : " ++ error))) (Model model)
+                            , Cmd.none
+                            )
 
-                Channel.InvalidMsg topic invalidMsg payload ->
-                    ( updatePhoenixMsg (InvalidMsg (ChannelMsg topic invalidMsg payload)) (Model model), Cmd.none )
+                        Channel.InvalidMessage topic error _ ->
+                            ( updatePhoenixMsg (InternalError (InvalidMessage ("Channel : " ++ topic ++ " : " ++ error))) (Model model)
+                            , Cmd.none
+                            )
 
         ReceivedPresenceMsg presenceMsg ->
             case presenceMsg of
@@ -1180,15 +1184,17 @@ update msg (Model model) =
                     , Cmd.none
                     )
 
-                Presence.DecoderError _ ->
-                    ( Model model
-                    , Cmd.none
-                    )
+                Presence.InternalError errorType ->
+                    case errorType of
+                        Presence.DecoderError error ->
+                            ( updatePhoenixMsg (InternalError (DecoderError ("Presence : " ++ error))) (Model model)
+                            , Cmd.none
+                            )
 
-                Presence.InvalidMsg topic message ->
-                    ( updatePhoenixMsg (InvalidMsg (PresenceMsg topic message)) (Model model)
-                    , Cmd.none
-                    )
+                        Presence.InvalidMessage topic error ->
+                            ( updatePhoenixMsg (InternalError (InvalidMessage ("Presence : " ++ topic ++ " : " ++ error))) (Model model)
+                            , Cmd.none
+                            )
 
         ReceivedSocketMsg subMsg ->
             case subMsg of
@@ -1232,15 +1238,17 @@ update msg (Model model) =
                         _ ->
                             ( Model model, Cmd.none )
 
-                Socket.DecoderError _ ->
-                    ( Model model
-                    , Cmd.none
-                    )
+                Socket.InternalError errorType ->
+                    case errorType of
+                        Socket.DecoderError error ->
+                            ( updatePhoenixMsg (InternalError (DecoderError ("Socket : " ++ error))) (Model model)
+                            , Cmd.none
+                            )
 
-                Socket.InvalidMsg message ->
-                    ( updatePhoenixMsg (InvalidMsg (SocketMsg message)) (Model model)
-                    , Cmd.none
-                    )
+                        Socket.InvalidMessage error ->
+                            ( updatePhoenixMsg (InternalError (InvalidMessage ("Socket : " ++ error))) (Model model)
+                            , Cmd.none
+                            )
 
         TimeoutTick _ ->
             Model model
@@ -1432,6 +1440,12 @@ type InvalidMsg
     | PresenceMsg Topic String
 
 
+{-| -}
+type InternalError
+    = DecoderError String
+    | InvalidMessage String
+
+
 {-| The `Msg`s that you can pattern match on in your `update` function.
 -}
 type PhoenixMsg
@@ -1456,7 +1470,7 @@ type PhoenixMsg
         , payload : Value
         }
     | Error Error
-    | InvalidMsg InvalidMsg
+    | InternalError InternalError
 
 
 {-| Retrieve the [PhoenixMsg](#PhoenixMsg). Use it to pattern match on.

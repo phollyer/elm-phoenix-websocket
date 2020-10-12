@@ -2,7 +2,7 @@ module Phoenix.Channel exposing
     ( Topic, Event, Payload, JoinConfig, PortOut, join
     , LeaveConfig, leave
     , push
-    , PortIn, Msg(..), subscriptions
+    , PortIn, InternalError(..), Msg(..), subscriptions
     , on, allOn, off, allOff
     )
 
@@ -33,7 +33,7 @@ your Channels.
 
 # Receiving
 
-@docs PortIn, Msg, subscriptions
+@docs PortIn, InternalError, Msg, subscriptions
 
 
 # Incoming Events
@@ -227,6 +227,11 @@ type alias PortIn msg =
     -> Sub msg
 
 
+type InternalError
+    = DecoderError String
+    | InvalidMessage Topic String Payload
+
+
 {-| All of the msgs you can receive from the Channel.
 
   - `Topic` - is the Channel topic that the message came from.
@@ -254,8 +259,7 @@ type Msg
     | Error Topic
     | LeaveOk Topic
     | Closed Topic
-    | DecoderError String
-    | InvalidMsg Topic String Payload
+    | InternalError InternalError
 
 
 {-| Subscribe to receive incoming Channel [Msg](#Msg)s.
@@ -314,7 +318,7 @@ handleIn toMsg { topic, msg, payload } =
             toMsg (Closed topic)
 
         _ ->
-            toMsg (InvalidMsg topic msg payload)
+            toMsg (InternalError (InvalidMessage topic msg payload))
 
 
 
@@ -388,7 +392,7 @@ decodePushResponse toMsg topic pushMsg payload =
             toMsg (pushMsg topic push_.event push_.payload push_.ref)
 
         Result.Err error ->
-            toMsg (DecoderError (JD.errorToString error))
+            toMsg (InternalError (DecoderError (JD.errorToString error)))
 
 
 type alias PushResponse =
@@ -414,7 +418,7 @@ decodeEvent toMsg topic eventMsg payload =
             toMsg (eventMsg topic event.event event.payload)
 
         Result.Err error ->
-            toMsg (DecoderError (JD.errorToString error))
+            toMsg (InternalError (DecoderError (JD.errorToString error)))
 
 
 type alias EventIn =
