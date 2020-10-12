@@ -234,15 +234,12 @@ let ElmPhoenixWebSocket = {
 
     onMessage( resp ) {
         if (resp.topic == "phoenix" && this.socketMessages.heartbeat) {
-            console.log("Heartbeat", resp)
             this.socketSend("Heartbeat", resp)
 
         } else if (resp.event.indexOf("presence") == 0 && this.socketMessages.presence) {
-            console.log("Presence", resp)
             this.socketSend("Presence", resp)
 
         } else if (this.socketMessages.channel ){
-            console.log("Channel", resp)
             this.socketSend("Channel", resp)
         }
     },
