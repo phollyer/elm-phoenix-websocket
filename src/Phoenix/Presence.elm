@@ -162,18 +162,10 @@ type alias PortIn msg =
 -}
 subscriptions : (Msg -> msg) -> PortIn msg -> Sub msg
 subscriptions msg portIn =
-    portIn <|
-        handleIn msg
+    portIn (handleIn msg)
 
 
-type alias Package =
-    { topic : String
-    , msg : String
-    , payload : JE.Value
-    }
-
-
-handleIn : (Msg -> msg) -> Package -> msg
+handleIn : (Msg -> msg) -> { topic : Topic, msg : String, payload : Value } -> msg
 handleIn toMsg { topic, msg, payload } =
     case msg of
         "Join" ->
