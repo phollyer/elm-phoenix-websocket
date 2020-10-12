@@ -1264,6 +1264,18 @@ update msg (Model model) =
                             , Cmd.none
                             )
 
+                Socket.Heartbeat result ->
+                    case result of
+                        Ok message ->
+                            ( updatePhoenixMsg (Heartbeat message) (Model model)
+                            , Cmd.none
+                            )
+
+                        Err _ ->
+                            ( Model model
+                            , Cmd.none
+                            )
+
                 Socket.Info infoResponse ->
                     case infoResponse of
                         Socket.All result ->
@@ -1488,6 +1500,13 @@ type PhoenixMsg
     | ChannelClosed Topic
     | PresenceEvent PresenceEvent
     | SocketMessage
+        { joinRef : Maybe String
+        , ref : Maybe String
+        , topic : String
+        , event : String
+        , payload : Value
+        }
+    | Heartbeat
         { joinRef : Maybe String
         , ref : Maybe String
         , topic : String

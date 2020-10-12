@@ -320,6 +320,7 @@ type Msg
     | Error (Result JD.Error String)
     | Message (Result JD.Error MessageConfig)
     | Info Info
+    | Heartbeat (Result JD.Error MessageConfig)
     | InvalidMsg String
 
 
@@ -380,9 +381,20 @@ handleIn toMsg { msg, payload } =
                     (JD.decodeValue errorDecoder payload)
 
         "Message" ->
-            toMsg <|
-                Message
-                    (JD.decodeValue messageDecoder payload)
+            let
+                messageResult =
+                    JD.decodeValue messageDecoder payload
+            in
+            case messageResult of
+                Ok message ->
+                    if message.event == "phx_reply" then
+                        toMsg (Heartbeat messageResult)
+
+                    else
+                        toMsg (Message messageResult)
+
+                _ ->
+                    toMsg (Message messageResult)
 
         "ConnectionState" ->
             toMsg <|
