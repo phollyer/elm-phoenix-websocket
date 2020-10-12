@@ -98,7 +98,7 @@ automatically by Phoenix as users come and go; we just need to
 type alias Model =
     { id : UserId
     , username : String
-    , users : Presence.PresenceState
+    , users : List Presence.Presence
     , message : MessageText
     , messages : List Message
     , messageState : MessageState
@@ -295,7 +295,7 @@ update msg model =
                 )
 
         -- Socket couldn't be reached
-        SocketMsg (Socket.Error _) ->
+        SocketMsg Socket.Error ->
             ( { model
                 | error = "Application unreachable."
                 , userState = NotJoined
@@ -415,13 +415,9 @@ update msg model =
         --
         -- Receive a message from another user
         -- Scroll the viewport so that the message is displayed
-        ChannelMsg (Channel.Message _ msgResult payloadResult) ->
-            let
-                _ =
-                    Debug.log "" ( msgResult, payloadResult )
-            in
-            case ( msgResult, payloadResult ) of
-                ( Ok "new_msg", Ok payload ) ->
+        ChannelMsg (Channel.Message _ event payload) ->
+            case event of
+                "new_msg" ->
                     ( { model
                         | messages =
                             case decodeMessage payload of
@@ -441,7 +437,7 @@ update msg model =
                             (\_ -> NoOp)
                     )
 
-                ( Ok "is_typing", Ok payload ) ->
+                "is_typing" ->
                     ( { model
                         | users =
                             model.users
@@ -451,7 +447,7 @@ update msg model =
                     , Cmd.none
                     )
 
-                ( Ok "stopped_typing", Ok payload ) ->
+                "stopped_typing" ->
                     ( { model
                         | users =
                             model.users
@@ -465,19 +461,14 @@ update msg model =
                     ( model, Cmd.none )
 
         -- Receive the Presence State
-        PresenceMsg (Presence.State _ usersResult) ->
-            case usersResult of
-                Ok users ->
-                    ( { model
-                        | users =
-                            users
-                                |> List.sortBy .id
-                      }
-                    , Cmd.none
-                    )
-
-                _ ->
-                    ( model, Cmd.none )
+        PresenceMsg (Presence.State _ users) ->
+            ( { model
+                | users =
+                    users
+                        |> List.sortBy .id
+              }
+            , Cmd.none
+            )
 
         {- Catch Alls -}
         --
@@ -514,7 +505,7 @@ joinChannel : JE.Value -> Cmd Msg
 joinChannel payload =
     Channel.join
         { topic = topic
-        , payload = Just payload
+        , payload = payload
         , events = []
         , timeout = Nothing
         }
@@ -642,7 +633,7 @@ encodeUsername username =
 -- Remote User Interaction
 
 
-tagUser : JE.Value -> Presence.PresenceState -> Presence.PresenceState
+tagUser : JE.Value -> List Presence.Presence -> List Presence.Presence
 tagUser payload users =
     let
         id =
@@ -662,7 +653,7 @@ tagUser payload users =
             )
 
 
-unTagUser : JE.Value -> Presence.PresenceState -> Presence.PresenceState
+unTagUser : JE.Value -> List Presence.Presence -> List Presence.Presence
 unTagUser payload users =
     let
         id =
@@ -870,7 +861,7 @@ messageFormButton model =
 -- Users View
 
 
-viewNames : Presence.PresenceState -> List (Element Msg)
+viewNames : List Presence.Presence -> List (Element Msg)
 viewNames users =
     users
         |> List.map
