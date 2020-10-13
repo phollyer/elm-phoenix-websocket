@@ -52,10 +52,7 @@ configuring this module is as simple as this:
 
     init : Model
     init =
-        { phoenix =
-            Phoenix.init
-                Ports.config
-                []
+        { phoenix = Phoenix.init Ports.config
         ...
         }
 
@@ -331,33 +328,28 @@ type alias PortConfig =
 
 
 {-| Initialize the [Model](#Model) by providing the `ports` that enable
-communication with JS and any [ConnectOption](Phoenix.Socket#ConnectOption)s
-you want to set on the socket.
+communication with JS.
 
 The easiest way to provide the `ports` is to copy
 [this file](https://github.com/phollyer/elm-phoenix-websocket/tree/master/ports)
 into your `src`, and then use its `config` function as follows:
 
     import Phoenix
-    import Phoenix.Socket as Socket
     import Ports.Phoenix as Ports
 
     init : Model
     init =
-        { phoenix =
-            Phoenix.init
-                Ports.config
-                [ Socket.Timeout 10000 ]
+        { phoenix = Phoenix.init Ports.config
         ...
         }
 
 -}
-init : PortConfig -> List Socket.ConnectOption -> Model
-init portConfig options =
+init : PortConfig -> Model
+init portConfig =
     Model
         { queuedChannels = Set.empty
         , joinedChannels = Set.empty
-        , connectOptions = options
+        , connectOptions = []
         , connectParams = JE.null
         , joinConfigs = Dict.empty
         , phoenixMsg = NoOp
@@ -400,14 +392,6 @@ connect (Model model) =
 {-| Add some [ConnectOption](Phoenix.Socket#ConnectOption)s to set on the
 Socket when it is created.
 
-    import Phoenix.Socket as Socket
-
-    addConnectOptions
-        [ Socket.Timeout 7000
-        , Socket.HeartbeatIntervalMillis 2000
-        ]
-        model.phoenix
-
 **Note:** This will overwrite any
 [ConnectOption](Phoenix.Socket.ConnectOption)s that have already been set.
 
@@ -418,10 +402,12 @@ Socket when it is created.
     init =
         { phoenix =
             Phoenix.init Ports.config
-                [ Socket.Timeout 7000
-                , Socket.HeartbeatIntervalMillis 2000
-                ]
-                |> Phoenix.addConnectOptions [ Socket.Timeout 5000 ]
+                |> Phoenix.addConnectOptions
+                    [ Socket.Timeout 7000
+                    , Socket.HeartbeatIntervalMillis 2000
+                    ]
+                |> Phoenix.addConnectOptions
+                    [ Socket.Timeout 5000 ]
         ...
         }
 
@@ -448,10 +434,12 @@ Socket when it is created.
     init =
         { phoenix =
             Phoenix.init Ports.config
-                [ Socket.Timeout 7000
-                , Socket.HeartbeatIntervalMillis 2000
-                ]
-                |> Phoenix.setConnectOptions [ Socket.Timeout 5000 ]
+                |> Phoenix.setConnectOptions
+                    [ Socket.Timeout 7000
+                    , Socket.HeartbeatIntervalMillis 2000
+                    ]
+                |> Phoenix.setConnectOptions
+                    [ Socket.Timeout 5000 ]
         ...
         }
 
