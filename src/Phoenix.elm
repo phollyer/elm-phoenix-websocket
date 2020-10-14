@@ -851,25 +851,6 @@ pushIfJoined config (Model model) =
             |> join config.push.topic
 
 
-pushIfConnected : InternalPush -> Model -> ( Model, Cmd Msg )
-pushIfConnected config (Model model) =
-    case model.socketState of
-        Connected ->
-            pushIfJoined
-                config
-                (Model model)
-
-        Disconnected _ ->
-            ( Model model
-                |> addChannelBeingJoined config.push.topic
-                |> addPushToQueue config
-            , Socket.connect
-                model.connectOptions
-                (Just model.connectParams)
-                model.portConfig.phoenixSend
-            )
-
-
 sendQueuedPushes : Model -> ( Model, Cmd Msg )
 sendQueuedPushes (Model model) =
     sendAllPushes model.queuedPushes (Model model)
@@ -956,7 +937,7 @@ batchPush : InternalPush -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 batchPush pushConfig ( model, cmd ) =
     let
         ( model_, cmd_ ) =
-            pushIfConnected
+            pushIfJoined
                 pushConfig
                 model
     in
