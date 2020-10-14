@@ -376,7 +376,15 @@ connect : Model -> ( Model, Cmd Msg )
 connect (Model model) =
     case model.socketState of
         Disconnected _ ->
-            ( Model model
+            ( updateSocketState Connecting (Model model)
+            , Socket.connect
+                model.connectOptions
+                (Just model.connectParams)
+                model.portConfig.phoenixSend
+            )
+
+        Disconnecting ->
+            ( updateSocketState Connecting (Model model)
             , Socket.connect
                 model.connectOptions
                 (Just model.connectParams)
@@ -524,9 +532,20 @@ join topic (Model model) =
                             }
                         |> join topic
 
+        Connecting ->
+            ( addChannelBeingJoined topic (Model model)
+            , Cmd.none
+            )
+
+        Disconnecting ->
+            ( addChannelBeingJoined topic (Model model)
+            , Cmd.none
+            )
+
         Disconnected _ ->
             Model model
                 |> addChannelBeingJoined topic
+                |> updateSocketState Connecting
                 |> connect
 
 
@@ -1308,7 +1327,9 @@ replacePresenceState topic state (Model model) =
 
 {-| -}
 type SocketState
-    = Connected
+    = Connecting
+    | Connected
+    | Disconnecting
     | Disconnected
         { reason : String
         , code : Int
