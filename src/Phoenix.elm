@@ -1,7 +1,7 @@
 module Phoenix exposing
     ( Model
     , PortConfig, init
-    , connect, addConnectOptions, setConnectOptions, Payload, setConnectParams
+    , connect, addConnectOptions, setConnectOptions, Payload, setConnectParams, disconnect
     , Topic, join, Event, JoinConfig, addJoinConfig
     , LeaveConfig, leave
     , RetryStrategy(..), Push, push, pushAll
@@ -114,7 +114,7 @@ If you want to send any params to the Socket when it connects at the Elixir
 end, such as authenticating a user for example, then you can use the
 [setConnectParams](#setConnectParams) function.
 
-@docs connect, addConnectOptions, setConnectOptions, Payload, setConnectParams
+@docs connect, addConnectOptions, setConnectOptions, Payload, setConnectParams, disconnect
 
 
 # Joining a Channel
@@ -487,6 +487,18 @@ end.
 setConnectParams : Payload -> Model -> Model
 setConnectParams params model =
     updateConnectParams params model
+
+
+{-| Disconnect the Socket.
+-}
+disconnect : Model -> Cmd Msg
+disconnect (Model model) =
+    case model.socketState of
+        Disconnected _ ->
+            Cmd.none
+
+        _ ->
+            Socket.disconnect model.portConfig.phoenixSend
 
 
 
