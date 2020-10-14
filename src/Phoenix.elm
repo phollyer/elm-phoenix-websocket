@@ -491,14 +491,20 @@ setConnectParams params model =
 
 {-| Disconnect the Socket.
 -}
-disconnect : Model -> Cmd Msg
+disconnect : Model -> ( Model, Cmd Msg )
 disconnect (Model model) =
     case model.socketState of
         Disconnected _ ->
-            Cmd.none
+            ( Model model, Cmd.none )
+
+        Disconnecting ->
+            ( Model model, Cmd.none )
 
         _ ->
-            Socket.disconnect model.portConfig.phoenixSend
+            ( updateSocketState Disconnecting (Model model)
+            , Socket.disconnect
+                model.portConfig.phoenixSend
+            )
 
 
 
