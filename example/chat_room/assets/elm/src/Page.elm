@@ -235,10 +235,7 @@ button { enabled, label, example, onPress, onEnter } =
             , Font.size 30
             ]
         )
-        { label =
-            El.el
-                []
-                (El.text label)
+        { label = El.text label
         , onPress =
             if enabled then
                 Just (onPress example)
