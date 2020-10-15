@@ -48,7 +48,6 @@ type alias Model =
 
 type Msg
     = GotButtonClick Example
-    | GotButtonEnter Example
     | GotMenuItem Example
     | GotPhoenixMsg Phoenix.Msg
 
@@ -113,13 +112,6 @@ update msg model =
 
                 _ ->
                     ( model, Cmd.none )
-
-        GotButtonEnter example ->
-            ( { model
-                | example = example
-              }
-            , Cmd.none
-            )
 
         GotMenuItem example ->
             Phoenix.disconnect phoenix
@@ -264,7 +256,6 @@ connectButton exampleFunc phoenix =
         { label = "Connect"
         , example = exampleFunc Connect
         , onPress = GotButtonClick
-        , onEnter = GotButtonEnter
         , enabled =
             case Phoenix.socketState phoenix of
                 Phoenix.Disconnected _ ->
@@ -281,7 +272,6 @@ disconnectButton exampleFunc phoenix =
         { label = "Disconnect"
         , example = exampleFunc Disconnect
         , onPress = GotButtonClick
-        , onEnter = GotButtonEnter
         , enabled = Phoenix.socketState phoenix == Phoenix.Connected
         }
 

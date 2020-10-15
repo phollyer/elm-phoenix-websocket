@@ -199,12 +199,11 @@ type alias Button a msg =
     , label : String
     , example : a
     , onPress : a -> msg
-    , onEnter : a -> msg
     }
 
 
 button : Button a msg -> Element msg
-button { enabled, label, example, onPress, onEnter } =
+button { enabled, label, example, onPress } =
     let
         attrs =
             if enabled then
@@ -231,7 +230,6 @@ button { enabled, label, example, onPress, onEnter } =
             attrs
             [ Border.rounded 10
             , El.padding 10
-            , Event.onMouseEnter <| onEnter example
             , Font.size 30
             ]
         )
