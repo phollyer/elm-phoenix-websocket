@@ -14,7 +14,7 @@ module Phoenix exposing
     , Error(..)
     , InternalError(..)
     , PhoenixMsg(..), phoenixMsg
-    , socketState, isConnected, connectionState, endPointURL, protocol
+    , socketState, socketStateToString, isConnected, connectionState, disconnectReason, endPointURL, protocol
     , allSocketMessagesOn, allSocketMessagesOff
     , socketChannelMessagesOn, socketChannelMessagesOff
     , socketPresenceMessagesOn, socketPresenceMessagesOff
@@ -205,7 +205,7 @@ immediately.
 
 ## Socket Information
 
-@docs socketState, isConnected, connectionState, endPointURL, protocol
+@docs socketState, socketStateToString, isConnected, connectionState, disconnectReason, endPointURL, protocol
 
 
 ## Socket Message Control
@@ -278,6 +278,7 @@ type Model
         , joinedChannels : Set Topic
         , connectOptions : List Socket.ConnectOption
         , connectParams : Payload
+        , disconnectReason : Maybe String
         , joinConfigs : Dict Topic JoinConfig
         , phoenixMsg : PhoenixMsg
         , portConfig : PortConfig
@@ -351,6 +352,7 @@ init portConfig =
         , joinedChannels = Set.empty
         , connectOptions = []
         , connectParams = JE.null
+        , disconnectReason = Nothing
         , joinConfigs = Dict.empty
         , phoenixMsg = NoOp
         , portConfig = portConfig
@@ -1221,12 +1223,14 @@ update msg (Model model) =
             case subMsg of
                 Socket.Opened ->
                     Model model
+                        |> updateDisconnectReason Nothing
                         |> updateSocketState Connected
                         |> updatePhoenixMsg (StateChanged Connected)
                         |> joinChannels model.queuedChannels
 
                 Socket.Closed closedInfo ->
                     ( Model model
+                        |> updateDisconnectReason (Just closedInfo.reason)
                         |> updateSocketState (Disconnected closedInfo)
                         |> updatePhoenixMsg (StateChanged (Disconnected closedInfo))
                     , Cmd.none
@@ -1557,6 +1561,24 @@ socketState (Model model) =
     model.socketState
 
 
+{-| The current [state](#SocketState) of the Socket as a String.
+-}
+socketStateToString : Model -> String
+socketStateToString (Model model) =
+    case model.socketState of
+        Connected ->
+            "Connected"
+
+        Connecting ->
+            "Connecting"
+
+        Disconnecting ->
+            "Disconnecting"
+
+        Disconnected _ ->
+            "Disconnected"
+
+
 {-| Whether the Socket is connected or not.
 -}
 isConnected : Model -> Bool
@@ -1569,6 +1591,13 @@ isConnected (Model model) =
 connectionState : Model -> String
 connectionState (Model model) =
     model.socketInfo.connectionState
+
+
+{-| The reason the Socket disconnected.
+-}
+disconnectReason : Model -> Maybe String
+disconnectReason (Model model) =
+    model.disconnectReason
 
 
 {-| The endpoint URL for the Socket.
@@ -1988,6 +2017,14 @@ updateConnectParams params (Model model) =
     Model
         { model
             | connectParams = params
+        }
+
+
+updateDisconnectReason : Maybe String -> Model -> Model
+updateDisconnectReason maybeReason (Model model) =
+    Model
+        { model
+            | disconnectReason = maybeReason
         }
 
 
