@@ -83,14 +83,22 @@ socket =
 
 socketExamples : Element Msg
 socketExamples =
-    El.row [ El.width El.fill ] <|
+    El.row
+        [ El.width El.fill
+        , El.spacing 10
+        , El.padding 5
+        ]
+    <|
         List.map panel <|
             [ { title = "Control the Connection"
               , description =
-                    [ "Control the Socket connection."
-                    , " Manually connect and disconnect, providing feedback on the current state of the Socket."
-                    ]
+                    [ "Manually connect and disconnect, receiving feedback on the current state of the Socket." ]
               , route = ControlTheSocketConnection
+              }
+            , { title = "Handle Socket Messages"
+              , description =
+                    [ "Manage the heartbeat, Channel and Presence messages that come in from the Socket." ]
+              , route = HandleSocketMessages
               }
             ]
 
@@ -126,7 +134,8 @@ panel { title, description, route } =
         , Border.rounded 20
         , Border.width 1
         , Border.color Color.steelblue
-        , El.height <| El.px 300
+        , El.height <|
+            El.maximum 300 El.fill
         , El.width <| El.px 250
         , El.clip
         , El.pointer

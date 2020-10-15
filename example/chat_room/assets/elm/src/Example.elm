@@ -56,6 +56,7 @@ type Example
     = SimpleConnect Action
     | ConnectWithGoodParams Action
     | ConnectWithBadParams Action
+    | ManageSocketHeartbeat Action
 
 
 toString : Example -> String
@@ -70,6 +71,9 @@ toString example =
         ConnectWithBadParams _ ->
             "Connect with Bad Params"
 
+        ManageSocketHeartbeat _ ->
+            "Manage the Socket Hearbeat"
+
 
 toAction : Example -> Action
 toAction example =
@@ -81,6 +85,9 @@ toAction example =
             action
 
         ConnectWithBadParams action ->
+            action
+
+        ManageSocketHeartbeat action ->
             action
 
 

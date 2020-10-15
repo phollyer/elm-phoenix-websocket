@@ -14,6 +14,7 @@ type Route
     = Home
     | Root
     | ControlTheSocketConnection
+    | HandleSocketMessages
 
 
 parser : Parser (Route -> a) a
@@ -21,6 +22,7 @@ parser =
     oneOf
         [ Parser.map Home Parser.top
         , Parser.map ControlTheSocketConnection (s "ControlTheSocketConnection")
+        , Parser.map HandleSocketMessages (s "HandleSocketMessages")
         ]
 
 
@@ -50,3 +52,6 @@ routeToString route =
 
         ControlTheSocketConnection ->
             "/ControlTheSocketConnection"
+
+        HandleSocketMessages ->
+            "/HandleSocketMessages"

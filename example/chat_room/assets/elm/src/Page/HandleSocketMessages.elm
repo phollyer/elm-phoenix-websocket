@@ -1,4 +1,4 @@
-module Page.ControlTheSocketConnection exposing
+module Page.HandleSocketMessages exposing
     ( Model
     , Msg
     , init
@@ -26,7 +26,8 @@ import Session exposing (Session)
 init : Session -> ( Model, Cmd Msg )
 init session =
     ( { session = session
-      , example = SimpleConnect Connect
+      , example = ManageSocketHeartbeat Connect
+      , heartbeatCount = 0
       }
     , Cmd.none
     )
@@ -39,6 +40,7 @@ init session =
 type alias Model =
     { session : Session
     , example : Example
+    , heartbeatCount : Int
     }
 
 
@@ -62,46 +64,10 @@ update msg model =
     case msg of
         GotButtonClick example ->
             case example of
-                SimpleConnect action ->
+                ManageSocketHeartbeat action ->
                     case action of
                         Connect ->
                             Phoenix.connect phoenix
-                                |> updatePhoenix model
-
-                        Disconnect ->
-                            Phoenix.disconnect phoenix
-                                |> updatePhoenix model
-
-                        _ ->
-                            ( model, Cmd.none )
-
-                ConnectWithGoodParams action ->
-                    case action of
-                        Connect ->
-                            phoenix
-                                |> Phoenix.setConnectParams
-                                    (JE.object
-                                        [ ( "good_params", JE.bool True ) ]
-                                    )
-                                |> Phoenix.connect
-                                |> updatePhoenix model
-
-                        Disconnect ->
-                            Phoenix.disconnect phoenix
-                                |> updatePhoenix model
-
-                        _ ->
-                            ( model, Cmd.none )
-
-                ConnectWithBadParams action ->
-                    case action of
-                        Connect ->
-                            phoenix
-                                |> Phoenix.setConnectParams
-                                    (JE.object
-                                        [ ( "good_params", JE.bool False ) ]
-                                    )
-                                |> Phoenix.connect
                                 |> updatePhoenix model
 
                         Disconnect ->
@@ -145,10 +111,7 @@ updatePhoenix model ( phoenix, phoenixCmd ) =
     ( { model
         | session = Session.updatePhoenix phoenix model.session
       }
-    , Cmd.batch
-        [ Cmd.map GotPhoenixMsg phoenixCmd
-        , Cmd.map GotPhoenixMsg (Phoenix.heartbeatMessagesOff phoenix)
-        ]
+    , Cmd.map GotPhoenixMsg phoenixCmd
     )
 
 
@@ -162,22 +125,19 @@ view model =
         phoenix =
             Session.phoenix model.session
     in
-    { title = "Control The Socket Connection"
+    { title = "Handle Socket Messages"
     , content =
         Page.container
-            [ Page.header "Control The Socket Connection"
+            [ Page.header "Handle Socket Messages"
             , Page.introduction
                 [ Page.paragraph
-                    [ El.text "Connecting to the Socket is taken care of automatically when a request to join a Channel is made, or when a Channel is pushed to, "
-                    , El.text "however, if you want to take manual control, here's a few examples."
+                    [ El.text ""
                     ]
                 , Page.paragraph
                     [ El.text "Clicking on a function will take you to its documentation." ]
                 ]
             , Page.menu
-                [ ( Example.toString (SimpleConnect Anything), GotMenuItem (SimpleConnect Anything) )
-                , ( Example.toString (ConnectWithGoodParams Anything), GotMenuItem (ConnectWithGoodParams Anything) )
-                , ( Example.toString (ConnectWithBadParams Anything), GotMenuItem (ConnectWithBadParams Anything) )
+                [ ( Example.toString (ManageSocketHeartbeat Anything), GotMenuItem (ManageSocketHeartbeat Anything) )
                 ]
                 (Example.toString model.example)
             , Example.init
@@ -197,19 +157,9 @@ view model =
 description : Example -> List (Element msg)
 description example =
     case example of
-        SimpleConnect _ ->
+        ManageSocketHeartbeat _ ->
             [ Page.paragraph
-                [ El.text "A simple connection to the Socket without sending any params or setting any connect options." ]
-            ]
-
-        ConnectWithGoodParams _ ->
-            [ Page.paragraph
-                [ El.text "Connect to the Socket with authentication params that are accepted." ]
-            ]
-
-        ConnectWithBadParams _ ->
-            [ Page.paragraph
-                [ El.text "Try to connect to the Socket with authentication params that are not accepted, causing the connection to be denied." ]
+                [ El.text "Choose whether to receive the heartbeat as a Socket message." ]
             ]
 
         _ ->
@@ -219,14 +169,8 @@ description example =
 controls : Example -> Phoenix.Model -> Element Msg
 controls example phoenix =
     case example of
-        SimpleConnect _ ->
-            buttons SimpleConnect phoenix
-
-        ConnectWithGoodParams _ ->
-            buttons ConnectWithGoodParams phoenix
-
-        ConnectWithBadParams _ ->
-            buttons ConnectWithBadParams phoenix
+        ManageSocketHeartbeat _ ->
+            buttons ManageSocketHeartbeat phoenix
 
         _ ->
             El.none
@@ -289,21 +233,9 @@ disconnectButton exampleFunc phoenix =
 applicableFunctions : Example -> List String
 applicableFunctions example =
     case example of
-        SimpleConnect _ ->
-            [ "Phoenix.connect"
-            , "Phoenix.disconnect"
-            ]
-
-        ConnectWithGoodParams _ ->
-            [ "Phoenix.setConnectParams"
-            , "Phoenix.connect"
-            , "Phoenix.disconnect"
-            ]
-
-        ConnectWithBadParams _ ->
-            [ "Phoenix.setConnectParams"
-            , "Phoenix.connect"
-            , "Phoenix.disconnect"
+        ManageSocketHeartbeat _ ->
+            [ "Phoenix.heartbeatMessagesOn"
+            , "Phoenix.heartbeatMessagesOff"
             ]
 
         _ ->
@@ -313,21 +245,8 @@ applicableFunctions example =
 usefulFunctions : Example -> Phoenix.Model -> List ( String, String )
 usefulFunctions example phoenix =
     case example of
-        SimpleConnect _ ->
+        ManageSocketHeartbeat _ ->
             [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
-            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix )
-            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.fromBool )
-            ]
-
-        ConnectWithGoodParams _ ->
-            [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
-            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix )
-            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.fromBool )
-            ]
-
-        ConnectWithBadParams _ ->
-            [ ( "Phoenix.disconnectReason", Phoenix.disconnectReason phoenix |> Maybe.withDefault "Nothing" )
-            , ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
             , ( "Phoenix.connectionState", Phoenix.connectionState phoenix )
             , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.fromBool )
             ]

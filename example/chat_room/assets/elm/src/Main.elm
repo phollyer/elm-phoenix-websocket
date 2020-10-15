@@ -8,6 +8,7 @@ import Html
 import Page
 import Page.Blank as Blank
 import Page.ControlTheSocketConnection as ControlTheSocketConnection
+import Page.HandleSocketMessages as HandleSocketMessages
 import Page.Home as Home
 import Page.NotFound as NotFound
 import Route exposing (Route)
@@ -46,6 +47,10 @@ changeRouteTo maybeRoute model =
             ControlTheSocketConnection.init session
                 |> updateWith ControlTheSocketConnection GotControlTheSocketConnectionMsg
 
+        Just Route.HandleSocketMessages ->
+            HandleSocketMessages.init session
+                |> updateWith HandleSocketMessages GotHandleSocketMessagesMsg
+
 
 toSession : Model -> Session
 toSession model =
@@ -62,6 +67,9 @@ toSession model =
         ControlTheSocketConnection subModel ->
             ControlTheSocketConnection.toSession subModel
 
+        HandleSocketMessages subModel ->
+            HandleSocketMessages.toSession subModel
+
 
 
 {- Model -}
@@ -73,6 +81,7 @@ type Model
     | NotFound Session
     | Home Home.Model
     | ControlTheSocketConnection ControlTheSocketConnection.Model
+    | HandleSocketMessages HandleSocketMessages.Model
 
 
 
@@ -84,6 +93,7 @@ type Msg
     | ClickedLink Browser.UrlRequest
     | GotHomeMsg Home.Msg
     | GotControlTheSocketConnectionMsg ControlTheSocketConnection.Msg
+    | GotHandleSocketMessagesMsg HandleSocketMessages.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -112,6 +122,10 @@ update msg model =
             ControlTheSocketConnection.update subMsg subModel
                 |> updateWith ControlTheSocketConnection GotControlTheSocketConnectionMsg
 
+        ( GotHandleSocketMessagesMsg subMsg, HandleSocketMessages subModel ) ->
+            HandleSocketMessages.update subMsg subModel
+                |> updateWith HandleSocketMessages GotHandleSocketMessagesMsg
+
         _ ->
             ( model, Cmd.none )
 
@@ -133,6 +147,10 @@ subscriptions model =
         ControlTheSocketConnection subModel ->
             Sub.map GotControlTheSocketConnectionMsg <|
                 ControlTheSocketConnection.subscriptions subModel
+
+        HandleSocketMessages subModel ->
+            Sub.map GotHandleSocketMessagesMsg <|
+                HandleSocketMessages.subscriptions subModel
 
         _ ->
             Sub.none
@@ -169,6 +187,9 @@ view model =
 
         ControlTheSocketConnection subModel ->
             viewPage Page.ControlTheSocketConnection GotControlTheSocketConnectionMsg (ControlTheSocketConnection.view subModel)
+
+        HandleSocketMessages subModel ->
+            viewPage Page.HandleSocketMessages GotHandleSocketMessagesMsg (HandleSocketMessages.view subModel)
 
 
 

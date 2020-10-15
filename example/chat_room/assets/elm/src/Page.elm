@@ -27,6 +27,7 @@ type Page
     = Home
     | Other
     | ControlTheSocketConnection
+    | HandleSocketMessages
 
 
 view : Phoenix.Model -> Page -> { title : String, content : Element msg } -> Document msg
