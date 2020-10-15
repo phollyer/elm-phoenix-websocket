@@ -36,6 +36,8 @@ let ElmPhoenixWebSocket = {
     // The Phoenix JS socket instantiated with `new phoenixSocket(url, params)`.
     socket: {},
 
+    socketMessages: {channel: true, presence: true, heartbeat: true},
+
     /* A map of channels with each topic as the key.
 
        This is used to store multiple channels.
@@ -119,7 +121,7 @@ let ElmPhoenixWebSocket = {
 
         this.socket = new this.phoenixSocket(this.url, this.setOptionsAndParams(data))
         this.socket.onError( resp => self.socketSend("Error", {reason: "Unknown"}))
-        this.socket.onMessage( resp => self.socketSend("Message", resp))
+        this.socket.onMessage( resp => self.onMessage(resp))
 
         this.socket.onOpen( resp => {
             self.socketSend("Opened", resp)
@@ -227,6 +229,50 @@ let ElmPhoenixWebSocket = {
     */
     disconnect() { this.socket.disconnect() },
 
+
+    /* onMessage */
+
+    onMessage( resp ) {
+        if (resp.topic == "phoenix" && this.socketMessages.heartbeat) {
+            this.socketSend("Heartbeat", resp)
+
+        } else if (resp.event.indexOf("presence") == 0 && this.socketMessages.presence) {
+            this.socketSend("Presence", resp)
+
+        } else if (this.socketMessages.channel && resp.topic != "phoenix" ){
+            this.socketSend("Channel", resp)
+        }
+    },
+
+    /***** Message Control *****/
+
+    allMessagesOn() {
+        this.socketMessages =
+            { channel: true,
+              presence: true,
+              heartbeat: true
+            }
+    },
+
+    allMessagesOff() {
+        this.socketMessages =
+            { channel: false,
+              presence: false,
+              heartbeat: false
+            }
+    },
+
+    channelMessagesOn() { this.socketMessages.channel = true },
+
+    channelMessagesOff() { this.socketMessages.channel = false },
+
+    presenceMessagesOn() { this.socketMessages.presence = true },
+
+    presenceMessagesOff() { this.socketMessages.presence = false },
+
+    heartbeatMessagesOn() { this.socketMessages.heartbeat = true },
+
+    heartbeatMessagesOff() { this.socketMessages.heartbeat = false },
 
     /***** Socket Information *****/
 
