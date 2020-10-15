@@ -50,6 +50,7 @@ type Action
     = Anything
     | Connect
     | Disconnect
+    | On
 
 
 type Example

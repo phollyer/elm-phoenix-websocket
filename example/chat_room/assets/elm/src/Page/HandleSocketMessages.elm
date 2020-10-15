@@ -196,6 +196,14 @@ buttons example phoenix =
             , El.centerY
             ]
             (El.el
+                [ El.centerX ]
+                (heartbeatOnButton example phoenix)
+            )
+        , El.el
+            [ El.width El.fill
+            , El.centerY
+            ]
+            (El.el
                 [ El.alignLeft ]
                 (disconnectButton example phoenix)
             )
@@ -207,6 +215,23 @@ connectButton exampleFunc phoenix =
     Page.button
         { label = "Connect"
         , example = exampleFunc Connect
+        , onPress = GotButtonClick
+        , onEnter = GotButtonEnter
+        , enabled =
+            case Phoenix.socketState phoenix of
+                Phoenix.Disconnected _ ->
+                    True
+
+                _ ->
+                    False
+        }
+
+
+heartbeatOnButton : (Action -> Example) -> Phoenix.Model -> Element Msg
+heartbeatOnButton exampleFunc phoenix =
+    Page.button
+        { label = "Heartbeat On"
+        , example = exampleFunc On
         , onPress = GotButtonClick
         , onEnter = GotButtonEnter
         , enabled =
