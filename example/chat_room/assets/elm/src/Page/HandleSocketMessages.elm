@@ -16,6 +16,7 @@ import Extra.String as String
 import Json.Encode as JE
 import Page
 import Phoenix
+import Phoenix.Socket as Socket
 import Session exposing (Session)
 
 
@@ -28,6 +29,7 @@ init session =
     ( { session = session
       , example = ManageSocketHeartbeat Connect
       , heartbeatCount = 0
+      , heartbeat = True
       }
     , Cmd.none
     )
@@ -41,6 +43,7 @@ type alias Model =
     { session : Session
     , example : Example
     , heartbeatCount : Int
+    , heartbeat : Bool
     }
 
 
@@ -66,12 +69,24 @@ update msg model =
                 ManageSocketHeartbeat action ->
                     case action of
                         Connect ->
-                            Phoenix.connect phoenix
+                            phoenix
+                                |> Phoenix.setConnectOptions
+                                    [ Socket.HeartbeatIntervalMillis 1000 ]
+                                |> Phoenix.connect
                                 |> updatePhoenix model
 
                         Disconnect ->
                             Phoenix.disconnect phoenix
                                 |> updatePhoenix model
+                                |> resetHeartbeatCount
+
+                        On ->
+                            Phoenix.heartbeatMessagesOn phoenix
+                                |> setHeartbeat True model
+
+                        Off ->
+                            Phoenix.heartbeatMessagesOff phoenix
+                                |> setHeartbeat False model
 
                         _ ->
                             ( model, Cmd.none )
@@ -85,8 +100,40 @@ update msg model =
                 |> updateExample example
 
         GotPhoenixMsg subMsg ->
-            Phoenix.update subMsg phoenix
-                |> updatePhoenix model
+            let
+                ( newModel, cmd ) =
+                    Phoenix.update subMsg phoenix
+                        |> updatePhoenix model
+            in
+            case Session.phoenix newModel.session |> Phoenix.phoenixMsg of
+                Phoenix.SocketMessage (Phoenix.Heartbeat _) ->
+                    ( { newModel
+                        | heartbeatCount =
+                            newModel.heartbeatCount + 1
+                      }
+                    , cmd
+                    )
+
+                _ ->
+                    ( newModel, cmd )
+
+
+setHeartbeat : Bool -> Model -> Cmd Phoenix.Msg -> ( Model, Cmd Msg )
+setHeartbeat heartbeat model phxCmd =
+    ( { model
+        | heartbeat = heartbeat
+      }
+    , Cmd.map GotPhoenixMsg phxCmd
+    )
+
+
+resetHeartbeatCount : ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+resetHeartbeatCount ( model, cmd ) =
+    ( { model
+        | heartbeatCount = 0
+      }
+    , cmd
+    )
 
 
 updateExample : Example -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
@@ -136,7 +183,9 @@ view model =
                 |> Example.description
                     (description model.example)
                 |> Example.controls
-                    (controls model.example phoenix)
+                    (controls model phoenix)
+                |> Example.info
+                    (info model)
                 |> Example.applicableFunctions
                     (applicableFunctions model.example)
                 |> Example.usefulFunctions
@@ -151,25 +200,25 @@ description example =
     case example of
         ManageSocketHeartbeat _ ->
             [ Page.paragraph
-                [ El.text "Choose whether to receive the heartbeat as a Socket message." ]
+                [ El.text "Choose whether to receive the heartbeat as an incoming Socket message. For this example, the heartbeat interval is set at 1 second." ]
             ]
 
         _ ->
             []
 
 
-controls : Example -> Phoenix.Model -> Element Msg
-controls example phoenix =
+controls : Model -> Phoenix.Model -> Element Msg
+controls { example, heartbeat } phoenix =
     case example of
         ManageSocketHeartbeat _ ->
-            buttons ManageSocketHeartbeat phoenix
+            buttons ManageSocketHeartbeat heartbeat phoenix
 
         _ ->
             El.none
 
 
-buttons : (Action -> Example) -> Phoenix.Model -> Element Msg
-buttons example phoenix =
+buttons : (Action -> Example) -> Bool -> Phoenix.Model -> Element Msg
+buttons example heartbeat phoenix =
     El.row
         [ El.width El.fill
         , El.height <| El.px 60
@@ -189,7 +238,15 @@ buttons example phoenix =
             ]
             (El.el
                 [ El.centerX ]
-                (heartbeatOnButton example phoenix)
+                (heartbeatOnButton example heartbeat)
+            )
+        , El.el
+            [ El.width El.fill
+            , El.centerY
+            ]
+            (El.el
+                [ El.centerX ]
+                (heartbeatOffButton example heartbeat)
             )
         , El.el
             [ El.width El.fill
@@ -218,19 +275,23 @@ connectButton exampleFunc phoenix =
         }
 
 
-heartbeatOnButton : (Action -> Example) -> Phoenix.Model -> Element Msg
-heartbeatOnButton exampleFunc phoenix =
+heartbeatOnButton : (Action -> Example) -> Bool -> Element Msg
+heartbeatOnButton exampleFunc heartbeat =
     Page.button
         { label = "Heartbeat On"
         , example = exampleFunc On
         , onPress = GotButtonClick
-        , enabled =
-            case Phoenix.socketState phoenix of
-                Phoenix.Disconnected _ ->
-                    True
+        , enabled = not heartbeat
+        }
 
-                _ ->
-                    False
+
+heartbeatOffButton : (Action -> Example) -> Bool -> Element Msg
+heartbeatOffButton exampleFunc heartbeat =
+    Page.button
+        { label = "Heartbeat Off"
+        , example = exampleFunc Off
+        , onPress = GotButtonClick
+        , enabled = heartbeat
         }
 
 
@@ -244,11 +305,22 @@ disconnectButton exampleFunc phoenix =
         }
 
 
+info : Model -> List (Element Msg)
+info model =
+    case model.example of
+        ManageSocketHeartbeat _ ->
+            [ El.text ("Heartbeat Count: " ++ String.fromInt model.heartbeatCount) ]
+
+        _ ->
+            [ El.none ]
+
+
 applicableFunctions : Example -> List String
 applicableFunctions example =
     case example of
         ManageSocketHeartbeat _ ->
-            [ "Phoenix.heartbeatMessagesOn"
+            [ "Phoenix.setConnectOptions"
+            , "Phoenix.heartbeatMessagesOn"
             , "Phoenix.heartbeatMessagesOff"
             ]
 

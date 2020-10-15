@@ -5,6 +5,7 @@ module Example exposing
     , applicableFunctions
     , controls
     , description
+    , info
     , init
     , toAction
     , toString
@@ -29,6 +30,7 @@ init : Config msg
 init =
     { description = El.none
     , controls = El.none
+    , info = El.none
     , applicableFunctions = El.none
     , usefulFunctions = El.none
     }
@@ -41,6 +43,7 @@ init =
 type alias Config msg =
     { description : Element msg
     , controls : Element msg
+    , info : Element msg
     , applicableFunctions : Element msg
     , usefulFunctions : Element msg
     }
@@ -51,6 +54,7 @@ type Action
     | Connect
     | Disconnect
     | On
+    | Off
 
 
 type Example
@@ -110,6 +114,7 @@ view config =
             [ config.description
             , config.controls
             ]
+        , config.info
         , El.row
             [ El.width El.fill
             , El.spacing 10
@@ -140,6 +145,30 @@ controls : Element msg -> Config msg -> Config msg
 controls cntrls config =
     { config
         | controls = cntrls
+    }
+
+
+info : List (Element msg) -> Config msg -> Config msg
+info content config =
+    { config
+        | info =
+            El.column
+                [ Background.color Color.white
+                , Border.width 1
+                , Border.color Color.black
+                , El.padding 10
+                , El.spacing 10
+                , El.centerX
+                ]
+            <|
+                El.el
+                    [ El.centerX
+                    , Font.bold
+                    , Font.underline
+                    , Font.color Color.darkslateblue
+                    ]
+                    (El.text "Information")
+                    :: content
     }
 
 
