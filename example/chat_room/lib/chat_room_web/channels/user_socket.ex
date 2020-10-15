@@ -18,10 +18,7 @@ defmodule ChatRoomWeb.UserSocket do
   @impl true
   def connect(%{"good_params" => "true"}, socket, _connect_info), do: {:ok, socket}
   def connect(%{"good_params" => "false"}, socket, _connect_info), do: :error
-  def connect(_params, socket, _connect_info) do
-    :timer.sleep(10000)
-    {:ok, socket}
-  end
+  def connect(_params, socket, _connect_info), do: {:ok, socket}
 
   # Socket id's are topics that allow you to identify all sockets for a given user:
   #
