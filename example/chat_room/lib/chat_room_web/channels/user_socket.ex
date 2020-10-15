@@ -16,7 +16,10 @@ defmodule ChatRoomWeb.UserSocket do
   # See `Phoenix.Token` documentation for examples in
   # performing token verification on connect.
   @impl true
+  def connect(%{"good_params" => "true"}, socket, _connect_info), do: {:ok, socket}
+  def connect(%{"good_params" => "false"}, socket, _connect_info), do: :error
   def connect(_params, socket, _connect_info) do
+    :timer.sleep(10000)
     {:ok, socket}
   end
 

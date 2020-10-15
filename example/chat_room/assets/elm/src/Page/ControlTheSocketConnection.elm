@@ -12,6 +12,8 @@ import Element as El exposing (Element)
 import Element.Font as Font
 import Element.Input as Input
 import Example exposing (Action(..), Example(..))
+import Extra.String as String
+import Json.Encode as JE
 import Page
 import Phoenix
 import Session exposing (Session)
@@ -47,6 +49,7 @@ type alias Model =
 type Msg
     = GotButtonClick Example
     | GotButtonEnter Example
+    | GotMenuItem Example
     | GotPhoenixMsg Phoenix.Msg
 
 
@@ -72,10 +75,33 @@ update msg model =
                         _ ->
                             ( model, Cmd.none )
 
-                ConnectWithParams action ->
+                ConnectWithGoodParams action ->
                     case action of
                         Connect ->
-                            Phoenix.connect phoenix
+                            phoenix
+                                |> Phoenix.setConnectParams
+                                    (JE.object
+                                        [ ( "good_params", JE.bool True ) ]
+                                    )
+                                |> Phoenix.connect
+                                |> updatePhoenix model
+
+                        Disconnect ->
+                            Phoenix.disconnect phoenix
+                                |> updatePhoenix model
+
+                        _ ->
+                            ( model, Cmd.none )
+
+                ConnectWithBadParams action ->
+                    case action of
+                        Connect ->
+                            phoenix
+                                |> Phoenix.setConnectParams
+                                    (JE.object
+                                        [ ( "good_params", JE.bool False ) ]
+                                    )
+                                |> Phoenix.connect
                                 |> updatePhoenix model
 
                         Disconnect ->
@@ -86,11 +112,29 @@ update msg model =
                             ( model, Cmd.none )
 
         GotButtonEnter example ->
-            ( model, Cmd.none )
+            ( { model
+                | example = example
+              }
+            , Cmd.none
+            )
+
+        GotMenuItem example ->
+            Phoenix.disconnect phoenix
+                |> updatePhoenix model
+                |> updateExample example
 
         GotPhoenixMsg subMsg ->
             Phoenix.update subMsg phoenix
                 |> updatePhoenix model
+
+
+updateExample : Example -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+updateExample example ( model, cmd ) =
+    ( { model
+        | example = example
+      }
+    , cmd
+    )
 
 
 updatePhoenix : Model -> ( Phoenix.Model, Cmd Phoenix.Msg ) -> ( Model, Cmd Msg )
@@ -98,7 +142,10 @@ updatePhoenix model ( phoenix, phoenixCmd ) =
     ( { model
         | session = Session.updatePhoenix phoenix model.session
       }
-    , Cmd.map GotPhoenixMsg phoenixCmd
+    , Cmd.batch
+        [ Cmd.map GotPhoenixMsg phoenixCmd
+        , Cmd.map GotPhoenixMsg (Phoenix.heartbeatMessagesOff phoenix)
+        ]
     )
 
 
@@ -116,43 +163,68 @@ view model =
     , content =
         Page.container
             [ Page.header "Control The Socket Connection"
-            , Example.view
-                (Example.description <| description SimpleConnect)
-                (buttons model.example phoenix)
-                El.none
-                El.none
+            , Page.introduction
+                [ Page.paragraph
+                    [ El.text "Connecting to the Socket is taken care of automatically when a request to join a Channel is made, or when a Channel is pushed to, "
+                    , El.text "however, if you want to take manual control, here's a few examples."
+                    ]
+                , Page.paragraph
+                    [ El.text "Clicking on a function will take you to its documentation." ]
+                ]
+            , Page.menu
+                [ ( Example.toString (SimpleConnect Anything), GotMenuItem (SimpleConnect Anything) )
+                , ( Example.toString (ConnectWithGoodParams Anything), GotMenuItem (ConnectWithGoodParams Anything) )
+                , ( Example.toString (ConnectWithBadParams Anything), GotMenuItem (ConnectWithBadParams Anything) )
+                ]
+                (Example.toString model.example)
+            , Example.init
+                |> Example.description
+                    (description model.example)
+                |> Example.controls
+                    (controls model.example phoenix)
+                |> Example.applicableFunctions
+                    (applicableFunctions model.example)
+                |> Example.usefulFunctions
+                    (usefulFunctions model.example phoenix)
+                |> Example.view
             ]
     }
 
 
-description : (Action -> Example) -> List (Element msg)
+description : Example -> List (Element msg)
 description example =
-    case example Anything of
-        SimpleConnect _ ->
-            [ Page.paragraph
-                [ El.text "It is not neccessary to manually connect to the Socket because this is taken care of automatically when a request to join a Channel is made, or when a Channel is pushed to." ]
-            , Page.paragraph
-                [ El.text "If you want to take manual control, this is how." ]
-            ]
-
-        ConnectWithParams _ ->
-            [ Page.paragraph
-                [ El.text "If you want to take manual control, this is how." ]
-            ]
-
-
-buttons : Example -> Phoenix.Model -> Element Msg
-buttons example phoenix =
     case example of
         SimpleConnect _ ->
-            simpleConnectButtons example phoenix
+            [ Page.paragraph
+                [ El.text "A simple connection to the Socket without sending any params or setting any connect options." ]
+            ]
 
-        ConnectWithParams _ ->
-            connectWithParamsButtons example phoenix
+        ConnectWithGoodParams _ ->
+            [ Page.paragraph
+                [ El.text "Connect to the Socket with authentication params that are accepted." ]
+            ]
+
+        ConnectWithBadParams _ ->
+            [ Page.paragraph
+                [ El.text "Try to connect to the Socket with authentication params that are not accepted, causing the connection to be denied." ]
+            ]
 
 
-simpleConnectButtons : Example -> Phoenix.Model -> Element Msg
-simpleConnectButtons example phoenix =
+controls : Example -> Phoenix.Model -> Element Msg
+controls example phoenix =
+    case example of
+        SimpleConnect _ ->
+            buttons SimpleConnect phoenix
+
+        ConnectWithGoodParams _ ->
+            buttons ConnectWithGoodParams phoenix
+
+        ConnectWithBadParams _ ->
+            buttons ConnectWithBadParams phoenix
+
+
+buttons : (Action -> Example) -> Phoenix.Model -> Element Msg
+buttons example phoenix =
     El.row
         [ El.width El.fill
         , El.height <| El.px 60
@@ -164,7 +236,7 @@ simpleConnectButtons example phoenix =
             ]
             (El.el
                 [ El.alignRight ]
-                (connectButton example SimpleConnect phoenix)
+                (connectButton example phoenix)
             )
         , El.el
             [ El.width El.fill
@@ -172,63 +244,81 @@ simpleConnectButtons example phoenix =
             ]
             (El.el
                 [ El.alignLeft ]
-                (disconnectButton example SimpleConnect phoenix)
+                (disconnectButton example phoenix)
             )
         ]
 
 
-connectWithParamsButtons : Example -> Phoenix.Model -> Element Msg
-connectWithParamsButtons current phoenix =
-    El.row
-        [ El.width El.fill
-        , El.height <| El.px 60
-        , El.spacing 20
-        ]
-        [ El.el
-            [ El.width El.fill
-            , El.centerY
-            ]
-            (El.el
-                [ El.alignRight ]
-                (connectButton current ConnectWithParams phoenix)
-            )
-        , El.el
-            [ El.width El.fill
-            , El.centerY
-            ]
-            (El.el
-                [ El.alignLeft ]
-                (disconnectButton current ConnectWithParams phoenix)
-            )
-        ]
-
-
-connectButton : Example -> (Action -> Example) -> Phoenix.Model -> Element Msg
-connectButton example exampleFunc phoenix =
+connectButton : (Action -> Example) -> Phoenix.Model -> Element Msg
+connectButton exampleFunc phoenix =
     Page.button
         { label = "Connect"
         , example = exampleFunc Connect
-        , onPress = GotButtonEnter
-        , onEnter = GotButtonClick
+        , onPress = GotButtonClick
+        , onEnter = GotButtonEnter
         , enabled =
             case Phoenix.socketState phoenix of
                 Phoenix.Disconnected _ ->
-                    example == exampleFunc Connect
+                    True
 
                 _ ->
                     False
         }
 
 
-disconnectButton : Example -> (Action -> Example) -> Phoenix.Model -> Element Msg
-disconnectButton current exampleFunc phoenix =
+disconnectButton : (Action -> Example) -> Phoenix.Model -> Element Msg
+disconnectButton exampleFunc phoenix =
     Page.button
         { label = "Disconnect"
         , example = exampleFunc Disconnect
-        , onPress = GotButtonEnter
-        , onEnter = GotButtonClick
-        , enabled = Phoenix.socketState phoenix == Phoenix.Connected && current == exampleFunc Connect
+        , onPress = GotButtonClick
+        , onEnter = GotButtonEnter
+        , enabled = Phoenix.socketState phoenix == Phoenix.Connected
         }
+
+
+applicableFunctions : Example -> List String
+applicableFunctions example =
+    case example of
+        SimpleConnect _ ->
+            [ "Phoenix.connect"
+            , "Phoenix.disconnect"
+            ]
+
+        ConnectWithGoodParams _ ->
+            [ "Phoenix.setConnectParams"
+            , "Phoenix.connect"
+            , "Phoenix.disconnect"
+            ]
+
+        ConnectWithBadParams _ ->
+            [ "Phoenix.setConnectParams"
+            , "Phoenix.connect"
+            , "Phoenix.disconnect"
+            ]
+
+
+usefulFunctions : Example -> Phoenix.Model -> List ( String, String )
+usefulFunctions example phoenix =
+    case example of
+        SimpleConnect _ ->
+            [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
+            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix )
+            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.fromBool )
+            ]
+
+        ConnectWithGoodParams _ ->
+            [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
+            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix )
+            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.fromBool )
+            ]
+
+        ConnectWithBadParams _ ->
+            [ ( "Phoenix.disconnectReason", Phoenix.disconnectReason phoenix |> Maybe.withDefault "Nothing" )
+            , ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
+            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix )
+            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.fromBool )
+            ]
 
 
 
