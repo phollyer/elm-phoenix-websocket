@@ -177,6 +177,7 @@ view model =
                 ]
             , Page.menu
                 [ ( Example.toString (ManageSocketHeartbeat Anything), GotMenuItem (ManageSocketHeartbeat Anything) )
+                , ( Example.toString (ManageChannelMessages Anything), GotMenuItem (ManageChannelMessages Anything) )
                 ]
                 (Example.toString model.example)
             , Example.init
@@ -201,6 +202,13 @@ description example =
         ManageSocketHeartbeat _ ->
             [ Page.paragraph
                 [ El.text "Choose whether to receive the heartbeat as an incoming Socket message. For this example, the heartbeat interval is set at 1 second." ]
+            ]
+
+        ManageChannelMessages _ ->
+            [ Page.paragraph
+                [ El.text "Messages that arrive from a Channel are delivered as both a Channel message and a Socket message from PhoenixJS, and it is up to "
+                , El.text "the developer to decide how to handle them."
+                ]
             ]
 
         _ ->

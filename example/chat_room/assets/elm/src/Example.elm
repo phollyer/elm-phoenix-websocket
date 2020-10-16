@@ -62,6 +62,7 @@ type Example
     | ConnectWithGoodParams Action
     | ConnectWithBadParams Action
     | ManageSocketHeartbeat Action
+    | ManageChannelMessages Action
 
 
 toString : Example -> String
@@ -93,6 +94,9 @@ toAction example =
             action
 
         ManageSocketHeartbeat action ->
+            action
+
+        ManageChannelMessages action ->
             action
 
 
