@@ -1671,16 +1671,16 @@ heartbeatMessagesOff (Model model) =
 
 {-| Channels that are queued waiting to join.
 -}
-queuedChannels : Model -> Set String
+queuedChannels : Model -> List String
 queuedChannels (Model model) =
-    model.queuedChannels
+    Set.toList model.queuedChannels
 
 
 {-| Channels that have joined successfully.
 -}
-joinedChannels : Model -> Set String
+joinedChannels : Model -> List String
 joinedChannels (Model model) =
-    model.joinedChannels
+    Set.toList model.joinedChannels
 
 
 {-| Determine if a Channel is in the queue to join.
