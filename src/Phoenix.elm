@@ -565,7 +565,6 @@ join topic (Model model) =
         Disconnected _ ->
             Model model
                 |> addChannelBeingJoined topic
-                |> updateSocketState Connecting
                 |> connect
 
 
