@@ -130,10 +130,12 @@ update msg model =
                                 |> updatePhoenix model
 
                         On ->
-                            ( model, Cmd.none )
+                            Phoenix.socketChannelMessagesOn phoenix
+                                |> setChannelMessages True model
 
                         Off ->
-                            ( model, Cmd.none )
+                            Phoenix.socketChannelMessagesOff phoenix
+                                |> setChannelMessages False model
 
                         _ ->
                             ( model, Cmd.none )
@@ -173,6 +175,15 @@ update msg model =
 
                 _ ->
                     ( newModel, cmd )
+
+
+setChannelMessages : Bool -> Model -> Cmd Phoenix.Msg -> ( Model, Cmd Msg )
+setChannelMessages channelMessages model phxCmd =
+    ( { model
+        | channelMessages = channelMessages
+      }
+    , Cmd.map GotPhoenixMsg phxCmd
+    )
 
 
 setHeartbeat : Bool -> Model -> Cmd Phoenix.Msg -> ( Model, Cmd Msg )
