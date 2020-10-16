@@ -55,6 +55,7 @@ type Action
     | Disconnect
     | On
     | Off
+    | Send
 
 
 type Example
@@ -121,13 +122,13 @@ view config =
             [ config.description
             , config.controls
             ]
-        , config.info
         , El.row
-            [ El.width El.fill
-            , El.spacing 10
+            [ El.spacing 10
+            , El.centerX
             ]
-            [ config.applicableFunctions
-            , config.usefulFunctions
+            [ El.el [ El.alignTop ] config.applicableFunctions
+            , El.el [ El.alignTop ] config.usefulFunctions
+            , El.el [ El.alignTop, El.width El.fill ] config.info
             ]
         ]
 
@@ -163,19 +164,31 @@ info content config =
                 [ Background.color Color.white
                 , Border.width 1
                 , Border.color Color.black
-                , El.padding 10
+                , El.paddingEach
+                    { left = 10
+                    , top = 10
+                    , right = 10
+                    , bottom = 0
+                    }
                 , El.spacing 10
                 , El.centerX
                 ]
-            <|
-                El.el
+                [ El.el
                     [ El.centerX
                     , Font.bold
                     , Font.underline
                     , Font.color Color.darkslateblue
                     ]
                     (El.text "Information")
-                    :: content
+                , El.column
+                    [ El.height <|
+                        El.maximum 300 El.shrink
+                    , El.clip
+                    , El.scrollbars
+                    , El.spacing 16
+                    ]
+                    content
+                ]
     }
 
 

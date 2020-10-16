@@ -2,7 +2,7 @@ defmodule ChatRoomWeb.UserSocket do
   use Phoenix.Socket
 
   ## Channels
-  channel "room:public", ChatRoomWeb.RoomChannel
+  channel "example:manage_channel_messages", ChatRoomWeb.ManageChannelMessagesChannel
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After

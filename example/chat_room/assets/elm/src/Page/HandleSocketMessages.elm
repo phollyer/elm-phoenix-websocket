@@ -8,12 +8,13 @@ module Page.HandleSocketMessages exposing
     , view
     )
 
+import Colors.Opaque as Color
 import Element as El exposing (Element)
 import Element.Font as Font
 import Element.Input as Input
 import Example exposing (Action(..), Example(..))
 import Extra.String as String
-import Json.Encode as JE
+import Json.Encode as JE exposing (Value)
 import Page
 import Phoenix
 import Phoenix.Socket as Socket
@@ -30,9 +31,23 @@ init session =
       , example = ManageSocketHeartbeat Connect
       , heartbeatCount = 0
       , heartbeat = True
+      , channelMessages = True
+      , channelMessageCount = 0
+      , channelMessageList = []
       }
     , Cmd.none
     )
+
+
+pushConfig : Phoenix.Push
+pushConfig =
+    { topic = ""
+    , event = ""
+    , payload = JE.null
+    , timeout = Nothing
+    , retryStrategy = Phoenix.Drop
+    , ref = Nothing
+    }
 
 
 
@@ -44,6 +59,18 @@ type alias Model =
     , example : Example
     , heartbeatCount : Int
     , heartbeat : Bool
+    , channelMessages : Bool
+    , channelMessageCount : Int
+    , channelMessageList : List ChannelMsg
+    }
+
+
+type alias ChannelMsg =
+    { topic : Phoenix.Topic
+    , event : Phoenix.Event
+    , payload : Value
+    , joinRef : Maybe String
+    , ref : Maybe String
     }
 
 
@@ -91,6 +118,26 @@ update msg model =
                         _ ->
                             ( model, Cmd.none )
 
+                ManageChannelMessages action ->
+                    case action of
+                        Send ->
+                            Phoenix.push
+                                { pushConfig
+                                    | topic = "example:manage_channel_messages"
+                                    , event = "empty_message"
+                                }
+                                phoenix
+                                |> updatePhoenix model
+
+                        On ->
+                            ( model, Cmd.none )
+
+                        Off ->
+                            ( model, Cmd.none )
+
+                        _ ->
+                            ( model, Cmd.none )
+
                 _ ->
                     ( model, Cmd.none )
 
@@ -110,6 +157,16 @@ update msg model =
                     ( { newModel
                         | heartbeatCount =
                             newModel.heartbeatCount + 1
+                      }
+                    , cmd
+                    )
+
+                Phoenix.SocketMessage (Phoenix.ChannelMessage msgInfo) ->
+                    ( { model
+                        | channelMessageCount =
+                            model.channelMessageCount + 1
+                        , channelMessageList =
+                            msgInfo :: model.channelMessageList
                       }
                     , cmd
                     )
@@ -216,111 +273,196 @@ description example =
 
 
 controls : Model -> Phoenix.Model -> Element Msg
-controls { example, heartbeat } phoenix =
+controls { example, heartbeat, channelMessages } phoenix =
     case example of
         ManageSocketHeartbeat _ ->
-            buttons ManageSocketHeartbeat heartbeat phoenix
+            buttons ManageSocketHeartbeat heartbeat phoenix <|
+                [ connectButton ManageSocketHeartbeat phoenix
+                , heartbeatOnButton ManageSocketHeartbeat heartbeat
+                , heartbeatOffButton ManageSocketHeartbeat heartbeat
+                , disconnectButton ManageSocketHeartbeat phoenix
+                ]
+
+        ManageChannelMessages _ ->
+            buttons ManageChannelMessages heartbeat phoenix <|
+                [ sendMessageButton ManageChannelMessages
+                , channelMessagesOn ManageChannelMessages channelMessages
+                , channelMessagesOff ManageChannelMessages channelMessages
+                ]
 
         _ ->
             El.none
 
 
-buttons : (Action -> Example) -> Bool -> Phoenix.Model -> Element Msg
-buttons example heartbeat phoenix =
+buttons : (Action -> Example) -> Bool -> Phoenix.Model -> List (Element Msg) -> Element Msg
+buttons example heartbeat phoenix btns =
     El.row
         [ El.width El.fill
         , El.height <| El.px 60
         , El.spacing 20
         ]
-        [ El.el
-            [ El.width El.fill
-            , El.centerY
-            ]
-            (El.el
-                [ El.alignRight ]
-                (connectButton example phoenix)
+    <|
+        List.map
+            (\button ->
+                El.el
+                    [ El.width El.fill
+                    , El.centerY
+                    ]
+                    button
             )
-        , El.el
-            [ El.width El.fill
-            , El.centerY
-            ]
-            (El.el
-                [ El.centerX ]
-                (heartbeatOnButton example heartbeat)
-            )
-        , El.el
-            [ El.width El.fill
-            , El.centerY
-            ]
-            (El.el
-                [ El.centerX ]
-                (heartbeatOffButton example heartbeat)
-            )
-        , El.el
-            [ El.width El.fill
-            , El.centerY
-            ]
-            (El.el
-                [ El.alignLeft ]
-                (disconnectButton example phoenix)
-            )
-        ]
+            btns
 
 
 connectButton : (Action -> Example) -> Phoenix.Model -> Element Msg
 connectButton exampleFunc phoenix =
-    Page.button
-        { label = "Connect"
-        , example = exampleFunc Connect
-        , onPress = GotButtonClick
-        , enabled =
-            case Phoenix.socketState phoenix of
-                Phoenix.Disconnected _ ->
-                    True
+    El.el
+        [ El.alignRight ]
+    <|
+        Page.button
+            { label = "Connect"
+            , example = exampleFunc Connect
+            , onPress = GotButtonClick
+            , enabled =
+                case Phoenix.socketState phoenix of
+                    Phoenix.Disconnected _ ->
+                        True
 
-                _ ->
-                    False
-        }
-
-
-heartbeatOnButton : (Action -> Example) -> Bool -> Element Msg
-heartbeatOnButton exampleFunc heartbeat =
-    Page.button
-        { label = "Heartbeat On"
-        , example = exampleFunc On
-        , onPress = GotButtonClick
-        , enabled = not heartbeat
-        }
-
-
-heartbeatOffButton : (Action -> Example) -> Bool -> Element Msg
-heartbeatOffButton exampleFunc heartbeat =
-    Page.button
-        { label = "Heartbeat Off"
-        , example = exampleFunc Off
-        , onPress = GotButtonClick
-        , enabled = heartbeat
-        }
+                    _ ->
+                        False
+            }
 
 
 disconnectButton : (Action -> Example) -> Phoenix.Model -> Element Msg
 disconnectButton exampleFunc phoenix =
-    Page.button
-        { label = "Disconnect"
-        , example = exampleFunc Disconnect
-        , onPress = GotButtonClick
-        , enabled = Phoenix.socketState phoenix == Phoenix.Connected
-        }
+    El.el
+        [ El.alignLeft ]
+    <|
+        Page.button
+            { label = "Disconnect"
+            , example = exampleFunc Disconnect
+            , onPress = GotButtonClick
+            , enabled = Phoenix.socketState phoenix == Phoenix.Connected
+            }
+
+
+heartbeatOnButton : (Action -> Example) -> Bool -> Element Msg
+heartbeatOnButton exampleFunc heartbeat =
+    El.el
+        [ El.centerX ]
+    <|
+        Page.button
+            { label = "Heartbeat On"
+            , example = exampleFunc On
+            , onPress = GotButtonClick
+            , enabled = not heartbeat
+            }
+
+
+heartbeatOffButton : (Action -> Example) -> Bool -> Element Msg
+heartbeatOffButton exampleFunc heartbeat =
+    El.el
+        [ El.centerX ]
+    <|
+        Page.button
+            { label = "Heartbeat Off"
+            , example = exampleFunc Off
+            , onPress = GotButtonClick
+            , enabled = heartbeat
+            }
+
+
+sendMessageButton : (Action -> Example) -> Element Msg
+sendMessageButton exampleFunc =
+    El.el
+        [ El.alignRight ]
+    <|
+        Page.button
+            { label = "Push Message"
+            , example = exampleFunc Send
+            , onPress = GotButtonClick
+            , enabled = True
+            }
+
+
+channelMessagesOn : (Action -> Example) -> Bool -> Element Msg
+channelMessagesOn exampleFunc channelMessages =
+    El.el
+        [ El.centerX ]
+    <|
+        Page.button
+            { label = "Messages On"
+            , example = exampleFunc On
+            , onPress = GotButtonClick
+            , enabled = not channelMessages
+            }
+
+
+channelMessagesOff : (Action -> Example) -> Bool -> Element Msg
+channelMessagesOff exampleFunc channelMessages =
+    El.el
+        [ El.alignLeft ]
+    <|
+        Page.button
+            { label = "Messages Off"
+            , example = exampleFunc Off
+            , onPress = GotButtonClick
+            , enabled = channelMessages
+            }
 
 
 info : Model -> List (Element Msg)
 info model =
     case model.example of
         ManageSocketHeartbeat _ ->
-            [ El.text ("Heartbeat Count: " ++ String.fromInt model.heartbeatCount) ]
+            [ El.el
+                [ El.paddingXY 0 10 ]
+                (El.text ("Heartbeat Count: " ++ String.fromInt model.heartbeatCount))
+            ]
+
+        ManageChannelMessages _ ->
+            El.el
+                [ El.paddingXY 0 10
+                ]
+                (El.paragraph
+                    []
+                    [ El.el [ Font.color Color.darkslateblue ] (El.text "Message Count: ")
+                    , El.text (String.fromInt model.channelMessageCount)
+                    ]
+                )
+                :: List.map formatChannelMessages model.channelMessageList
 
         _ ->
             [ El.none ]
+
+
+formatChannelMessages : ChannelMsg -> Element Msg
+formatChannelMessages msg =
+    let
+        formatted =
+            List.map
+                (\( label, value ) ->
+                    El.paragraph
+                        []
+                        [ El.el [ Font.color Color.darkslateblue ] (El.text label)
+                        , El.text value
+                        ]
+                )
+                [ ( "Topic: ", msg.topic )
+                , ( "Event: ", msg.event )
+                , ( "Payload: ", JE.encode 2 msg.payload )
+                , ( "Join Ref: ", Maybe.withDefault "Nothing" msg.joinRef )
+                , ( "Ref: ", Maybe.withDefault "Nothing" msg.ref )
+                ]
+    in
+    El.column
+        [ El.spacing 10 ]
+    <|
+        List.append
+            [ El.el
+                [ Font.bold ]
+                (El.text "Channel Message")
+            ]
+            formatted
 
 
 applicableFunctions : Example -> List String
@@ -331,6 +473,9 @@ applicableFunctions example =
             , "Phoenix.heartbeatMessagesOn"
             , "Phoenix.heartbeatMessagesOff"
             ]
+
+        ManageChannelMessages _ ->
+            [ "Phoenix.push" ]
 
         _ ->
             []
@@ -343,6 +488,22 @@ usefulFunctions example phoenix =
             [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
             , ( "Phoenix.connectionState", Phoenix.connectionState phoenix )
             , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.fromBool )
+            ]
+
+        ManageChannelMessages _ ->
+            [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
+            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix )
+            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.fromBool )
+            , ( "Phoenix.channelJoined", Phoenix.channelJoined "example:manage_channel_messages" phoenix |> String.fromBool )
+            , ( "Phoenix.joinedChannels"
+              , Phoenix.joinedChannels phoenix
+                    |> List.foldl
+                        (\channel str ->
+                            str ++ ", " ++ channel
+                        )
+                        ""
+                    |> String.dropLeft 2
+              )
             ]
 
         _ ->
