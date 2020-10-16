@@ -78,7 +78,10 @@ toString example =
             "Connect with Bad Params"
 
         ManageSocketHeartbeat _ ->
-            "Manage the Socket Hearbeat"
+            "Manage the Socket Heartbeat"
+
+        ManageChannelMessages _ ->
+            "Manage Channel Messages"
 
 
 toAction : Example -> Action
