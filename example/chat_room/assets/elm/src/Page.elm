@@ -2,6 +2,7 @@ module Page exposing
     ( Button
     , Page(..)
     , button
+    , code
     , container
     , controls
     , header
@@ -97,7 +98,7 @@ introduction intro =
         [ Font.color Color.darkslateblue
         , Font.size 24
         , Font.justify
-        , El.spacing 20
+        , El.spacing 30
         , Font.family
             [ Font.typeface "Piedra" ]
         ]
@@ -116,8 +117,22 @@ controls cntrls =
 paragraph : List (Element msg) -> Element msg
 paragraph content =
     El.paragraph
-        []
+        [ El.spacing 10 ]
         content
+
+
+code : String -> Element msg
+code text =
+    El.el
+        [ Font.family [ Font.typeface "Roboto Mono" ]
+        , Background.color Color.lightgrey
+        , El.padding 2
+        , Border.width 1
+        , Border.color Color.black
+        , Font.size 16
+        , Font.color Color.black
+        ]
+        (El.text text)
 
 
 menu : List ( String, msg ) -> String -> Element msg

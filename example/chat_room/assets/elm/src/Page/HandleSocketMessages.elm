@@ -238,7 +238,11 @@ view model =
             [ Page.header "Handle Socket Messages"
             , Page.introduction
                 [ Page.paragraph
-                    [ El.text ""
+                    [ El.text "By default, the PhoenixJS "
+                    , Page.code "onMessage"
+                    , El.text " handler for the Socket is setup to send all Socket messages through the incoming "
+                    , Page.code "port"
+                    , El.text ", which you may, or may not, want. These examples show how to control the types of messages that are allowed through."
                     ]
                 , Page.paragraph
                     [ El.text "Clicking on a function will take you to its documentation." ]
@@ -274,8 +278,8 @@ description example =
 
         ManageChannelMessages _ ->
             [ Page.paragraph
-                [ El.text "Messages that arrive from a Channel are delivered as both a Channel message and a Socket message from PhoenixJS, and it is up to "
-                , El.text "the developer to decide how to handle them."
+                [ El.text "Choose whether to receive Channel messages as an incoming Socket message. "
+                , El.text ""
                 ]
             ]
 
