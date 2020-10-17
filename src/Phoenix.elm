@@ -3,7 +3,7 @@ module Phoenix exposing
     , PortConfig, init
     , connect, addConnectOptions, setConnectOptions, Payload, setConnectParams, disconnect
     , Topic, join, Event, JoinConfig, addJoinConfig
-    , LeaveConfig, leave
+    , leave, LeaveConfig, setLeaveConfig
     , RetryStrategy(..), Push, push, pushAll
     , subscriptions
     , addEvents, dropEvents
@@ -131,7 +131,7 @@ you can use the [addJoinConfig](#addJoinConfig) function.
 
 # Leaving a Channel
 
-@docs LeaveConfig, leave
+@docs leave, LeaveConfig, setLeaveConfig
 
 
 # Talking to Channels
@@ -275,11 +275,13 @@ This is an opaque type, so use the provided API to interact with it.
 type Model
     = Model
         { queuedChannels : Set Topic
+        , queuedLeaves : Set Topic
         , joinedChannels : Set Topic
         , connectOptions : List Socket.ConnectOption
         , connectParams : Payload
         , disconnectReason : Maybe String
         , joinConfigs : Dict Topic JoinConfig
+        , leaveConfigs : Dict Topic LeaveConfig
         , phoenixMsg : PhoenixMsg
         , portConfig : PortConfig
         , presenceDiff : Dict Topic (List PresenceDiff)
@@ -349,11 +351,13 @@ init : PortConfig -> Model
 init portConfig =
     Model
         { queuedChannels = Set.empty
+        , queuedLeaves = Set.empty
         , joinedChannels = Set.empty
         , connectOptions = []
         , connectParams = JE.null
         , disconnectReason = Nothing
         , joinConfigs = Dict.empty
+        , leaveConfigs = Dict.empty
         , phoenixMsg = NoOp
         , portConfig = portConfig
         , presenceDiff = Dict.empty
@@ -576,9 +580,28 @@ type alias LeaveConfig =
 
 
 {-| -}
-leave : LeaveConfig -> Model -> Cmd Msg
-leave config (Model model) =
-    Channel.leave config model.portConfig.phoenixSend
+leave : Topic -> Model -> ( Model, Cmd Msg )
+leave topic (Model model) =
+    case model.socketState of
+        Connected ->
+            case Dict.get topic model.leaveConfigs of
+                Just config ->
+                    ( addChannelBeingLeft topic (Model model)
+                    , Channel.leave config model.portConfig.phoenixSend
+                    )
+
+                Nothing ->
+                    Model model
+                        |> setLeaveConfig
+                            { topic = topic
+                            , timeout = Nothing
+                            }
+                        |> leave topic
+
+        _ ->
+            ( addChannelBeingLeft topic (Model model)
+            , Cmd.none
+            )
 
 
 {-| A type alias representing an event that is sent to, or received from, a
@@ -647,6 +670,32 @@ addJoinConfig config (Model model) =
         (Model model)
 
 
+{-| Add a [LeaveConfig](#LeaveConfig) to be used when leaving a Channel
+referenced by the [Topic](#Topic).
+
+Multiple Channels are supported, so if you need/want to add multiple configs
+all at once, you can pipeline as follows:
+
+    model
+        |> addJoinConfig config1
+        |> addJoinConfig config2
+        |> addJoinConfig config3
+
+**Note 1:** Internally, [LeaveConfg](#LeaveConfig)s are stored by [Topic](#Topic),
+so subsequent additions with the same [Topic](#Topic) will overwrite previous
+ones.
+
+**Note 2:** If a [LeaveConfig](#LeaveConfig) is not set prior to the Channel
+being left, a default will be used.
+
+-}
+setLeaveConfig : LeaveConfig -> Model -> Model
+setLeaveConfig config (Model model) =
+    updateLeaveConfigs
+        (Dict.insert config.topic config model.leaveConfigs)
+        (Model model)
+
+
 joinChannels : Set Topic -> Model -> ( Model, Cmd Msg )
 joinChannels topics model =
     Set.toList topics
@@ -666,10 +715,24 @@ addChannelBeingJoined topic (Model model) =
         (Model model)
 
 
+addChannelBeingLeft : Topic -> Model -> Model
+addChannelBeingLeft topic (Model model) =
+    updateChannelsBeingLeft
+        (Set.insert topic model.queuedLeaves)
+        (Model model)
+
+
 dropChannelBeingJoined : Topic -> Model -> Model
 dropChannelBeingJoined topic (Model model) =
     updateChannelsBeingJoined
         (Set.remove topic model.queuedChannels)
+        (Model model)
+
+
+dropChannelBeingLeft : Topic -> Model -> Model
+dropChannelBeingLeft topic (Model model) =
+    updateChannelsBeingJoined
+        (Set.remove topic model.queuedLeaves)
         (Model model)
 
 
@@ -1098,6 +1161,7 @@ update msg (Model model) =
                 Channel.LeaveOk topic ->
                     ( Model model
                         |> dropJoinedChannel topic
+                        |> dropChannelBeingLeft topic
                         |> updatePhoenixMsg (ChannelResponse (LeaveOk topic))
                     , Cmd.none
                     )
@@ -1995,6 +2059,14 @@ updateChannelsBeingJoined channels (Model model) =
         }
 
 
+updateChannelsBeingLeft : Set Topic -> Model -> Model
+updateChannelsBeingLeft channels (Model model) =
+    Model
+        { model
+            | queuedLeaves = channels
+        }
+
+
 updateChannelsJoined : Set Topic -> Model -> Model
 updateChannelsJoined channels (Model model) =
     Model
@@ -2032,6 +2104,14 @@ updateJoinConfigs configs (Model model) =
     Model
         { model
             | joinConfigs = configs
+        }
+
+
+updateLeaveConfigs : Dict String LeaveConfig -> Model -> Model
+updateLeaveConfigs configs (Model model) =
+    Model
+        { model
+            | leaveConfigs = configs
         }
 
 
