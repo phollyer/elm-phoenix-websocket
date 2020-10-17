@@ -2,7 +2,7 @@ module Phoenix exposing
     ( Model
     , PortConfig, init
     , connect, addConnectOptions, setConnectOptions, Payload, setConnectParams, disconnect
-    , Topic, join, Event, JoinConfig, addJoinConfig
+    , Topic, join, Event, JoinConfig, setJoinConfig
     , leave, LeaveConfig, setLeaveConfig
     , RetryStrategy(..), Push, push, pushAll
     , subscriptions
@@ -124,9 +124,9 @@ However, if you want to join before hand, you can use the [join](#join)
 function.
 
 If you want to send any params to the Channel when you join at the Elixir end
-you can use the [addJoinConfig](#addJoinConfig) function.
+you can use the [setJoinConfig](#setJoinConfig) function.
 
-@docs Topic, join, Event, JoinConfig, addJoinConfig
+@docs Topic, join, Event, JoinConfig, setJoinConfig
 
 
 # Leaving a Channel
@@ -548,7 +548,7 @@ join topic (Model model) =
 
                 Nothing ->
                     Model model
-                        |> addJoinConfig
+                        |> setJoinConfig
                             { topic = topic
                             , payload = JE.null
                             , events = []
@@ -570,13 +570,6 @@ join topic (Model model) =
             Model model
                 |> addChannelBeingJoined topic
                 |> connect
-
-
-{-| -}
-type alias LeaveConfig =
-    { topic : Topic
-    , timeout : Maybe Int
-    }
 
 
 {-| -}
@@ -629,12 +622,18 @@ Channel.
 
   - `topic` - The channel topic id, for example: `"topic:subTopic"`.
 
-  - `payload` - Data to be sent to the Channel when joining.
+  - `payload` - Data to be sent to the Channel when joining. If no data is
+    required, set this to
+    [Json.Encode.null](https://package.elm-lang.org/packages/elm/json/latest/Json-Encode#null).
+    Defaults to
+    [Json.Encode.null](https://package.elm-lang.org/packages/elm/json/latest/Json-Encode#null).
 
-  - `events` - A list of events to receive from the Channel.
+  - `events` - A list of events to receive from the Channel. Defaults to `[]`.
 
   - `timeout` - Optional timeout, in ms, before retrying to join if the previous
-    attempt failed.
+    attempt failed. Defaults to `Nothing`.
+
+If a `JoinConfig` is not set prior to joining a Channel, the defaults will be used.
 
 -}
 type alias JoinConfig =
@@ -645,29 +644,31 @@ type alias JoinConfig =
     }
 
 
-{-| Add a [JoinConfig](#JoinConfig) to be used when joining a Channel
+{-| Set a [JoinConfig](#JoinConfig) to be used when joining a Channel
 referenced by the [Topic](#Topic).
-
-Multiple Channels are supported, so if you need/want to add multiple configs
-all at once, you can pipeline as follows:
-
-    model
-        |> addJoinConfig config1
-        |> addJoinConfig config2
-        |> addJoinConfig config3
-
-**Note 1:** Internally, [JoinConfg](#JoinConfig)s are stored by [Topic](#Topic),
-so subsequent additions with the same [Topic](#Topic) will overwrite previous
-ones.
-
-**Note 2:** JoinConfigs need to be set prior to the Channel being joined.
-
 -}
-addJoinConfig : JoinConfig -> Model -> Model
-addJoinConfig config (Model model) =
+setJoinConfig : JoinConfig -> Model -> Model
+setJoinConfig config (Model model) =
     updateJoinConfigs
         (Dict.insert config.topic config model.joinConfigs)
         (Model model)
+
+
+{-| A type alias representing the optional config to use when leaving a
+Channel.
+
+  - `topic` - The channel topic id, for example: `"topic:subTopic"`.
+
+  - `timeout` - Optional timeout, in ms, before retrying to join if the previous
+    attempt failed. Defaults to `Nothing`.
+
+If a `LeaveConfig` is not set prior to leaving a Channel, the defaults will be used.
+
+-}
+type alias LeaveConfig =
+    { topic : Topic
+    , timeout : Maybe Int
+    }
 
 
 {-| Set a [LeaveConfig](#LeaveConfig) to be used when leaving a Channel
