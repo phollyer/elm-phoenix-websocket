@@ -670,24 +670,8 @@ addJoinConfig config (Model model) =
         (Model model)
 
 
-{-| Add a [LeaveConfig](#LeaveConfig) to be used when leaving a Channel
+{-| Set a [LeaveConfig](#LeaveConfig) to be used when leaving a Channel
 referenced by the [Topic](#Topic).
-
-Multiple Channels are supported, so if you need/want to add multiple configs
-all at once, you can pipeline as follows:
-
-    model
-        |> addJoinConfig config1
-        |> addJoinConfig config2
-        |> addJoinConfig config3
-
-**Note 1:** Internally, [LeaveConfg](#LeaveConfig)s are stored by [Topic](#Topic),
-so subsequent additions with the same [Topic](#Topic) will overwrite previous
-ones.
-
-**Note 2:** If a [LeaveConfig](#LeaveConfig) is not set prior to the Channel
-being left, a default will be used.
-
 -}
 setLeaveConfig : LeaveConfig -> Model -> Model
 setLeaveConfig config (Model model) =
