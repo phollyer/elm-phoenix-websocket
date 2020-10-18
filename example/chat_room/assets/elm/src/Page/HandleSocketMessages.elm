@@ -34,6 +34,7 @@ init session =
       , channelMessages = True
       , channelMessageCount = 0
       , channelMessageList = []
+      , presenceMessages = True
       }
     , Cmd.none
     )
@@ -62,6 +63,7 @@ type alias Model =
     , channelMessages : Bool
     , channelMessageCount : Int
     , channelMessageList : List ChannelMsg
+    , presenceMessages : Bool
     }
 
 
@@ -140,6 +142,31 @@ update msg model =
                         _ ->
                             ( model, Cmd.none )
 
+                ManagePresenceMessages action ->
+                    case action of
+                        Join ->
+                            updatePhoenix model <|
+                                Phoenix.join
+                                    "example:manage_presence_messages"
+                                    phoenix
+
+                        Leave ->
+                            updatePhoenix model <|
+                                Phoenix.leave
+                                    "example:manage_presence_messages"
+                                    phoenix
+
+                        On ->
+                            Phoenix.socketPresenceMessagesOn phoenix
+                                |> setPresenceMessages True model
+
+                        Off ->
+                            Phoenix.socketPresenceMessagesOff phoenix
+                                |> setPresenceMessages False model
+
+                        _ ->
+                            ( model, Cmd.none )
+
                 _ ->
                     ( model, Cmd.none )
 
@@ -190,6 +217,15 @@ setHeartbeat : Bool -> Model -> Cmd Phoenix.Msg -> ( Model, Cmd Msg )
 setHeartbeat heartbeat model phxCmd =
     ( { model
         | heartbeat = heartbeat
+      }
+    , Cmd.map GotPhoenixMsg phxCmd
+    )
+
+
+setPresenceMessages : Bool -> Model -> Cmd Phoenix.Msg -> ( Model, Cmd Msg )
+setPresenceMessages presenceMessages model phxCmd =
+    ( { model
+        | presenceMessages = presenceMessages
       }
     , Cmd.map GotPhoenixMsg phxCmd
     )
@@ -250,6 +286,7 @@ view model =
             , Page.menu
                 [ ( Example.toString (ManageSocketHeartbeat Anything), GotMenuItem (ManageSocketHeartbeat Anything) )
                 , ( Example.toString (ManageChannelMessages Anything), GotMenuItem (ManageChannelMessages Anything) )
+                , ( Example.toString (ManagePresenceMessages Anything), GotMenuItem (ManagePresenceMessages Anything) )
                 ]
                 (Example.toString model.example)
             , Example.init
@@ -288,10 +325,10 @@ description example =
 
 
 controls : Model -> Phoenix.Model -> Element Msg
-controls { example, heartbeat, channelMessages } phoenix =
+controls { example, heartbeat, channelMessages, presenceMessages } phoenix =
     case example of
         ManageSocketHeartbeat _ ->
-            buttons ManageSocketHeartbeat heartbeat phoenix <|
+            buttons
                 [ connectButton ManageSocketHeartbeat phoenix
                 , heartbeatOnButton ManageSocketHeartbeat heartbeat
                 , heartbeatOffButton ManageSocketHeartbeat heartbeat
@@ -299,18 +336,26 @@ controls { example, heartbeat, channelMessages } phoenix =
                 ]
 
         ManageChannelMessages _ ->
-            buttons ManageChannelMessages heartbeat phoenix <|
+            buttons
                 [ sendMessageButton ManageChannelMessages
                 , channelMessagesOn ManageChannelMessages channelMessages
                 , channelMessagesOff ManageChannelMessages channelMessages
+                ]
+
+        ManagePresenceMessages _ ->
+            buttons
+                [ joinButton ManagePresenceMessages phoenix
+                , presenceOnButton ManagePresenceMessages presenceMessages
+                , presenceOffButton ManagePresenceMessages presenceMessages
+                , leaveButton ManagePresenceMessages phoenix
                 ]
 
         _ ->
             El.none
 
 
-buttons : (Action -> Example) -> Bool -> Phoenix.Model -> List (Element Msg) -> Element Msg
-buttons example heartbeat phoenix btns =
+buttons : List (Element Msg) -> Element Msg
+buttons btns =
     El.row
         [ El.width El.fill
         , El.height <| El.px 60
@@ -383,6 +428,58 @@ heartbeatOffButton exampleFunc heartbeat =
             , example = exampleFunc Off
             , onPress = GotButtonClick
             , enabled = heartbeat
+            }
+
+
+joinButton : (Action -> Example) -> Phoenix.Model -> Element Msg
+joinButton exampleFunc phoenix =
+    El.el
+        [ El.alignRight ]
+    <|
+        Page.button
+            { label = "Join Channel"
+            , example = exampleFunc Join
+            , onPress = GotButtonClick
+            , enabled = not <| Phoenix.channelJoined "example:manage_presence_messages" phoenix
+            }
+
+
+leaveButton : (Action -> Example) -> Phoenix.Model -> Element Msg
+leaveButton exampleFunc phoenix =
+    El.el
+        [ El.alignLeft ]
+    <|
+        Page.button
+            { label = "Leave Channel"
+            , example = exampleFunc Leave
+            , onPress = GotButtonClick
+            , enabled = Phoenix.channelJoined "example:manage_presence_messages" phoenix
+            }
+
+
+presenceOnButton : (Action -> Example) -> Bool -> Element Msg
+presenceOnButton exampleFunc presence =
+    El.el
+        [ El.centerX ]
+    <|
+        Page.button
+            { label = "Presence On"
+            , example = exampleFunc On
+            , onPress = GotButtonClick
+            , enabled = not presence
+            }
+
+
+presenceOffButton : (Action -> Example) -> Bool -> Element Msg
+presenceOffButton exampleFunc presence =
+    El.el
+        [ El.centerX ]
+    <|
+        Page.button
+            { label = "Presence Off"
+            , example = exampleFunc Off
+            , onPress = GotButtonClick
+            , enabled = presence
             }
 
 
@@ -490,7 +587,17 @@ applicableFunctions example =
             ]
 
         ManageChannelMessages _ ->
-            [ "Phoenix.push" ]
+            [ "Phoenix.push"
+            , "Phoenix.socketChannelMessagesOn"
+            , "Phoenix.socketChannelMessagesOff"
+            ]
+
+        ManagePresenceMessages _ ->
+            [ "Phoenix.join"
+            , "Phoenix.socketPresenceMessagesOn"
+            , "Phoenix.socketPresenceMessagesOff"
+            , "Phoeinx.leave"
+            ]
 
         _ ->
             []
@@ -518,6 +625,31 @@ usefulFunctions example phoenix =
                         )
                         ""
                     |> String.dropLeft 2
+              )
+            ]
+
+        ManagePresenceMessages _ ->
+            [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
+            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix )
+            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.fromBool )
+            , ( "Phoenix.channelJoined", Phoenix.channelJoined "example:manage_presence_messages" phoenix |> String.fromBool )
+            , ( "Phoenix.joinedChannels"
+              , Phoenix.joinedChannels phoenix
+                    |> List.foldl
+                        (\channel str ->
+                            str ++ ", " ++ channel
+                        )
+                        ""
+                    |> String.dropLeft 2
+                    |> String.listAsString
+              )
+            , ( "Phoenix.lastPresenceJoin"
+              , case Phoenix.lastPresenceJoin "example:manage_presence_messages" phoenix of
+                    Nothing ->
+                        "Nothing"
+
+                    Just presence ->
+                        "Just presence"
               )
             ]
 
