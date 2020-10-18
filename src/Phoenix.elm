@@ -693,6 +693,35 @@ joinChannels topics model =
             ( model, Cmd.none )
 
 
+leaveChannels : Set Topic -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+leaveChannels topics ( model, cmd ) =
+    Set.toList topics
+        |> List.foldl
+            (\topic ( model_, cmd_ ) ->
+                leave topic model_
+                    |> Tuple.mapSecond
+                        (\cmd__ -> Cmd.batch [ cmd__, cmd_ ])
+            )
+            ( model, cmd )
+
+
+batch : List ( a -> Model -> ( Model, Cmd Msg ), List a ) -> Model -> ( Model, Cmd Msg )
+batch list model =
+    List.foldl
+        (\( func, items ) ( model_, cmd ) ->
+            List.foldl
+                (\item ( model__, cmd_ ) ->
+                    func item model__
+                        |> Tuple.mapSecond
+                            (\cmd__ -> Cmd.batch [ cmd_, cmd__ ])
+                )
+                ( model_, cmd )
+                items
+        )
+        ( model, Cmd.none )
+        list
+
+
 addChannelBeingJoined : Topic -> Model -> Model
 addChannelBeingJoined topic (Model model) =
     updateChannelsBeingJoined
@@ -1274,7 +1303,10 @@ update msg (Model model) =
                         |> updateDisconnectReason Nothing
                         |> updateSocketState Connected
                         |> updatePhoenixMsg (StateChanged Connected)
-                        |> joinChannels model.queuedChannels
+                        |> batch
+                            [ ( join, queuedChannels (Model model) )
+                            , ( leave, queuedLeaves (Model model) )
+                            ]
 
                 Socket.Closed closedInfo ->
                     ( Model model
@@ -1723,6 +1755,13 @@ heartbeatMessagesOff (Model model) =
 queuedChannels : Model -> List String
 queuedChannels (Model model) =
     Set.toList model.queuedChannels
+
+
+{-| Channels that are queued waiting to leave.
+-}
+queuedLeaves : Model -> List String
+queuedLeaves (Model model) =
+    Set.toList model.queuedLeaves
 
 
 {-| Channels that have joined successfully.
