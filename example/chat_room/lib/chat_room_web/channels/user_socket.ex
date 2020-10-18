@@ -3,6 +3,7 @@ defmodule ChatRoomWeb.UserSocket do
 
   ## Channels
   channel "example:manage_channel_messages", ChatRoomWeb.ManageChannelMessagesChannel
+  channel "example:manage_presence_messages", ChatRoomWeb.ManagePresenceMessagesChannel
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After

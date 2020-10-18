@@ -53,6 +53,8 @@ type Action
     = Anything
     | Connect
     | Disconnect
+    | Join
+    | Leave
     | On
     | Off
     | Send
@@ -64,6 +66,7 @@ type Example
     | ConnectWithBadParams Action
     | ManageSocketHeartbeat Action
     | ManageChannelMessages Action
+    | ManagePresenceMessages Action
 
 
 toString : Example -> String
@@ -84,6 +87,9 @@ toString example =
         ManageChannelMessages _ ->
             "Manage Channel Messages"
 
+        ManagePresenceMessages _ ->
+            "Manage Presence Messages"
+
 
 toAction : Example -> Action
 toAction example =
@@ -101,6 +107,9 @@ toAction example =
             action
 
         ManageChannelMessages action ->
+            action
+
+        ManagePresenceMessages action ->
             action
 
 
