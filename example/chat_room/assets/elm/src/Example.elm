@@ -5,6 +5,7 @@ module Example exposing
     , applicableFunctions
     , controls
     , description
+    , fromString
     , info
     , init
     , toAction
@@ -67,6 +68,31 @@ type Example
     | ManageSocketHeartbeat Action
     | ManageChannelMessages Action
     | ManagePresenceMessages Action
+
+
+fromString : String -> Example
+fromString example =
+    case example of
+        "SimpleConnect" ->
+            SimpleConnect Anything
+
+        "ConnectWithGoodParams" ->
+            ConnectWithGoodParams Anything
+
+        "ConnectWithBadParams" ->
+            ConnectWithBadParams Anything
+
+        "ManageSocketHeartbeat" ->
+            ManageSocketHeartbeat Anything
+
+        "ManageChannelMessages" ->
+            ManageChannelMessages Anything
+
+        "ManagePresenceMessages" ->
+            ManagePresenceMessages Anything
+
+        _ ->
+            SimpleConnect Anything
 
 
 toString : Example -> String

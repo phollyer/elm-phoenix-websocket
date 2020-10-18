@@ -25,16 +25,26 @@ import Session exposing (Session)
 {- Init -}
 
 
-init : Session -> ( Model, Cmd Msg )
-init session =
+init : Session -> Maybe String -> ( Model, Cmd Msg )
+init session maybeExample =
+    let
+        example =
+            case maybeExample of
+                Just ex ->
+                    Example.fromString ex
+
+                Nothing ->
+                    ManageSocketHeartbeat Connect
+    in
     ( { session = session
-      , example = ManageSocketHeartbeat Connect
+      , example = example
       , heartbeatCount = 0
       , heartbeat = True
       , channelMessages = True
       , channelMessageCount = 0
       , channelMessageList = []
       , presenceMessages = True
+      , presenceMessageCount = 0
       }
     , Cmd.none
     )
@@ -64,6 +74,7 @@ type alias Model =
     , channelMessageCount : Int
     , channelMessageList : List ChannelMsg
     , presenceMessages : Bool
+    , presenceMessageCount : Int
     }
 
 
@@ -191,11 +202,19 @@ update msg model =
                     )
 
                 Phoenix.SocketMessage (Phoenix.ChannelMessage msgInfo) ->
-                    ( { model
+                    ( { newModel
                         | channelMessageCount =
-                            model.channelMessageCount + 1
+                            newModel.channelMessageCount + 1
                         , channelMessageList =
-                            msgInfo :: model.channelMessageList
+                            msgInfo :: newModel.channelMessageList
+                      }
+                    , cmd
+                    )
+
+                Phoenix.SocketMessage (Phoenix.PresenceMessage presenceMsg) ->
+                    ( { newModel
+                        | presenceMessageCount =
+                            newModel.presenceMessageCount + 1
                       }
                     , cmd
                     )
@@ -317,6 +336,19 @@ description example =
             [ Page.paragraph
                 [ El.text "Choose whether to receive Channel messages as an incoming Socket message. "
                 , El.text ""
+                ]
+            ]
+
+        ManagePresenceMessages _ ->
+            [ Page.paragraph
+                [ El.text "Choose whether to receive Presence messages as an incoming Socket message. "
+                , El.text "To get the best out of this example, you should open it in mulitple tabs/browsers. Click "
+                , El.newTabLink
+                    []
+                    { url = "/HandleSocketMessages?example=ManagePresenceMessages"
+                    , label = El.text "here"
+                    }
+                , El.text " to open a new tab."
                 ]
             ]
 
@@ -543,6 +575,12 @@ info model =
                 )
                 :: List.map formatChannelMessages model.channelMessageList
 
+        ManagePresenceMessages _ ->
+            [ El.el
+                [ El.paddingXY 0 10 ]
+                (El.text ("Message Count: " ++ String.fromInt model.presenceMessageCount))
+            ]
+
         _ ->
             [ El.none ]
 
@@ -645,6 +683,14 @@ usefulFunctions example phoenix =
               )
             , ( "Phoenix.lastPresenceJoin"
               , case Phoenix.lastPresenceJoin "example:manage_presence_messages" phoenix of
+                    Nothing ->
+                        "Nothing"
+
+                    Just presence ->
+                        "Just presence"
+              )
+            , ( "Phoenix.lastPresenceLeave"
+              , case Phoenix.lastPresenceLeave "example:manage_presence_messages" phoenix of
                     Nothing ->
                         "Nothing"
 

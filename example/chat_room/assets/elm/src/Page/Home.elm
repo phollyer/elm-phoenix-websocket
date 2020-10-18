@@ -98,7 +98,7 @@ socketExamples =
             , { title = "Handle Socket Messages"
               , description =
                     [ "Manage the heartbeat, Channel and Presence messages that come in from the Socket." ]
-              , route = HandleSocketMessages
+              , route = HandleSocketMessages Nothing
               }
             ]
 

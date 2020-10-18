@@ -47,8 +47,8 @@ changeRouteTo maybeRoute model =
             ControlTheSocketConnection.init session
                 |> updateWith ControlTheSocketConnection GotControlTheSocketConnectionMsg
 
-        Just Route.HandleSocketMessages ->
-            HandleSocketMessages.init session
+        Just (Route.HandleSocketMessages maybeExample) ->
+            HandleSocketMessages.init session maybeExample
                 |> updateWith HandleSocketMessages GotHandleSocketMessagesMsg
 
 
