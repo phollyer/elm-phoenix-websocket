@@ -1090,29 +1090,25 @@ subscriptions (Model model) =
 {-| Add the [Event](#Event)s you want to receive from the Channel identified by
 [Topic](#Topic).
 -}
-addEvents : Topic -> List Event -> Model -> ( Model, Cmd Msg )
+addEvents : Topic -> List Event -> Model -> Cmd Msg
 addEvents topic events (Model model) =
-    ( Model model
-    , Channel.allOn
+    Channel.allOn
         { topic = topic
         , events = events
         }
         model.portConfig.phoenixSend
-    )
 
 
 {-| Remove [Event](#Event)s you no longer want to receive from the Channel
 identified by [Topic](#Topic).
 -}
-dropEvents : Topic -> List Event -> Model -> ( Model, Cmd Msg )
+dropEvents : Topic -> List Event -> Model -> Cmd Msg
 dropEvents topic events (Model model) =
-    ( Model model
-    , Channel.allOff
+    Channel.allOff
         { topic = topic
         , events = events
         }
         model.portConfig.phoenixSend
-    )
 
 
 
