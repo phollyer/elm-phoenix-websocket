@@ -6,7 +6,7 @@ module Phoenix exposing
     , leave, LeaveConfig, setLeaveConfig
     , RetryStrategy(..), Push, push, pushAll
     , subscriptions
-    , addEvents, dropEvents
+    , addEvent, addEvents, dropEvents
     , Msg, update
     , SocketState(..), SocketMessage(..)
     , OriginalPayload, PushRef, ChannelResponse(..)
@@ -161,7 +161,7 @@ immediately.
 
 ### Incoming Events
 
-@docs addEvents, dropEvents
+@docs addEvent, addEvents, dropEvents
 
 
 # Update
@@ -1085,6 +1085,18 @@ subscriptions (Model model) =
           else
             Time.every 1000 TimeoutTick
         ]
+
+
+{-| Add the [Event](#Event) you want to receive from the Channel identified by
+[Topic](#Topic).
+-}
+addEvent : Topic -> Event -> Model -> Cmd Msg
+addEvent topic event (Model model) =
+    Channel.on
+        { topic = topic
+        , event = event
+        }
+        model.portConfig.phoenixSend
 
 
 {-| Add the [Event](#Event)s you want to receive from the Channel identified by
