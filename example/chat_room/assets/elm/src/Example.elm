@@ -6,11 +6,14 @@ module Example exposing
     , controls
     , description
     , fromString
+    , id
     , info
     , init
+    , remoteControls
     , toAction
     , toString
     , usefulFunctions
+    , userId
     , view
     )
 
@@ -29,8 +32,11 @@ import Phoenix
 
 init : Config msg
 init =
-    { description = El.none
+    { id = Nothing
+    , userId = Nothing
+    , description = El.none
     , controls = El.none
+    , remoteControls = []
     , info = El.none
     , applicableFunctions = El.none
     , usefulFunctions = El.none
@@ -42,8 +48,11 @@ init =
 
 
 type alias Config msg =
-    { description : Element msg
+    { id : Maybe String
+    , userId : Maybe String
+    , description : Element msg
     , controls : Element msg
+    , remoteControls : List ( String, Element msg )
     , info : Element msg
     , applicableFunctions : Element msg
     , usefulFunctions : Element msg
@@ -155,7 +164,48 @@ view config =
             , El.spacing 20
             ]
             [ config.description
+            , case config.id of
+                Nothing ->
+                    El.none
+
+                Just exampleId ->
+                    El.el
+                        [ Font.color Color.lavender
+                        , Font.family
+                            [ Font.typeface "Varela Round" ]
+                        ]
+                        (El.text ("Example ID: " ++ exampleId))
+            , case config.userId of
+                Nothing ->
+                    El.none
+
+                Just userId_ ->
+                    El.el
+                        [ Font.color Color.lavender
+                        , Font.family
+                            [ Font.typeface "Varela Round" ]
+                        ]
+                        (El.text ("User ID: " ++ userId_))
             , config.controls
+            , El.column
+                [ El.width El.fill
+                , El.spacing 10
+                ]
+              <|
+                List.map
+                    (\( userId_, buttons ) ->
+                        El.column
+                            [ El.width El.fill ]
+                            [ El.el
+                                [ Font.color Color.lavender
+                                , Font.family
+                                    [ Font.typeface "Varela Round" ]
+                                ]
+                                (El.text ("User ID: " ++ userId_))
+                            , buttons
+                            ]
+                    )
+                    config.remoteControls
             ]
         , El.row
             [ El.spacing 10
@@ -166,6 +216,20 @@ view config =
             , El.el [ El.alignTop, El.width El.fill ] config.info
             ]
         ]
+
+
+id : Maybe String -> Config msg -> Config msg
+id maybeId config =
+    { config
+        | id = maybeId
+    }
+
+
+userId : Maybe String -> Config msg -> Config msg
+userId maybeId config =
+    { config
+        | userId = maybeId
+    }
 
 
 description : List (Element msg) -> Config msg -> Config msg
@@ -188,6 +252,13 @@ controls : Element msg -> Config msg -> Config msg
 controls cntrls config =
     { config
         | controls = cntrls
+    }
+
+
+remoteControls : List ( String, Element msg ) -> Config msg -> Config msg
+remoteControls list config =
+    { config
+        | remoteControls = list
     }
 
 

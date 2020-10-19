@@ -10,11 +10,15 @@ module Page.HandleSocketMessages exposing
 
 import Colors.Opaque as Color
 import Element as El exposing (Element)
+import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Example exposing (Action(..), Example(..))
 import Extra.String as String
+import Json.Decode as JD
+import Json.Decode.Extra exposing (andMap)
 import Json.Encode as JE exposing (Value)
+import Json.Encode.Extra exposing (maybe)
 import Page
 import Phoenix
 import Phoenix.Socket as Socket
@@ -25,8 +29,8 @@ import Session exposing (Session)
 {- Init -}
 
 
-init : Session -> Maybe String -> ( Model, Cmd Msg )
-init session maybeExample =
+init : Session -> Maybe String -> Maybe ID -> ( Model, Cmd Msg )
+init session maybeExample maybeId =
     let
         example =
             case maybeExample of
@@ -36,18 +40,41 @@ init session maybeExample =
                 Nothing ->
                     ManageSocketHeartbeat Connect
     in
-    ( { session = session
-      , example = example
-      , heartbeatCount = 0
-      , heartbeat = True
-      , channelMessages = True
-      , channelMessageCount = 0
-      , channelMessageList = []
-      , presenceMessages = True
-      , presenceMessageCount = 0
-      }
-    , Cmd.none
-    )
+    getExampleId
+        { session = session
+        , example = example
+        , exampleId = maybeId
+        , userId = Nothing
+        , heartbeatCount = 0
+        , heartbeat = True
+        , channelMessages = True
+        , channelMessageCount = 0
+        , channelMessageList = []
+        , presenceMessages = True
+        , presenceMessageCount = 0
+        , presenceState = []
+        }
+
+
+
+{- The example ID is a unique ID supplied by "example_controller:control" that
+   is used to identify each tab, and so enable remote control of each tab.
+-}
+
+
+getExampleId : Model -> ( Model, Cmd Msg )
+getExampleId model =
+    let
+        topic =
+            case model.exampleId of
+                Just id ->
+                    "example_controller:" ++ id
+
+                Nothing ->
+                    "example_controller:control"
+    in
+    Phoenix.join topic (Session.phoenix model.session)
+        |> updatePhoenix model
 
 
 pushConfig : Phoenix.Push
@@ -65,9 +92,21 @@ pushConfig =
 {- Model -}
 
 
+type alias Presence =
+    { id : String
+    , meta : Meta
+    }
+
+
+type alias Meta =
+    { exampleJoined : Bool }
+
+
 type alias Model =
     { session : Session
     , example : Example
+    , exampleId : Maybe ID
+    , userId : Maybe ID
     , heartbeatCount : Int
     , heartbeat : Bool
     , channelMessages : Bool
@@ -75,6 +114,7 @@ type alias Model =
     , channelMessageList : List ChannelMsg
     , presenceMessages : Bool
     , presenceMessageCount : Int
+    , presenceState : List Presence
     }
 
 
@@ -87,12 +127,27 @@ type alias ChannelMsg =
     }
 
 
+type alias ID =
+    String
+
+
+controllerTopic : Maybe String -> String
+controllerTopic maybeId =
+    case maybeId of
+        Just id ->
+            "example_controller:" ++ id
+
+        Nothing ->
+            "example_controller:control"
+
+
 
 {- Update -}
 
 
 type Msg
     = GotButtonClick Example
+    | GotRemoteButtonClick ID Example
     | GotMenuItem Example
     | GotPhoenixMsg Phoenix.Msg
 
@@ -156,16 +211,12 @@ update msg model =
                 ManagePresenceMessages action ->
                     case action of
                         Join ->
-                            updatePhoenix model <|
-                                Phoenix.join
-                                    "example:manage_presence_messages"
-                                    phoenix
+                            Phoenix.join "example:manage_presence_messages" phoenix
+                                |> updatePhoenix model
 
                         Leave ->
-                            updatePhoenix model <|
-                                Phoenix.leave
-                                    "example:manage_presence_messages"
-                                    phoenix
+                            Phoenix.leave "example:manage_presence_messages" phoenix
+                                |> updatePhoenix model
 
                         On ->
                             Phoenix.socketPresenceMessagesOn phoenix
@@ -174,6 +225,36 @@ update msg model =
                         Off ->
                             Phoenix.socketPresenceMessagesOff phoenix
                                 |> setPresenceMessages False model
+
+                        _ ->
+                            ( model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        GotRemoteButtonClick userId example ->
+            case example of
+                ManagePresenceMessages action ->
+                    case action of
+                        Join ->
+                            Phoenix.push
+                                { pushConfig
+                                    | topic = controllerTopic model.exampleId
+                                    , event = "join_example"
+                                    , payload = encodeUserId userId
+                                }
+                                phoenix
+                                |> updatePhoenix model
+
+                        Leave ->
+                            Phoenix.push
+                                { pushConfig
+                                    | topic = controllerTopic model.exampleId
+                                    , event = "leave_example"
+                                    , payload = encodeUserId userId
+                                }
+                                phoenix
+                                |> updatePhoenix model
 
                         _ ->
                             ( model, Cmd.none )
@@ -191,8 +272,11 @@ update msg model =
                 ( newModel, cmd ) =
                     Phoenix.update subMsg phoenix
                         |> updatePhoenix model
+
+                phx =
+                    Session.phoenix newModel.session
             in
-            case Session.phoenix newModel.session |> Phoenix.phoenixMsg of
+            case Phoenix.phoenixMsg phx of
                 Phoenix.SocketMessage (Phoenix.Heartbeat _) ->
                     ( { newModel
                         | heartbeatCount =
@@ -219,8 +303,132 @@ update msg model =
                     , cmd
                     )
 
+                Phoenix.ChannelResponse (Phoenix.JoinOk "example:manage_presence_messages" payload) ->
+                    Phoenix.push
+                        { pushConfig
+                            | topic = controllerTopic newModel.exampleId
+                            , event = "joined_example"
+                        }
+                        phx
+                        |> updatePhoenix newModel
+                        |> batch [ cmd ]
+
+                Phoenix.ChannelResponse (Phoenix.LeaveOk "example:manage_presence_messages") ->
+                    Phoenix.push
+                        { pushConfig
+                            | topic = controllerTopic newModel.exampleId
+                            , event = "left_example"
+                        }
+                        phx
+                        |> updatePhoenix newModel
+                        |> batch [ cmd ]
+
+                {- Remote Control -}
+                Phoenix.ChannelResponse (Phoenix.JoinOk topic payload) ->
+                    case Phoenix.topicParts topic of
+                        ( "example_controller", "control" ) ->
+                            case decodeExampleId payload of
+                                Ok exampleId ->
+                                    Phoenix.batch
+                                        [ ( Phoenix.leave, [ "example_controller:control" ] )
+                                        , ( Phoenix.join, [ controllerTopic (Just exampleId) ] )
+                                        ]
+                                        phx
+                                        |> updatePhoenix
+                                            { newModel
+                                                | exampleId = Just exampleId
+                                            }
+                                        |> batch
+                                            [ cmd ]
+
+                                _ ->
+                                    ( newModel, cmd )
+
+                        ( "example_controller", _ ) ->
+                            case decodeUserId payload of
+                                Ok id ->
+                                    ( { newModel
+                                        | userId = Just id
+                                      }
+                                    , Cmd.batch
+                                        [ cmd
+                                        , Cmd.map GotPhoenixMsg <|
+                                            Phoenix.addEvents (controllerTopic model.exampleId)
+                                                [ "join_example"
+                                                , "leave_example"
+                                                ]
+                                                phoenix
+                                        ]
+                                    )
+
+                                _ ->
+                                    ( newModel, cmd )
+
+                        _ ->
+                            ( newModel, cmd )
+
+                Phoenix.ChannelEvent _ event payload ->
+                    case ( event, decodeUserId payload ) of
+                        ( "join_example", Ok userId ) ->
+                            if newModel.userId == Just userId then
+                                Phoenix.join "example:manage_presence_messages" phoenix
+                                    |> updatePhoenix model
+
+                            else
+                                ( newModel, Cmd.none )
+
+                        ( "leave_example", Ok userId ) ->
+                            if newModel.userId == Just userId then
+                                Phoenix.leave "example:manage_presence_messages" phoenix
+                                    |> updatePhoenix model
+
+                            else
+                                ( newModel, cmd )
+
+                        _ ->
+                            ( newModel, cmd )
+
+                Phoenix.PresenceEvent (Phoenix.State topic state) ->
+                    case Phoenix.topicParts topic of
+                        ( "example_controller", _ ) ->
+                            ( { newModel
+                                | presenceState =
+                                    toPresenceState state
+                              }
+                            , Cmd.none
+                            )
+
+                        _ ->
+                            ( newModel, cmd )
+
                 _ ->
                     ( newModel, cmd )
+
+
+toPresenceState : List Phoenix.Presence -> List Presence
+toPresenceState presences =
+    List.map toPresence presences
+
+
+toPresence : Phoenix.Presence -> Presence
+toPresence presence =
+    { id = presence.id
+    , meta =
+        case presence.metas of
+            -- There will only ever be one meta in the list because each new
+            -- join will be considered a new user, so a user cannot have
+            -- multiple joins.
+            meta :: _ ->
+                case decodeMeta meta of
+                    Ok m ->
+                        m
+
+                    _ ->
+                        { exampleJoined = False }
+
+            [] ->
+                { exampleJoined = False }
+    }
 
 
 setChannelMessages : Bool -> Model -> Cmd Phoenix.Msg -> ( Model, Cmd Msg )
@@ -277,6 +485,49 @@ updatePhoenix model ( phoenix, phoenixCmd ) =
     )
 
 
+batch : List (Cmd Msg) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+batch cmds ( model, cmd ) =
+    ( model
+    , Cmd.batch (cmd :: cmds)
+    )
+
+
+
+{- Decoders -}
+
+
+decodeExampleId : Value -> Result JD.Error String
+decodeExampleId payload =
+    JD.decodeValue (JD.field "example_id" JD.string) payload
+
+
+decodeUserId : Value -> Result JD.Error String
+decodeUserId payload =
+    JD.decodeValue (JD.field "user_id" JD.string) payload
+
+
+metaDecoder : JD.Decoder Meta
+metaDecoder =
+    JD.succeed
+        Meta
+        |> andMap (JD.field "example_joined" JD.bool)
+
+
+decodeMeta : Value -> Result JD.Error Meta
+decodeMeta payload =
+    JD.decodeValue metaDecoder payload
+
+
+
+{- Encoders -}
+
+
+encodeUserId : String -> Value
+encodeUserId userId =
+    JE.object
+        [ ( "user_id", JE.string userId ) ]
+
+
 
 {- View -}
 
@@ -309,10 +560,14 @@ view model =
                 ]
                 (Example.toString model.example)
             , Example.init
+                |> Example.id model.exampleId
+                |> Example.userId model.userId
                 |> Example.description
-                    (description model.example)
+                    (description model.example model.exampleId)
                 |> Example.controls
                     (controls model phoenix)
+                |> Example.remoteControls
+                    (remoteControls model phoenix)
                 |> Example.info
                     (info model)
                 |> Example.applicableFunctions
@@ -324,8 +579,8 @@ view model =
     }
 
 
-description : Example -> List (Element msg)
-description example =
+description : Example -> Maybe ID -> List (Element msg)
+description example maybeId =
     case example of
         ManageSocketHeartbeat _ ->
             [ Page.paragraph
@@ -342,13 +597,25 @@ description example =
         ManagePresenceMessages _ ->
             [ Page.paragraph
                 [ El.text "Choose whether to receive Presence messages as an incoming Socket message. "
-                , El.text "To get the best out of this example, you should open it in mulitple tabs/browsers. Click "
+                , El.text "To get the best out of this example, you should open it in mulitple tabs. Click "
                 , El.newTabLink
                     []
-                    { url = "/HandleSocketMessages?example=ManagePresenceMessages"
-                    , label = El.text "here"
+                    { url =
+                        case maybeId of
+                            Just id ->
+                                "/HandleSocketMessages?example=ManagePresenceMessages&id=" ++ id
+
+                            Nothing ->
+                                "/HandleSocketMessages?example=ManagePresenceMessages"
+                    , label =
+                        El.el
+                            [ Font.color Color.dodgerblue
+                            , El.mouseOver
+                                [ Font.color Color.lavender ]
+                            ]
+                            (El.text "here")
                     }
-                , El.text " to open a new tab."
+                , El.text " to open a new tab(s). You will then be able to control each tab from the tab you are in."
                 ]
             ]
 
@@ -376,14 +643,40 @@ controls { example, heartbeat, channelMessages, presenceMessages } phoenix =
 
         ManagePresenceMessages _ ->
             buttons
-                [ joinButton ManagePresenceMessages phoenix
+                [ joinButton ManagePresenceMessages GotButtonClick (not <| Phoenix.channelJoined "example:manage_presence_messages" phoenix)
                 , presenceOnButton ManagePresenceMessages presenceMessages
                 , presenceOffButton ManagePresenceMessages presenceMessages
-                , leaveButton ManagePresenceMessages phoenix
+                , leaveButton ManagePresenceMessages GotButtonClick (Phoenix.channelJoined "example:manage_presence_messages" phoenix)
                 ]
 
         _ ->
             El.none
+
+
+remoteControls : Model -> Phoenix.Model -> List ( String, Element Msg )
+remoteControls { example, userId, presenceState, presenceMessages } phoenix =
+    case example of
+        ManagePresenceMessages _ ->
+            List.filterMap
+                (\presence ->
+                    if Just presence.id == userId then
+                        Nothing
+
+                    else
+                        Just <|
+                            ( presence.id
+                            , buttons
+                                [ joinButton ManagePresenceMessages (GotRemoteButtonClick presence.id) (not presence.meta.exampleJoined)
+                                , presenceOnButton ManagePresenceMessages presenceMessages
+                                , presenceOffButton ManagePresenceMessages presenceMessages
+                                , leaveButton ManagePresenceMessages (GotRemoteButtonClick presence.id) presence.meta.exampleJoined
+                                ]
+                            )
+                )
+                presenceState
+
+        _ ->
+            []
 
 
 buttons : List (Element Msg) -> Element Msg
@@ -463,29 +756,29 @@ heartbeatOffButton exampleFunc heartbeat =
             }
 
 
-joinButton : (Action -> Example) -> Phoenix.Model -> Element Msg
-joinButton exampleFunc phoenix =
+joinButton : (Action -> Example) -> (Example -> Msg) -> Bool -> Element Msg
+joinButton example onPress enabled =
     El.el
         [ El.alignRight ]
     <|
         Page.button
             { label = "Join Channel"
-            , example = exampleFunc Join
-            , onPress = GotButtonClick
-            , enabled = not <| Phoenix.channelJoined "example:manage_presence_messages" phoenix
+            , example = example Join
+            , onPress = onPress
+            , enabled = enabled
             }
 
 
-leaveButton : (Action -> Example) -> Phoenix.Model -> Element Msg
-leaveButton exampleFunc phoenix =
+leaveButton : (Action -> Example) -> (Example -> Msg) -> Bool -> Element Msg
+leaveButton example onPress enabled =
     El.el
         [ El.alignLeft ]
     <|
         Page.button
             { label = "Leave Channel"
-            , example = exampleFunc Leave
-            , onPress = GotButtonClick
-            , enabled = Phoenix.channelJoined "example:manage_presence_messages" phoenix
+            , example = example Leave
+            , onPress = onPress
+            , enabled = enabled
             }
 
 
@@ -673,6 +966,7 @@ usefulFunctions example phoenix =
             , ( "Phoenix.channelJoined", Phoenix.channelJoined "example:manage_presence_messages" phoenix |> String.fromBool )
             , ( "Phoenix.joinedChannels"
               , Phoenix.joinedChannels phoenix
+                    |> List.filter (String.startsWith "example:")
                     |> List.foldl
                         (\channel str ->
                             str ++ ", " ++ channel
