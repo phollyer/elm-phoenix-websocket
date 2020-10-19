@@ -19,11 +19,12 @@ module Phoenix exposing
     , socketChannelMessagesOn, socketChannelMessagesOff
     , socketPresenceMessagesOn, socketPresenceMessagesOff
     , heartbeatMessagesOn, heartbeatMessagesOff
-    , queuedChannels, channelQueued, joinedChannels, channelJoined
+    , queuedChannels, channelQueued, joinedChannels, channelJoined, topicParts
     , queuedPushes, pushQueued, dropQueuedPush
     , timeoutPushes, pushTimedOut, dropTimeoutPush, pushTimeoutCountdown
     , dropPush
     , presenceState, presenceDiff, presenceJoins, presenceLeaves, lastPresenceJoin, lastPresenceLeave
+    , batch
     , log, startLogging, stopLogging
     )
 
@@ -224,7 +225,7 @@ handler forwards on to Elm.
 
 ## Channels
 
-@docs queuedChannels, channelQueued, joinedChannels, channelJoined
+@docs queuedChannels, channelQueued, joinedChannels, channelJoined, topicParts
 
 
 ## Pushes
@@ -239,6 +240,11 @@ handler forwards on to Elm.
 ## Presence Information
 
 @docs presenceState, presenceDiff, presenceJoins, presenceLeaves, lastPresenceJoin, lastPresenceLeave
+
+
+## batching
+
+@docs batch
 
 
 ## Logging
@@ -681,30 +687,35 @@ setLeaveConfig config (Model model) =
         (Model model)
 
 
-joinChannels : Set Topic -> Model -> ( Model, Cmd Msg )
-joinChannels topics model =
-    Set.toList topics
-        |> List.foldl
-            (\topic ( model_, cmd ) ->
-                join topic model_
-                    |> Tuple.mapSecond
-                        (\cmd_ -> Cmd.batch [ cmd_, cmd ])
-            )
-            ( model, Cmd.none )
+
+{-
+   joinChannels : Set Topic -> Model -> ( Model, Cmd Msg )
+   joinChannels topics model =
+       Set.toList topics
+           |> List.foldl
+               (\topic ( model_, cmd ) ->
+                   join topic model_
+                       |> Tuple.mapSecond
+                           (\cmd_ -> Cmd.batch [ cmd_, cmd ])
+               )
+               ( model, Cmd.none )
 
 
-leaveChannels : Set Topic -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-leaveChannels topics ( model, cmd ) =
-    Set.toList topics
-        |> List.foldl
-            (\topic ( model_, cmd_ ) ->
-                leave topic model_
-                    |> Tuple.mapSecond
-                        (\cmd__ -> Cmd.batch [ cmd__, cmd_ ])
-            )
-            ( model, cmd )
+   leaveChannels : Set Topic -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+   leaveChannels topics ( model, cmd ) =
+       Set.toList topics
+           |> List.foldl
+               (\topic ( model_, cmd_ ) ->
+                   leave topic model_
+                       |> Tuple.mapSecond
+                           (\cmd__ -> Cmd.batch [ cmd__, cmd_ ])
+               )
+               ( model, cmd )
+-}
 
 
+{-| Batch a list of `Cmd`'s
+-}
 batch : List ( a -> Model -> ( Model, Cmd Msg ), List a ) -> Model -> ( Model, Cmd Msg )
 batch list model =
     List.foldl
@@ -1783,6 +1794,31 @@ channelQueued topic (Model model) =
 channelJoined : Topic -> Model -> Bool
 channelJoined topic (Model model) =
     Set.member topic model.joinedChannels
+
+
+{-| Split a topic into a `( topic, subTopic)` Tuple.
+
+This is intended to ease pattern matching when using a Channel with a
+dynamically created `subTopic`.
+
+    case Phoenix.topicParts topic of
+        ("topic1", subTopic) ->
+            ...
+
+        ("topic2", subTopic) ->
+            ...
+
+        ...
+
+-}
+topicParts : Topic -> ( String, String )
+topicParts topic =
+    case String.split ":" topic of
+        topic_ :: subTopic :: _ ->
+            ( topic_, subTopic )
+
+        _ ->
+            ( "", "" )
 
 
 
