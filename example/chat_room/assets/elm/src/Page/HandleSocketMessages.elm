@@ -74,8 +74,13 @@ getExampleId model =
                 Nothing ->
                     "example_controller:control"
     in
-    Phoenix.join topic (Session.phoenix model.session)
-        |> updatePhoenix model
+    case model.example of
+        ManagePresenceMessages _ ->
+            Phoenix.join topic (Session.phoenix model.session)
+                |> updatePhoenix model
+
+        _ ->
+            ( model, Cmd.none )
 
 
 
@@ -271,7 +276,8 @@ update msg model =
 
         GotMenuItem example ->
             Phoenix.disconnect phoenix
-                |> updatePhoenix model
+                |> updatePhoenix
+                    (reset model)
                 |> updateExample example
 
         GotPhoenixMsg subMsg ->
@@ -463,6 +469,22 @@ setPresenceMessages presenceMessages model phxCmd =
     )
 
 
+reset : Model -> Model
+reset model =
+    { model
+        | exampleId = Nothing
+        , userId = Nothing
+        , heartbeatCount = 0
+        , heartbeat = True
+        , channelMessages = True
+        , channelMessageCount = 0
+        , channelMessageList = []
+        , presenceMessages = True
+        , presenceMessageCount = 0
+        , presenceState = []
+    }
+
+
 resetHeartbeatCount : ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 resetHeartbeatCount ( model, cmd ) =
     ( { model
@@ -474,11 +496,8 @@ resetHeartbeatCount ( model, cmd ) =
 
 updateExample : Example -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 updateExample example ( model, cmd ) =
-    ( { model
-        | example = example
-      }
-    , cmd
-    )
+    getExampleId { model | example = example }
+        |> Tuple.mapSecond (\cmd_ -> Cmd.batch [ cmd, cmd_ ])
 
 
 updatePhoenix : Model -> ( Phoenix.Model, Cmd Phoenix.Msg ) -> ( Model, Cmd Msg )
