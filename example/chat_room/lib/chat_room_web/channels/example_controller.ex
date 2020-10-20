@@ -17,7 +17,7 @@ defmodule ChatRoomWeb.ExampleControllerChannel do
 
   def handle_info(:after_join, socket) do
     {:ok, _} = Presence.track(socket, socket.assigns.user_id, %{
-      example_joined: false,
+      example_state: "Not Joined"
     })
 
     push(socket, "presence_state", Presence.list(socket))
@@ -26,25 +26,37 @@ defmodule ChatRoomWeb.ExampleControllerChannel do
   end
 
   def handle_in("join_example", params, socket) do
-    broadcast!(socket, "join_example", params)
+    broadcast(socket, "join_example", params)
 
     {:reply, :ok, socket}
   end
 
-  def handle_in("leave_example", params, socket) do
-    broadcast!(socket, "leave_example", params)
+  def handle_in("joining_example", nil, socket) do
+    Presence.update(socket, socket.assigns.user_id, %{example_state: "Joining"})
 
     {:reply, :ok, socket}
   end
 
   def handle_in("joined_example", _, socket) do
-    Presence.update(socket, socket.assigns.user_id, %{example_joined: true})
+    Presence.update(socket, socket.assigns.user_id, %{example_state: "Joined"})
+
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("leave_example", params, socket) do
+    broadcast(socket, "leave_example", params)
+
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("leaving_example", _, socket) do
+    Presence.update(socket, socket.assigns.user_id, %{example_state: "Leaving"})
 
     {:reply, :ok, socket}
   end
 
   def handle_in("left_example", _, socket) do
-    Presence.update(socket, socket.assigns.user_id, %{example_joined: false})
+    Presence.update(socket, socket.assigns.user_id, %{example_state: "Left"})
 
     {:reply, :ok, socket}
   end

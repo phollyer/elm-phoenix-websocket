@@ -99,7 +99,14 @@ type alias Presence =
 
 
 type alias Meta =
-    { exampleJoined : Bool }
+    { exampleState : ExampleState }
+
+
+type ExampleState
+    = Joined
+    | Joining
+    | Leaving
+    | NotJoined
 
 
 type alias Model =
@@ -330,8 +337,8 @@ update msg model =
                             case decodeExampleId payload of
                                 Ok exampleId ->
                                     Phoenix.batch
-                                        [ ( Phoenix.leave, [ "example_controller:control" ] )
-                                        , ( Phoenix.join, [ controllerTopic (Just exampleId) ] )
+                                        [ Phoenix.leave "example_controller:control"
+                                        , Phoenix.join (controllerTopic (Just exampleId))
                                         ]
                                         phx
                                         |> updatePhoenix
@@ -353,7 +360,7 @@ update msg model =
                                     , Cmd.batch
                                         [ cmd
                                         , Cmd.map GotPhoenixMsg <|
-                                            Phoenix.addEvents (controllerTopic model.exampleId)
+                                            Phoenix.addEvents (controllerTopic newModel.exampleId)
                                                 [ "join_example"
                                                 , "leave_example"
                                                 ]
@@ -371,16 +378,32 @@ update msg model =
                     case ( event, decodeUserId payload ) of
                         ( "join_example", Ok userId ) ->
                             if newModel.userId == Just userId then
-                                Phoenix.join "example:manage_presence_messages" phoenix
-                                    |> updatePhoenix model
+                                Phoenix.batch
+                                    [ Phoenix.join "example:manage_presence_messages"
+                                    , Phoenix.push
+                                        { pushConfig
+                                            | topic = controllerTopic newModel.exampleId
+                                            , event = "joining_example"
+                                        }
+                                    ]
+                                    phoenix
+                                    |> updatePhoenix newModel
 
                             else
-                                ( newModel, Cmd.none )
+                                ( newModel, cmd )
 
                         ( "leave_example", Ok userId ) ->
                             if newModel.userId == Just userId then
-                                Phoenix.leave "example:manage_presence_messages" phoenix
-                                    |> updatePhoenix model
+                                Phoenix.batch
+                                    [ Phoenix.leave "example:manage_presence_messages"
+                                    , Phoenix.push
+                                        { pushConfig
+                                            | topic = controllerTopic newModel.exampleId
+                                            , event = "leaving_example"
+                                        }
+                                    ]
+                                    phoenix
+                                    |> updatePhoenix newModel
 
                             else
                                 ( newModel, cmd )
@@ -395,7 +418,7 @@ update msg model =
                                 | presenceState =
                                     toPresenceState state
                               }
-                            , Cmd.none
+                            , cmd
                             )
 
                         _ ->
@@ -424,11 +447,12 @@ toPresence presence =
                         m
 
                     _ ->
-                        { exampleJoined = False }
+                        { exampleState = NotJoined }
 
             [] ->
-                { exampleJoined = False }
+                { exampleState = NotJoined }
     }
+        |> Debug.log "Presence"
 
 
 setChannelMessages : Bool -> Model -> Cmd Phoenix.Msg -> ( Model, Cmd Msg )
@@ -510,7 +534,31 @@ metaDecoder : JD.Decoder Meta
 metaDecoder =
     JD.succeed
         Meta
-        |> andMap (JD.field "example_joined" JD.bool)
+        |> andMap
+            (JD.field "example_state" JD.string
+                |> JD.andThen stateDecoder
+            )
+
+
+stateDecoder : String -> JD.Decoder ExampleState
+stateDecoder state =
+    case state of
+        "Joined" ->
+            JD.succeed Joined
+
+        "Joining" ->
+            JD.succeed Joining
+
+        "Leaving" ->
+            JD.succeed Leaving
+
+        "Not Joined" ->
+            JD.succeed NotJoined
+
+        _ ->
+            JD.fail <|
+                "Not a valid Example State: "
+                    ++ state
 
 
 decodeMeta : Value -> Result JD.Error Meta
@@ -654,7 +702,7 @@ controls { example, heartbeat, channelMessages, presenceMessages } phoenix =
 
 
 remoteControls : Model -> Phoenix.Model -> List ( String, Element Msg )
-remoteControls { example, userId, presenceState, presenceMessages } phoenix =
+remoteControls { example, userId, presenceState } phoenix =
     case example of
         ManagePresenceMessages _ ->
             List.filterMap
@@ -666,10 +714,8 @@ remoteControls { example, userId, presenceState, presenceMessages } phoenix =
                         Just <|
                             ( presence.id
                             , buttons
-                                [ joinButton ManagePresenceMessages (GotRemoteButtonClick presence.id) (not presence.meta.exampleJoined)
-                                , presenceOnButton ManagePresenceMessages presenceMessages
-                                , presenceOffButton ManagePresenceMessages presenceMessages
-                                , leaveButton ManagePresenceMessages (GotRemoteButtonClick presence.id) presence.meta.exampleJoined
+                                [ joinButton ManagePresenceMessages (GotRemoteButtonClick presence.id) (presence.meta.exampleState == NotJoined)
+                                , leaveButton ManagePresenceMessages (GotRemoteButtonClick presence.id) (presence.meta.exampleState == Joined)
                                 ]
                             )
                 )
