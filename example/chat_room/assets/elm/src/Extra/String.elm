@@ -1,8 +1,13 @@
-module Extra.String exposing (fromBool, listAsString)
+module Extra.String exposing
+    ( printBool
+    , printList
+    , printMaybe
+    , printQuoted
+    )
 
 
-fromBool : Bool -> String
-fromBool bool =
+printBool : Bool -> String
+printBool bool =
     if bool then
         "True"
 
@@ -10,8 +15,35 @@ fromBool bool =
         "False"
 
 
-listAsString : String -> String
-listAsString string =
+printQuoted : String -> String
+printQuoted str =
+    "\"" ++ str ++ "\""
+
+
+printList : List String -> String
+printList list =
+    List.foldl
+        (\str acc ->
+            acc ++ ", " ++ printQuoted str
+        )
+        ""
+        list
+        |> String.dropLeft 2
+        |> asList
+
+
+printMaybe : String -> Maybe a -> String
+printMaybe justStr maybe =
+    case maybe of
+        Nothing ->
+            "Nothing"
+
+        Just _ ->
+            "Just " ++ justStr
+
+
+asList : String -> String
+asList string =
     if string == "" then
         "[ ]"
 

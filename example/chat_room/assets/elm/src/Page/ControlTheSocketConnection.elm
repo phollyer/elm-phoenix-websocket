@@ -212,68 +212,74 @@ controls : Example -> Phoenix.Model -> Element Msg
 controls example phoenix =
     case example of
         SimpleConnect _ ->
-            buttons SimpleConnect phoenix
+            buttons
+                [ connectButton SimpleConnect phoenix
+                , disconnectButton SimpleConnect phoenix
+                ]
 
         ConnectWithGoodParams _ ->
-            buttons ConnectWithGoodParams phoenix
+            buttons
+                [ connectButton ConnectWithGoodParams phoenix
+                , disconnectButton ConnectWithGoodParams phoenix
+                ]
 
         ConnectWithBadParams _ ->
-            buttons ConnectWithBadParams phoenix
+            buttons
+                [ connectButton ConnectWithBadParams phoenix
+                , disconnectButton ConnectWithBadParams phoenix
+                ]
 
         _ ->
             El.none
 
 
-buttons : (Action -> Example) -> Phoenix.Model -> Element Msg
-buttons example phoenix =
+buttons : List (Element Msg) -> Element Msg
+buttons btns =
     El.row
         [ El.width El.fill
         , El.height <| El.px 60
         , El.spacing 20
         ]
-        [ El.el
-            [ El.width El.fill
-            , El.centerY
-            ]
+    <|
+        List.map
             (El.el
-                [ El.alignRight ]
-                (connectButton example phoenix)
+                [ El.width El.fill
+                , El.centerY
+                ]
             )
-        , El.el
-            [ El.width El.fill
-            , El.centerY
-            ]
-            (El.el
-                [ El.alignLeft ]
-                (disconnectButton example phoenix)
-            )
-        ]
+            btns
 
 
 connectButton : (Action -> Example) -> Phoenix.Model -> Element Msg
 connectButton exampleFunc phoenix =
-    Page.button
-        { label = "Connect"
-        , example = exampleFunc Connect
-        , onPress = GotButtonClick
-        , enabled =
-            case Phoenix.socketState phoenix of
-                Phoenix.Disconnected _ ->
-                    True
+    El.el
+        [ El.alignRight ]
+    <|
+        Page.button
+            { label = "Connect"
+            , example = exampleFunc Connect
+            , onPress = GotButtonClick
+            , enabled =
+                case Phoenix.socketState phoenix of
+                    Phoenix.Disconnected _ ->
+                        True
 
-                _ ->
-                    False
-        }
+                    _ ->
+                        False
+            }
 
 
 disconnectButton : (Action -> Example) -> Phoenix.Model -> Element Msg
 disconnectButton exampleFunc phoenix =
-    Page.button
-        { label = "Disconnect"
-        , example = exampleFunc Disconnect
-        , onPress = GotButtonClick
-        , enabled = Phoenix.socketState phoenix == Phoenix.Connected
-        }
+    El.el
+        [ El.alignLeft ]
+    <|
+        Page.button
+            { label = "Disconnect"
+            , example = exampleFunc Disconnect
+            , onPress = GotButtonClick
+            , enabled = Phoenix.socketState phoenix == Phoenix.Connected
+            }
 
 
 applicableFunctions : Example -> List String
@@ -305,21 +311,28 @@ usefulFunctions example phoenix =
     case example of
         SimpleConnect _ ->
             [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
-            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix )
-            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.fromBool )
+            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
+            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
             ]
 
         ConnectWithGoodParams _ ->
             [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
-            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix )
-            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.fromBool )
+            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
+            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
             ]
 
         ConnectWithBadParams _ ->
-            [ ( "Phoenix.disconnectReason", Phoenix.disconnectReason phoenix |> Maybe.withDefault "Nothing" )
+            [ ( "Phoenix.disconnectReason"
+              , case Phoenix.disconnectReason phoenix of
+                    Nothing ->
+                        "Nothing"
+
+                    Just reason ->
+                        "Just " ++ String.printQuoted reason
+              )
             , ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
-            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix )
-            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.fromBool )
+            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
+            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
             ]
 
         _ ->
