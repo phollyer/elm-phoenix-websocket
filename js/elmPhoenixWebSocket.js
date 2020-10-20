@@ -240,7 +240,7 @@ let ElmPhoenixWebSocket = {
         } else if (resp.event.indexOf("presence") == 0 && this.socketMessages.presence) {
             this.socketSend("Presence", resp)
 
-        } else if (this.socketMessages.channel ){
+        } else if (this.socketMessages.channel && resp.topic != "phoenix" ){
             this.socketSend("Channel", resp)
         }
     },
