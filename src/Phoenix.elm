@@ -24,7 +24,7 @@ module Phoenix exposing
     , timeoutPushes, pushTimedOut, dropTimeoutPush, pushTimeoutCountdown
     , dropPush
     , presenceState, presenceDiff, presenceJoins, presenceLeaves, lastPresenceJoin, lastPresenceLeave
-    , batch
+    , batch, batchList
     , log, startLogging, stopLogging
     )
 
@@ -242,9 +242,9 @@ handler forwards on to Elm.
 @docs presenceState, presenceDiff, presenceJoins, presenceLeaves, lastPresenceJoin, lastPresenceLeave
 
 
-## batching
+## Batching
 
-@docs batch
+@docs batch, batchList
 
 
 ## Logging
@@ -685,52 +685,6 @@ setLeaveConfig config (Model model) =
     updateLeaveConfigs
         (Dict.insert config.topic config model.leaveConfigs)
         (Model model)
-
-
-
-{-
-   joinChannels : Set Topic -> Model -> ( Model, Cmd Msg )
-   joinChannels topics model =
-       Set.toList topics
-           |> List.foldl
-               (\topic ( model_, cmd ) ->
-                   join topic model_
-                       |> Tuple.mapSecond
-                           (\cmd_ -> Cmd.batch [ cmd_, cmd ])
-               )
-               ( model, Cmd.none )
-
-
-   leaveChannels : Set Topic -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-   leaveChannels topics ( model, cmd ) =
-       Set.toList topics
-           |> List.foldl
-               (\topic ( model_, cmd_ ) ->
-                   leave topic model_
-                       |> Tuple.mapSecond
-                           (\cmd__ -> Cmd.batch [ cmd__, cmd_ ])
-               )
-               ( model, cmd )
--}
-
-
-{-| Batch a list of `Cmd`'s
--}
-batch : List ( a -> Model -> ( Model, Cmd Msg ), List a ) -> Model -> ( Model, Cmd Msg )
-batch list model =
-    List.foldl
-        (\( func, items ) ( model_, cmd ) ->
-            List.foldl
-                (\item ( model__, cmd_ ) ->
-                    func item model__
-                        |> Tuple.mapSecond
-                            (\cmd__ -> Cmd.batch [ cmd_, cmd__ ])
-                )
-                ( model_, cmd )
-                items
-        )
-        ( model, Cmd.none )
-        list
 
 
 addChannelBeingJoined : Topic -> Model -> Model
@@ -1322,7 +1276,7 @@ update msg (Model model) =
                         |> updateDisconnectReason Nothing
                         |> updateSocketState Connected
                         |> updatePhoenixMsg (StateChanged Connected)
-                        |> batch
+                        |> batchList
                             [ ( join, queuedChannels (Model model) )
                             , ( leave, queuedLeaves (Model model) )
                             ]
@@ -2058,6 +2012,40 @@ lastPresenceLeave topic (Model model) =
     Dict.get topic model.presenceLeave
         |> Maybe.withDefault []
         |> List.head
+
+
+
+{- Batching -}
+
+
+{-| Batch a list of functions together.
+-}
+batch : List (Model -> ( Model, Cmd Msg )) -> Model -> ( Model, Cmd Msg )
+batch list model =
+    List.foldl map ( model, Cmd.none ) list
+
+
+{-| Batch a list of arguments onto their functions.
+-}
+batchList : List ( a -> Model -> ( Model, Cmd Msg ), List a ) -> Model -> ( Model, Cmd Msg )
+batchList list model =
+    batch
+        (List.map batchArgs list
+            |> List.concat
+        )
+        model
+
+
+batchArgs : ( a -> Model -> ( Model, Cmd Msg ), List a ) -> List (Model -> ( Model, Cmd Msg ))
+batchArgs ( func, args ) =
+    List.map func args
+
+
+map : (Model -> ( Model, Cmd Msg )) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+map func ( model, cmd ) =
+    func model
+        |> Tuple.mapSecond
+            (\cmd_ -> Cmd.batch [ cmd, cmd_ ])
 
 
 
