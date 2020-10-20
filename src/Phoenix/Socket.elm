@@ -232,19 +232,18 @@ encodeConnectOption option =
             ( "vsn", JE.string vsn )
 
 
-{-| Disconnect the Socket.
-
-The JS API provides for a callback function and additional params to be passed
-in to the `disconnect` function. In the context of using Elm, this doesn't make
-sense as there is nothing to callback to, and so this isn't supported.
-
-If you need to callback to some other JS you have, you will need to edit the
-accompanying JS file accordingly.
-
+{-| Disconnect the Socket, maybe providing a status
+[code](https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent#Status_codes)
+for the closure.
 -}
-disconnect : PortOut msg -> Cmd msg
-disconnect portOut =
-    portOut (package "disconnect")
+disconnect : Maybe Int -> PortOut msg -> Cmd msg
+disconnect code portOut =
+    portOut
+        { msg = "disconnect"
+        , payload =
+            JE.object
+                [ ( "code", maybe JE.int code ) ]
+        }
 
 
 

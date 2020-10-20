@@ -227,7 +227,9 @@ let ElmPhoenixWebSocket = {
 
         Disconnect from the socket.
     */
-    disconnect() { this.socket.disconnect() },
+    disconnect( params ) {
+        this.socket.disconnect( () => {}, params.code)
+    },
 
 
     /* onMessage */

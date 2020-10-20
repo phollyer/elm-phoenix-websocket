@@ -183,7 +183,7 @@ update msg model =
                                 |> updatePhoenix model
 
                         Disconnect ->
-                            Phoenix.disconnect phoenix
+                            Phoenix.disconnect (Just 1000) phoenix
                                 |> updatePhoenix model
                                 |> resetHeartbeatCount
 
@@ -275,7 +275,7 @@ update msg model =
                     ( model, Cmd.none )
 
         GotMenuItem example ->
-            Phoenix.disconnect phoenix
+            Phoenix.disconnect (Just 1000) phoenix
                 |> updatePhoenix
                     (reset model)
                 |> updateExample example

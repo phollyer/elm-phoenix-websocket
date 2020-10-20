@@ -501,10 +501,12 @@ setConnectParams params model =
     updateConnectParams params model
 
 
-{-| Disconnect the Socket.
+{-| Disconnect the Socket, maybe providing a status
+[code](https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent#Status_codes)
+for the closure.
 -}
-disconnect : Model -> ( Model, Cmd Msg )
-disconnect (Model model) =
+disconnect : Maybe Int -> Model -> ( Model, Cmd Msg )
+disconnect code (Model model) =
     case model.socketState of
         Disconnected _ ->
             ( Model model, Cmd.none )
@@ -514,7 +516,7 @@ disconnect (Model model) =
 
         _ ->
             ( updateSocketState Disconnecting (Model model)
-            , Socket.disconnect
+            , Socket.disconnect code
                 model.portConfig.phoenixSend
             )
 

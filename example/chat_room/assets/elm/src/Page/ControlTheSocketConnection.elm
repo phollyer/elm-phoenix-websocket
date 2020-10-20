@@ -68,7 +68,7 @@ update msg model =
                                 |> updatePhoenix model
 
                         Disconnect ->
-                            Phoenix.disconnect phoenix
+                            Phoenix.disconnect (Just 1000) phoenix
                                 |> updatePhoenix model
 
                         _ ->
@@ -86,7 +86,7 @@ update msg model =
                                 |> updatePhoenix model
 
                         Disconnect ->
-                            Phoenix.disconnect phoenix
+                            Phoenix.disconnect (Just 1000) phoenix
                                 |> updatePhoenix model
 
                         _ ->
@@ -104,7 +104,7 @@ update msg model =
                                 |> updatePhoenix model
 
                         Disconnect ->
-                            Phoenix.disconnect phoenix
+                            Phoenix.disconnect (Just 1000) phoenix
                                 |> updatePhoenix model
 
                         _ ->
