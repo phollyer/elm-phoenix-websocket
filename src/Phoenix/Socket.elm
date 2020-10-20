@@ -349,7 +349,7 @@ type InternalError
 type Msg
     = Opened
     | Closed ClosedInfo
-    | Error
+    | Error String
     | Channel ChannelMessage
     | Presence PresenceMessage
     | Heartbeat HeartbeatMessage
@@ -399,11 +399,11 @@ subscriptions msg portIn =
 handleMessage : (Msg -> msg) -> { msg : String, payload : Value } -> msg
 handleMessage toMsg { msg, payload } =
     case msg of
-        "Error" ->
-            toMsg Error
-
         "Opened" ->
             toMsg Opened
+
+        "Error" ->
+            decodeError toMsg payload
 
         "Closed" ->
             decodeClosed toMsg payload
@@ -615,6 +615,25 @@ closedDecoder =
         |> andMap (JD.field "reason" JD.string)
         |> andMap (JD.field "code" JD.int)
         |> andMap (JD.field "wasClean" JD.bool)
+        |> andMap (JD.field "type" JD.string)
+        |> andMap (JD.field "isTrusted" JD.bool)
+
+
+errorDecoder : JD.Decoder String
+errorDecoder =
+    JD.succeed
+        identity
+        |> andMap (JD.field "reason" JD.string)
+
+
+decodeError : (Msg -> msg) -> Value -> msg
+decodeError toMsg payload =
+    case JD.decodeValue errorDecoder payload of
+        Ok reason ->
+            toMsg (Error reason)
+
+        Err error ->
+            toMsg (InternalError (DecoderError (JD.errorToString error)))
 
 
 decodeInfo : (Msg -> msg) -> (a -> Info) -> JD.Decoder a -> Value -> msg

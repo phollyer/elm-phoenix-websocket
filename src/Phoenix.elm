@@ -1291,8 +1291,8 @@ update msg (Model model) =
                     , Cmd.none
                     )
 
-                Socket.Error ->
-                    ( updatePhoenixMsg (Error Socket) (Model model)
+                Socket.Error reason ->
+                    ( updatePhoenixMsg (Error (Socket reason)) (Model model)
                     , Cmd.none
                     )
 
@@ -1535,7 +1535,7 @@ are not considered errors in this context.
 -}
 type Error
     = Channel Topic
-    | Socket
+    | Socket String
 
 
 {-| An `InternalError` should never happen, but if it does, it is because the

@@ -117,25 +117,23 @@ let ElmPhoenixWebSocket = {
                 Options to set on the socket when creating it.
     */
     connect(data) {
-        let self = this
-
         this.socket = new this.phoenixSocket(this.url, this.setOptionsAndParams(data))
-        this.socket.onError( resp => self.socketSend("Error", {reason: "Unknown"}))
-        this.socket.onMessage( resp => self.onMessage(resp))
+        this.socket.onError( resp => this.socketSend("Error", {reason: ""}))
+        this.socket.onMessage( resp => this.onMessage(resp))
 
         this.socket.onOpen( resp => {
-            self.socketSend("Opened", resp)
-            self.info()
-            self.allowReconnect = true
+            this.socketSend("Opened", resp)
+            this.info()
+            this.allowReconnect = true
         })
 
         this.socket.onClose( resp => {
-            if(self.allowReconnect) {
+            if(this.allowReconnect) {
 
                 /* The socket has closed unexpectedly after having been open,
                    so we assume the closure was due to a drop in the network.
                 */
-                self.socketSend("Closed", {code: resp.code, wasClean: resp.wasClean, reason: "Unreachable"})
+                this.socketSend("Error", {reason: "Unreachable"})
             } else {
 
                 /* The socket closes, and allowReconnect is still equal to
