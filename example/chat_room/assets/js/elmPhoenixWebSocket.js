@@ -166,9 +166,10 @@ let ElmPhoenixWebSocket = {
                    This would require the user to opt in and provide additional
                    config details to be used by the ajax requests.
                  */
-                self.socketSend("Closed", {code: resp.code, wasClean: resp.wasClean, reason: "Denied"})
+                this.socketSend("Error", {reason: "Denied"})
             }
-            self.info()
+            this.info()
+            this.socketSend("Closed", resp)
         })
 
         this.info()

@@ -256,6 +256,8 @@ type alias ClosedInfo =
     { reason : String
     , code : Int
     , wasClean : Bool
+    , type_ : String
+    , isTrusted : Bool
     }
 
 

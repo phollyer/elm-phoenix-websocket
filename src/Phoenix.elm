@@ -373,7 +373,7 @@ init portConfig =
         , pushCount = 0
         , queuedPushes = Dict.empty
         , socketInfo = SocketInfo.init
-        , socketState = Disconnected (Socket.ClosedInfo "" 0 False)
+        , socketState = Disconnected (Socket.ClosedInfo "" 0 False "" False)
         , timeoutPushes = Dict.empty
         }
 
@@ -1392,6 +1392,8 @@ type SocketState
         { reason : String
         , code : Int
         , wasClean : Bool
+        , type_ : String
+        , isTrusted : Bool
         }
 
 
