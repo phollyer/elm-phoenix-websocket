@@ -143,7 +143,7 @@ let ElmPhoenixWebSocket = {
                    Therefore, reset the reconnectTimer so that we don't keep
                    trying to connect with the same bad creds.
                  */
-                self.socket.reconnectTimer.reset()
+                this.socket.reconnectTimer.reset()
 
                 /* One known case exists that isn't covered here.
 
