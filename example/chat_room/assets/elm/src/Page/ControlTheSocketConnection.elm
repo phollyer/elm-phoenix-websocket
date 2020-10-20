@@ -59,6 +59,15 @@ update msg model =
             Session.phoenix model.session
     in
     case msg of
+        GotPhoenixMsg subMsg ->
+            Phoenix.update subMsg phoenix
+                |> updatePhoenix model
+
+        GotMenuItem example ->
+            Phoenix.disconnect Nothing phoenix
+                |> updatePhoenix model
+                |> updateExample example
+
         GotButtonClick example ->
             case example of
                 SimpleConnect action ->
@@ -112,15 +121,6 @@ update msg model =
 
                 _ ->
                     ( model, Cmd.none )
-
-        GotMenuItem example ->
-            Phoenix.disconnect phoenix
-                |> updatePhoenix model
-                |> updateExample example
-
-        GotPhoenixMsg subMsg ->
-            Phoenix.update subMsg phoenix
-                |> updatePhoenix model
 
 
 updateExample : Example -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
