@@ -732,7 +732,7 @@ remoteControls { example, userId, presenceState } phoenix =
 
 maybeRemoteControl : Maybe ID -> Presence -> Maybe ( String, Element Msg )
 maybeRemoteControl userId presence =
-    if Just presence.id == userId then
+    if userId == Just presence.id then
         Nothing
 
     else
