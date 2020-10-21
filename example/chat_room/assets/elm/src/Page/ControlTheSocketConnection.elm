@@ -170,7 +170,7 @@ view model =
     { title = "Control The Socket Connection"
     , content =
         Layout.init
-            |> Layout.backButton homeButton
+            |> Layout.homeMsg (Just GotHomeBtnClick)
             |> Layout.title "Control The Socket Connection"
             |> Layout.introduction
                 [ Layout.paragraph Layout.Example
@@ -269,20 +269,6 @@ buttons btns =
                 ]
             )
             btns
-
-
-homeButton : Element Msg
-homeButton =
-    Input.button
-        [ El.mouseOver <|
-            [ Font.color Color.aliceblue
-            ]
-        , Font.color Color.darkslateblue
-        , Font.size 20
-        ]
-        { label = El.text "Home"
-        , onPress = Just GotHomeBtnClick
-        }
 
 
 connectButton : (Action -> Example) -> Phoenix.Model -> Element Msg

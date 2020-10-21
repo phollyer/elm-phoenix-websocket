@@ -17,16 +17,15 @@ import Element.Input as Input
 import Html exposing (Html)
 
 
-type alias Config msg =
-    { backButton : Element msg
-    , title : String
-    , introduction : List (Element msg)
-    , menu : Element msg
-    , example : Element msg
+render :
+    { c
+        | homeMsg : Maybe msg
+        , title : String
+        , introduction : List (Element msg)
+        , menu : Element msg
+        , example : Element msg
     }
-
-
-render : { c | backButton : Element msg, title : String, introduction : List (Element msg), menu : Element msg, example : Element msg } -> Html msg
+    -> Html msg
 render config =
     El.layout
         [ Background.color Color.aliceblue
@@ -56,18 +55,30 @@ render config =
                 , El.clip
                 , El.scrollbars
                 , El.inFront
-                    (El.el
-                        [ El.alignLeft
-                        , El.paddingXY 0 10
-                        ]
-                        config.backButton
-                    )
+                    (homeButton config.homeMsg)
                 ]
                 [ header config.title
                 , introduction config.introduction
                 , config.menu
                 , config.example
                 ]
+
+
+homeButton : Maybe msg -> Element msg
+homeButton msg =
+    El.el
+        [ El.paddingXY 0 10 ]
+    <|
+        Input.button
+            [ El.mouseOver <|
+                [ Font.color Color.aliceblue
+                ]
+            , Font.color Color.darkslateblue
+            , Font.size 20
+            ]
+            { label = El.text "Home"
+            , onPress = msg
+            }
 
 
 container : List (Element msg) -> Element msg

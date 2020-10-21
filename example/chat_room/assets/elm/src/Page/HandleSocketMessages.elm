@@ -603,8 +603,8 @@ view model =
     { title = "Handle Socket Messages"
     , content =
         Layout.init
+            |> Layout.homeMsg (Just GotHomeBtnClick)
             |> Layout.title "Handle Socket Messages"
-            |> Layout.backButton homeButton
             |> Layout.introduction
                 [ Layout.paragraph Layout.Example
                     [ El.text "By default, the PhoenixJS "
@@ -760,20 +760,6 @@ buttons btns =
                 ]
             )
             btns
-
-
-homeButton : Element Msg
-homeButton =
-    Input.button
-        [ El.mouseOver <|
-            [ Font.color Color.aliceblue
-            ]
-        , Font.color Color.darkslateblue
-        , Font.size 20
-        ]
-        { label = El.text "Home"
-        , onPress = Just GotHomeBtnClick
-        }
 
 
 connectButton : (Action -> Example) -> Phoenix.Model -> Element Msg

@@ -1,10 +1,10 @@
 module View.Layout exposing
     ( Template(..)
-    , backButton
     , button
     , code
     , column
     , example
+    , homeMsg
     , init
     , introduction
     , menu
@@ -29,7 +29,7 @@ import Template.Layout.NotFound as NotFound
 
 
 type alias Config msg =
-    { backButton : Element msg
+    { homeMsg : Maybe msg
     , title : String
     , introduction : List (Element msg)
     , menu : Element msg
@@ -47,7 +47,7 @@ type Template
 
 init : Config msg
 init =
-    { backButton = El.none
+    { homeMsg = Nothing
     , title = ""
     , introduction = []
     , menu = El.none
@@ -72,9 +72,9 @@ render template config =
             NotFound.render
 
 
-backButton : Element msg -> Config msg -> Config msg
-backButton btn config =
-    { config | backButton = btn }
+homeMsg : Maybe msg -> Config msg -> Config msg
+homeMsg msg config =
+    { config | homeMsg = msg }
 
 
 title : String -> Config msg -> Config msg
