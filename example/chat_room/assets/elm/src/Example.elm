@@ -1,14 +1,25 @@
 module Example exposing
-    ( Action(..)
-    , Example(..)
-    , fromString
-    , toAction
-    , toString
+    ( Action(..), Example(..)
+    , fromString, toString, toAction
     )
+
+{-|
+
+@docs Action, Example
+
+
+# Helpers
+
+@docs fromString, toString, toAction
+
+-}
 
 {- Model -}
 
 
+{-| The actions that can be carried out by the user when interacting with an
+Example
+-}
 type Action
     = Anything
     | Connect
@@ -20,6 +31,7 @@ type Action
     | Send
 
 
+{-| -}
 type Example
     = SimpleConnect Action
     | ConnectWithGoodParams Action
@@ -29,6 +41,11 @@ type Example
     | ManagePresenceMessages Action
 
 
+
+{- Helpers -}
+
+
+{-| -}
 fromString : String -> Example
 fromString example =
     case example of
@@ -54,6 +71,7 @@ fromString example =
             SimpleConnect Anything
 
 
+{-| -}
 toString : Example -> String
 toString example =
     case example of
@@ -76,6 +94,7 @@ toString example =
             "Manage Presence Messages"
 
 
+{-| -}
 toAction : Example -> Action
 toAction example =
     case example of

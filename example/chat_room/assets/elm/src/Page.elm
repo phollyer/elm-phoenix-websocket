@@ -10,10 +10,16 @@ import Element.Background as Background
 import Element.Border as Border
 
 
+{-| Pages with content
+-}
 type Page
     = Home
     | ControlTheSocketConnection
     | HandleSocketMessages
+
+
+
+{- View -}
 
 
 view : { title : String, content : Element msg } -> Document msg

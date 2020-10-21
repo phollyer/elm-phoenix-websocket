@@ -1,29 +1,26 @@
 module View.Example exposing
-    ( Template(..)
-    , applicableFunctions
-    , controls
-    , description
-    , id
-    , info
-    , init
-    , remoteControls
-    , render
-    , usefulFunctions
-    , userId
+    ( Config, init
+    , Template(..), render
+    , applicableFunctions, controls, description, id, info, remoteControls, usefulFunctions, userId
     )
+
+{-| This module is intended to enable building up an example with pipelines and
+then passing off the example config to the chosen template - currently there is
+only one.
+
+@docs Config, init
+
+@docs Template, render
+
+@docs applicableFunctions, controls, description, id, info, remoteControls, usefulFunctions, userId
+
+-}
 
 import Element as El exposing (Element)
 import Template.Example.Default as Default
 
 
-
-{- Model -}
-
-
-type Template
-    = Default
-
-
+{-| -}
 type alias Config msg =
     { applicableFunctions : List String
     , controls : Element msg
@@ -36,10 +33,7 @@ type alias Config msg =
     }
 
 
-
-{- Init -}
-
-
+{-| -}
 init : Config msg
 init =
     { id = Nothing
@@ -53,10 +47,12 @@ init =
     }
 
 
+{-| -}
+type Template
+    = Default
 
-{- Render Template -}
 
-
+{-| -}
 render : Template -> Config msg -> Element msg
 render template config =
     case template of
@@ -64,6 +60,7 @@ render template config =
             Default.render config
 
 
+{-| -}
 applicableFunctions : List String -> Config msg -> Config msg
 applicableFunctions functions config =
     { config
@@ -71,6 +68,7 @@ applicableFunctions functions config =
     }
 
 
+{-| -}
 controls : Element msg -> Config msg -> Config msg
 controls cntrls config =
     { config
@@ -78,6 +76,7 @@ controls cntrls config =
     }
 
 
+{-| -}
 description : List (Element msg) -> Config msg -> Config msg
 description desc config =
     { config
@@ -85,6 +84,7 @@ description desc config =
     }
 
 
+{-| -}
 id : Maybe String -> Config msg -> Config msg
 id maybeId config =
     { config
@@ -92,6 +92,7 @@ id maybeId config =
     }
 
 
+{-| -}
 info : List (Element msg) -> Config msg -> Config msg
 info content config =
     { config
@@ -99,6 +100,7 @@ info content config =
     }
 
 
+{-| -}
 remoteControls : List ( String, Element msg ) -> Config msg -> Config msg
 remoteControls list config =
     { config
@@ -106,6 +108,7 @@ remoteControls list config =
     }
 
 
+{-| -}
 usefulFunctions : List ( String, String ) -> Config msg -> Config msg
 usefulFunctions functions config =
     { config
@@ -113,6 +116,7 @@ usefulFunctions functions config =
     }
 
 
+{-| -}
 userId : Maybe String -> Config msg -> Config msg
 userId maybeId config =
     { config

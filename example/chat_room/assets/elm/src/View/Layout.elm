@@ -1,14 +1,19 @@
 module View.Layout exposing
-    ( Template(..)
-    , column
-    , example
-    , homeMsg
-    , init
-    , introduction
-    , menu
-    , render
-    , title
+    ( Config, init
+    , Template(..), render
+    , homeMsg, title, introduction, menu, example, column
     )
+
+{-| This module is intended to enable building up a page with pipelines and
+then passing off the page config to the chosen template.
+
+@docs Config, init
+
+@docs Template, render
+
+@docs homeMsg, title, introduction, menu, example, column
+
+-}
 
 import Element as El exposing (Element)
 import Template.Layout.Blank as Blank
@@ -17,6 +22,7 @@ import Template.Layout.Home as Home
 import Template.Layout.NotFound as NotFound
 
 
+{-| -}
 type alias Config msg =
     { homeMsg : Maybe msg
     , title : String
@@ -27,13 +33,7 @@ type alias Config msg =
     }
 
 
-type Template
-    = Example
-    | Home
-    | Blank
-    | NotFound
-
-
+{-| -}
 init : Config msg
 init =
     { homeMsg = Nothing
@@ -45,6 +45,15 @@ init =
     }
 
 
+{-| -}
+type Template
+    = Example
+    | Home
+    | Blank
+    | NotFound
+
+
+{-| -}
 render : Template -> Config msg -> Element msg
 render template config =
     case template of
@@ -61,31 +70,37 @@ render template config =
             NotFound.render
 
 
+{-| -}
 homeMsg : Maybe msg -> Config msg -> Config msg
 homeMsg msg config =
     { config | homeMsg = msg }
 
 
+{-| -}
 title : String -> Config msg -> Config msg
 title text config =
     { config | title = text }
 
 
+{-| -}
 introduction : List (Element msg) -> Config msg -> Config msg
 introduction list config =
     { config | introduction = list }
 
 
+{-| -}
 example : Element msg -> Config msg -> Config msg
 example example_ config =
     { config | example = example_ }
 
 
+{-| -}
 menu : Element msg -> Config msg -> Config msg
 menu menu_ config =
     { config | menu = menu_ }
 
 
+{-| -}
 column : List (Element msg) -> Config msg -> Config msg
 column content config =
     { config | column = content }
