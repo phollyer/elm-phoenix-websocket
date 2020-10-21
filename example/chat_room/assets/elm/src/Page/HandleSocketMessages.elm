@@ -8,8 +8,10 @@ module Page.HandleSocketMessages exposing
     , view
     )
 
+import Browser.Navigation as Nav
 import Colors.Opaque as Color
 import Element as El exposing (Element)
+import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
@@ -22,6 +24,7 @@ import Json.Encode.Extra exposing (maybe)
 import Page
 import Phoenix
 import Phoenix.Socket as Socket
+import Route
 import Session exposing (Session)
 
 
@@ -160,6 +163,7 @@ pushConfig =
 
 type Msg
     = GotButtonClick Example
+    | GotHomeBtnClick
     | GotRemoteButtonClick ID Example
     | GotMenuItem Example
     | GotPhoenixMsg Phoenix.Msg
@@ -172,6 +176,13 @@ update msg model =
             Session.phoenix model.session
     in
     case msg of
+        GotHomeBtnClick ->
+            ( model
+            , Route.pushUrl
+                (Session.navKey model.session)
+                Route.Home
+            )
+
         GotMenuItem example ->
             Phoenix.disconnectAndReset (Just 1000) phoenix
                 |> updatePhoenix
@@ -588,9 +599,10 @@ view model =
     in
     { title = "Handle Socket Messages"
     , content =
-        Page.container
-            [ Page.header "Handle Socket Messages"
-            , Page.introduction
+        Page.init
+            |> Page.titleText "Handle Socket Messages"
+            |> Page.backButton homeButton
+            |> Page.introduction
                 [ Page.paragraph
                     [ El.text "By default, the PhoenixJS "
                     , Page.code "onMessage"
@@ -601,29 +613,35 @@ view model =
                 , Page.paragraph
                     [ El.text "Clicking on a function will take you to its documentation." ]
                 ]
-            , Page.menu
-                [ ( Example.toString (ManageSocketHeartbeat Anything), GotMenuItem (ManageSocketHeartbeat Anything) )
-                , ( Example.toString (ManageChannelMessages Anything), GotMenuItem (ManageChannelMessages Anything) )
-                , ( Example.toString (ManagePresenceMessages Anything), GotMenuItem (ManagePresenceMessages Anything) )
-                ]
-                (Example.toString model.example)
-            , Example.init
-                |> Example.id model.exampleId
-                |> Example.userId model.userId
-                |> Example.description
-                    (description model.example model.exampleId)
-                |> Example.controls
-                    (controls model phoenix)
-                |> Example.remoteControls
-                    (remoteControls model phoenix)
-                |> Example.info
-                    (info model)
-                |> Example.applicableFunctions
-                    (applicableFunctions model.example)
-                |> Example.usefulFunctions
-                    (usefulFunctions model.example phoenix)
-                |> Example.view
-            ]
+            |> Page.menu
+                (Page.initMenu
+                    |> Page.menuOptions
+                        [ ( Example.toString (ManageSocketHeartbeat Anything), GotMenuItem (ManageSocketHeartbeat Anything) )
+                        , ( Example.toString (ManageChannelMessages Anything), GotMenuItem (ManageChannelMessages Anything) )
+                        , ( Example.toString (ManagePresenceMessages Anything), GotMenuItem (ManagePresenceMessages Anything) )
+                        ]
+                    |> Page.selectedOption
+                        (Example.toString model.example)
+                )
+            |> Page.example
+                (Example.init
+                    |> Example.id model.exampleId
+                    |> Example.userId model.userId
+                    |> Example.description
+                        (description model.example model.exampleId)
+                    |> Example.controls
+                        (controls model phoenix)
+                    |> Example.remoteControls
+                        (remoteControls model phoenix)
+                    |> Example.info
+                        (info model)
+                    |> Example.applicableFunctions
+                        (applicableFunctions model.example)
+                    |> Example.usefulFunctions
+                        (usefulFunctions model.example phoenix)
+                    |> Example.view
+                )
+            |> Page.render
     }
 
 
@@ -737,6 +755,20 @@ buttons btns =
                 ]
             )
             btns
+
+
+homeButton : Element Msg
+homeButton =
+    Input.button
+        [ El.mouseOver <|
+            [ Font.color Color.aliceblue
+            ]
+        , Font.color Color.darkslateblue
+        , Font.size 20
+        ]
+        { label = El.text "Home"
+        , onPress = Just GotHomeBtnClick
+        }
 
 
 connectButton : (Action -> Example) -> Phoenix.Model -> Element Msg

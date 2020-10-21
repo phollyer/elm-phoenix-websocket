@@ -1,14 +1,22 @@
 module Page exposing
     ( Button
     , Page(..)
+    , backButton
     , button
     , code
     , container
     , controls
+    , example
     , header
+    , init
+    , initMenu
     , introduction
     , menu
+    , menuOptions
     , paragraph
+    , render
+    , selectedOption
+    , titleText
     , view
     )
 
@@ -29,6 +37,73 @@ type Page
     | Other
     | ControlTheSocketConnection
     | HandleSocketMessages
+
+
+type alias Config msg =
+    { backButton : Element msg
+    , title : String
+    , introduction : List (Element msg)
+    , menu : Menu msg
+    , example : Element msg
+    }
+
+
+type alias Menu msg =
+    { options : List ( String, msg )
+    , selected : String
+    }
+
+
+init : Config msg
+init =
+    { backButton = El.none
+    , title = ""
+    , introduction = []
+    , menu = initMenu
+    , example = El.none
+    }
+
+
+backButton : Element msg -> Config msg -> Config msg
+backButton btn config =
+    { config | backButton = btn }
+
+
+titleText : String -> Config msg -> Config msg
+titleText text config =
+    { config | title = text }
+
+
+introduction : List (Element msg) -> Config msg -> Config msg
+introduction list config =
+    { config | introduction = list }
+
+
+example : Element msg -> Config msg -> Config msg
+example example_ config =
+    { config | example = example_ }
+
+
+menu : Menu msg -> Config msg -> Config msg
+menu menu_ config =
+    { config | menu = menu_ }
+
+
+initMenu : Menu msg
+initMenu =
+    { options = []
+    , selected = ""
+    }
+
+
+menuOptions : List ( String, msg ) -> Menu msg -> Menu msg
+menuOptions options menu_ =
+    { menu_ | options = options }
+
+
+selectedOption : String -> Menu msg -> Menu msg
+selectedOption selected menu_ =
+    { menu_ | selected = selected }
 
 
 view : Phoenix.Model -> Page -> { title : String, content : Element msg } -> Document msg
@@ -72,6 +147,29 @@ container content =
         content
 
 
+render : Config msg -> Element msg
+render config =
+    El.column
+        [ El.height El.fill
+        , El.width El.fill
+        , El.spacing 20
+        , El.clip
+        , El.scrollbars
+        , El.inFront
+            (El.el
+                [ El.alignLeft
+                , El.paddingXY 0 10
+                ]
+                config.backButton
+            )
+        ]
+        [ header config.title
+        , introductionView config.introduction
+        , menuView config.menu
+        , config.example
+        ]
+
+
 header : String -> Element msg
 header title =
     El.el
@@ -92,8 +190,8 @@ header title =
         (El.text title)
 
 
-introduction : List (Element msg) -> Element msg
-introduction intro =
+introductionView : List (Element msg) -> Element msg
+introductionView intro =
     El.column
         [ Font.color Color.darkslateblue
         , Font.size 24
@@ -135,8 +233,8 @@ code text =
         (El.text text)
 
 
-menu : List ( String, msg ) -> String -> Element msg
-menu items selected =
+menuView : Menu msg -> Element msg
+menuView menu_ =
     El.el
         [ Border.widthEach
             { left = 0
@@ -159,7 +257,7 @@ menu items selected =
             [ El.centerX
             , El.spacing 20
             ]
-            (List.map (menuItem selected) items)
+            (List.map (menuItem menu_.selected) menu_.options)
         )
 
 
@@ -218,10 +316,10 @@ type alias Button a msg =
 
 
 button : Button a msg -> Element msg
-button { enabled, label, example, onPress } =
+button btn =
     let
         attrs =
-            if enabled then
+            if btn.enabled then
                 [ Background.color Color.darkseagreen
                 , El.mouseOver <|
                     [ Border.shadow
@@ -248,10 +346,10 @@ button { enabled, label, example, onPress } =
             , Font.size 30
             ]
         )
-        { label = El.text label
+        { label = El.text btn.label
         , onPress =
-            if enabled then
-                Just (onPress example)
+            if btn.enabled then
+                Just (btn.onPress btn.example)
 
             else
                 Nothing

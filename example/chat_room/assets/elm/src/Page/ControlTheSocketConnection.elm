@@ -8,6 +8,7 @@ module Page.ControlTheSocketConnection exposing
     , view
     )
 
+import Colors.Opaque as Color
 import Element as El exposing (Element)
 import Element.Font as Font
 import Element.Input as Input
@@ -16,6 +17,7 @@ import Extra.String as String
 import Json.Encode as JE
 import Page
 import Phoenix
+import Route
 import Session exposing (Session)
 
 
@@ -48,6 +50,7 @@ type alias Model =
 
 type Msg
     = GotButtonClick Example
+    | GotHomeBtnClick
     | GotMenuItem Example
     | GotPhoenixMsg Phoenix.Msg
 
@@ -59,6 +62,13 @@ update msg model =
             Session.phoenix model.session
     in
     case msg of
+        GotHomeBtnClick ->
+            ( model
+            , Route.pushUrl
+                (Session.navKey model.session)
+                Route.Home
+            )
+
         GotPhoenixMsg subMsg ->
             Phoenix.update subMsg phoenix
                 |> updatePhoenix model
@@ -156,9 +166,10 @@ view model =
     in
     { title = "Control The Socket Connection"
     , content =
-        Page.container
-            [ Page.header "Control The Socket Connection"
-            , Page.introduction
+        Page.init
+            |> Page.backButton homeButton
+            |> Page.titleText "Control The Socket Connection"
+            |> Page.introduction
                 [ Page.paragraph
                     [ El.text "Connecting to the Socket is taken care of automatically when a request to join a Channel is made, or when a Channel is pushed to, "
                     , El.text "however, if you want to take manual control, here's a few examples."
@@ -166,23 +177,29 @@ view model =
                 , Page.paragraph
                     [ El.text "Clicking on a function will take you to its documentation." ]
                 ]
-            , Page.menu
-                [ ( Example.toString (SimpleConnect Anything), GotMenuItem (SimpleConnect Anything) )
-                , ( Example.toString (ConnectWithGoodParams Anything), GotMenuItem (ConnectWithGoodParams Anything) )
-                , ( Example.toString (ConnectWithBadParams Anything), GotMenuItem (ConnectWithBadParams Anything) )
-                ]
-                (Example.toString model.example)
-            , Example.init
-                |> Example.description
-                    (description model.example)
-                |> Example.controls
-                    (controls model.example phoenix)
-                |> Example.applicableFunctions
-                    (applicableFunctions model.example)
-                |> Example.usefulFunctions
-                    (usefulFunctions model.example phoenix)
-                |> Example.view
-            ]
+            |> Page.menu
+                (Page.initMenu
+                    |> Page.menuOptions
+                        [ ( Example.toString (SimpleConnect Anything), GotMenuItem (SimpleConnect Anything) )
+                        , ( Example.toString (ConnectWithGoodParams Anything), GotMenuItem (ConnectWithGoodParams Anything) )
+                        , ( Example.toString (ConnectWithBadParams Anything), GotMenuItem (ConnectWithBadParams Anything) )
+                        ]
+                    |> Page.selectedOption
+                        (Example.toString model.example)
+                )
+            |> Page.example
+                (Example.init
+                    |> Example.description
+                        (description model.example)
+                    |> Example.controls
+                        (controls model.example phoenix)
+                    |> Example.applicableFunctions
+                        (applicableFunctions model.example)
+                    |> Example.usefulFunctions
+                        (usefulFunctions model.example phoenix)
+                    |> Example.view
+                )
+            |> Page.render
     }
 
 
@@ -248,6 +265,20 @@ buttons btns =
                 ]
             )
             btns
+
+
+homeButton : Element Msg
+homeButton =
+    Input.button
+        [ El.mouseOver <|
+            [ Font.color Color.aliceblue
+            ]
+        , Font.color Color.darkslateblue
+        , Font.size 20
+        ]
+        { label = El.text "Home"
+        , onPress = Just GotHomeBtnClick
+        }
 
 
 connectButton : (Action -> Example) -> Phoenix.Model -> Element Msg
