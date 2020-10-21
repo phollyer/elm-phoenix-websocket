@@ -14,11 +14,14 @@ import Element.Font as Font
 import Element.Input as Input
 import Example exposing (Action(..), Example(..))
 import Extra.String as String
+import Html exposing (Html)
 import Json.Encode as JE
-import Page
 import Phoenix
 import Route
 import Session exposing (Session)
+import View.Example as Example
+import View.Layout as Layout
+import View.Menu as Menu
 
 
 
@@ -158,7 +161,7 @@ updatePhoenix model ( phoenix, phoenixCmd ) =
 {- View -}
 
 
-view : Model -> { title : String, content : Element Msg }
+view : Model -> { title : String, content : Html Msg }
 view model =
     let
         phoenix =
@@ -166,28 +169,29 @@ view model =
     in
     { title = "Control The Socket Connection"
     , content =
-        Page.init
-            |> Page.backButton homeButton
-            |> Page.titleText "Control The Socket Connection"
-            |> Page.introduction
-                [ Page.paragraph
+        Layout.init
+            |> Layout.backButton homeButton
+            |> Layout.title "Control The Socket Connection"
+            |> Layout.introduction
+                [ Layout.paragraph Layout.Example
                     [ El.text "Connecting to the Socket is taken care of automatically when a request to join a Channel is made, or when a Channel is pushed to, "
                     , El.text "however, if you want to take manual control, here's a few examples."
                     ]
-                , Page.paragraph
+                , Layout.paragraph Layout.Example
                     [ El.text "Clicking on a function will take you to its documentation." ]
                 ]
-            |> Page.menu
-                (Page.initMenu
-                    |> Page.menuOptions
+            |> Layout.menu
+                (Menu.init
+                    |> Menu.options
                         [ ( Example.toString (SimpleConnect Anything), GotMenuItem (SimpleConnect Anything) )
                         , ( Example.toString (ConnectWithGoodParams Anything), GotMenuItem (ConnectWithGoodParams Anything) )
                         , ( Example.toString (ConnectWithBadParams Anything), GotMenuItem (ConnectWithBadParams Anything) )
                         ]
-                    |> Page.selectedOption
+                    |> Menu.selected
                         (Example.toString model.example)
+                    |> Menu.render Menu.Default
                 )
-            |> Page.example
+            |> Layout.example
                 (Example.init
                     |> Example.description
                         (description model.example)
@@ -197,9 +201,9 @@ view model =
                         (applicableFunctions model.example)
                     |> Example.usefulFunctions
                         (usefulFunctions model.example phoenix)
-                    |> Example.view
+                    |> Example.render Example.Default
                 )
-            |> Page.render
+            |> Layout.render Layout.Example
     }
 
 
@@ -207,17 +211,17 @@ description : Example -> List (Element msg)
 description example =
     case example of
         SimpleConnect _ ->
-            [ Page.paragraph
+            [ Layout.paragraph Layout.Example
                 [ El.text "A simple connection to the Socket without sending any params or setting any connect options." ]
             ]
 
         ConnectWithGoodParams _ ->
-            [ Page.paragraph
+            [ Layout.paragraph Layout.Example
                 [ El.text "Connect to the Socket with authentication params that are accepted." ]
             ]
 
         ConnectWithBadParams _ ->
-            [ Page.paragraph
+            [ Layout.paragraph Layout.Example
                 [ El.text "Try to connect to the Socket with authentication params that are not accepted, causing the connection to be denied." ]
             ]
 
@@ -286,7 +290,7 @@ connectButton exampleFunc phoenix =
     El.el
         [ El.alignRight ]
     <|
-        Page.button
+        Layout.button Layout.Example
             { label = "Connect"
             , example = exampleFunc Connect
             , onPress = GotButtonClick
@@ -305,7 +309,7 @@ disconnectButton exampleFunc phoenix =
     El.el
         [ El.alignLeft ]
     <|
-        Page.button
+        Layout.button Layout.Example
             { label = "Disconnect"
             , example = exampleFunc Disconnect
             , onPress = GotButtonClick

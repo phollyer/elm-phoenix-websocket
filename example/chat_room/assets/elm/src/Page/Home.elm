@@ -14,10 +14,10 @@ import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
 import Html exposing (Html, div)
-import Page
 import Phoenix
 import Route exposing (Route(..))
 import Session exposing (Session)
+import View.Layout as Layout
 
 
 init : Session -> ( Model, Cmd Msg )
@@ -53,16 +53,18 @@ toSession model =
     model.session
 
 
-view : Model -> { title : String, content : Element Msg }
+view : Model -> { title : String, content : Html Msg }
 view model =
     { title = "Home"
     , content =
-        Page.container
-            [ Page.header "Elm-Phoenix-WebSocket Examples"
-            , socket
-            , channels
-            , presence
-            ]
+        Layout.init
+            |> Layout.title "Elm-Phoenix-WebSocket Examples"
+            |> Layout.column
+                [ socket
+                , channels
+                , presence
+                ]
+            |> Layout.render Layout.Home
     }
 
 
