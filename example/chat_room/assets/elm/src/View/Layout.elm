@@ -20,7 +20,6 @@ import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
 import Element.Input as Input
-import Html exposing (Html)
 import Phoenix
 import Template.Layout.Blank as Blank
 import Template.Layout.Example as Example
@@ -56,7 +55,7 @@ init =
     }
 
 
-render : Template -> Config msg -> Html msg
+render : Template -> Config msg -> Element msg
 render template config =
     case template of
         Home ->

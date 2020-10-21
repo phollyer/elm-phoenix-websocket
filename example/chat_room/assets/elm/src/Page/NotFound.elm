@@ -1,10 +1,10 @@
 module Page.NotFound exposing (view)
 
-import Html exposing (Html)
+import Element exposing (Element)
 import View.Layout as Layout
 
 
-view : { title : String, content : Html msg }
+view : { title : String, content : Element msg }
 view =
     { title = "Not Found"
     , content =

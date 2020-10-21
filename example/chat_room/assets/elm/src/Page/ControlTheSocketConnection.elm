@@ -14,7 +14,6 @@ import Element.Font as Font
 import Element.Input as Input
 import Example exposing (Action(..), Example(..))
 import Extra.String as String
-import Html exposing (Html)
 import Json.Encode as JE
 import Phoenix
 import Route
@@ -161,7 +160,7 @@ updatePhoenix model ( phoenix, phoenixCmd ) =
 {- View -}
 
 
-view : Model -> { title : String, content : Html Msg }
+view : Model -> { title : String, content : Element Msg }
 view model =
     let
         phoenix =

@@ -13,7 +13,6 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
-import Html exposing (Html, div)
 import Phoenix
 import Route exposing (Route(..))
 import Session exposing (Session)
@@ -53,7 +52,7 @@ toSession model =
     model.session
 
 
-view : Model -> { title : String, content : Html Msg }
+view : Model -> { title : String, content : Element Msg }
 view model =
     { title = "Home"
     , content =
