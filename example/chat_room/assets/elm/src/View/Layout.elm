@@ -1,14 +1,11 @@
 module View.Layout exposing
     ( Template(..)
-    , button
-    , code
     , column
     , example
     , homeMsg
     , init
     , introduction
     , menu
-    , paragraph
     , render
     , title
     )
@@ -92,41 +89,3 @@ menu menu_ config =
 column : List (Element msg) -> Config msg -> Config msg
 column content config =
     { config | column = content }
-
-
-paragraph : Template -> List (Element msg) -> Element msg
-paragraph template content =
-    case template of
-        Example ->
-            Example.paragraph content
-
-        _ ->
-            El.none
-
-
-type alias Button a msg =
-    { enabled : Bool
-    , label : String
-    , example : a
-    , onPress : a -> msg
-    }
-
-
-button : Template -> Button a msg -> Element msg
-button template config =
-    case template of
-        Example ->
-            Example.button config
-
-        _ ->
-            El.none
-
-
-code : Template -> String -> Element msg
-code template text =
-    case template of
-        Example ->
-            Example.code text
-
-        _ ->
-            El.none

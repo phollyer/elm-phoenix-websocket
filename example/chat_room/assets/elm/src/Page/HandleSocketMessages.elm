@@ -24,6 +24,7 @@ import Session exposing (Session)
 import View.Example as Example
 import View.Layout as Layout
 import View.Menu as Menu
+import View.UI as UI
 
 
 
@@ -601,14 +602,14 @@ view model =
             |> Layout.homeMsg (Just GotHomeBtnClick)
             |> Layout.title "Handle Socket Messages"
             |> Layout.introduction
-                [ Layout.paragraph Layout.Example
+                [ UI.paragraph UI.Example
                     [ El.text "By default, the PhoenixJS "
-                    , Layout.code Layout.Example "onMessage"
+                    , UI.code UI.Example "onMessage"
                     , El.text " handler for the Socket is setup to send all Socket messages through the incoming "
-                    , Layout.code Layout.Example "port"
+                    , UI.code UI.Example "port"
                     , El.text ", which you may, or may not, want. These examples show how to control the types of messages that are allowed through."
                     ]
-                , Layout.paragraph Layout.Example
+                , UI.paragraph UI.Example
                     [ El.text "Clicking on a function will take you to its documentation." ]
                 ]
             |> Layout.menu
@@ -648,19 +649,19 @@ description : Example -> Maybe ID -> List (Element msg)
 description example maybeId =
     case example of
         ManageSocketHeartbeat _ ->
-            [ Layout.paragraph Layout.Example
+            [ UI.paragraph UI.Example
                 [ El.text "Choose whether to receive the heartbeat as an incoming Socket message. For this example, the heartbeat interval is set at 1 second." ]
             ]
 
         ManageChannelMessages _ ->
-            [ Layout.paragraph Layout.Example
+            [ UI.paragraph UI.Example
                 [ El.text "Choose whether to receive Channel messages as an incoming Socket message. "
                 , El.text ""
                 ]
             ]
 
         ManagePresenceMessages _ ->
-            [ Layout.paragraph Layout.Example
+            [ UI.paragraph UI.Example
                 [ El.text "Choose whether to receive Presence messages as an incoming Socket message. "
                 , El.text "To get the best out of this example, you should open it in mulitple tabs. Click "
                 , El.newTabLink
@@ -762,7 +763,7 @@ connectButton example phoenix =
     El.el
         [ El.alignRight ]
     <|
-        Layout.button Layout.Example
+        UI.button UI.Example
             { label = "Connect"
             , example = example Connect
             , onPress = GotButtonClick
@@ -781,7 +782,7 @@ disconnectButton example phoenix =
     El.el
         [ El.alignLeft ]
     <|
-        Layout.button Layout.Example
+        UI.button UI.Example
             { label = "Disconnect"
             , example = example Disconnect
             , onPress = GotButtonClick
@@ -794,7 +795,7 @@ heartbeatOnButton example heartbeat =
     El.el
         [ El.centerX ]
     <|
-        Layout.button Layout.Example
+        UI.button UI.Example
             { label = "Heartbeat On"
             , example = example On
             , onPress = GotButtonClick
@@ -807,7 +808,7 @@ heartbeatOffButton example heartbeat =
     El.el
         [ El.centerX ]
     <|
-        Layout.button Layout.Example
+        UI.button UI.Example
             { label = "Heartbeat Off"
             , example = example Off
             , onPress = GotButtonClick
@@ -820,7 +821,7 @@ joinButton example onPress enabled =
     El.el
         [ El.alignRight ]
     <|
-        Layout.button Layout.Example
+        UI.button UI.Example
             { label = "Join Channel"
             , example = example Join
             , onPress = onPress
@@ -833,7 +834,7 @@ leaveButton example onPress enabled =
     El.el
         [ El.alignLeft ]
     <|
-        Layout.button Layout.Example
+        UI.button UI.Example
             { label = "Leave Channel"
             , example = example Leave
             , onPress = onPress
@@ -846,7 +847,7 @@ presenceOnButton example presence =
     El.el
         [ El.centerX ]
     <|
-        Layout.button Layout.Example
+        UI.button UI.Example
             { label = "Presence On"
             , example = example On
             , onPress = GotButtonClick
@@ -859,7 +860,7 @@ presenceOffButton example presence =
     El.el
         [ El.centerX ]
     <|
-        Layout.button Layout.Example
+        UI.button UI.Example
             { label = "Presence Off"
             , example = example Off
             , onPress = GotButtonClick
@@ -872,7 +873,7 @@ sendMessageButton example =
     El.el
         [ El.alignRight ]
     <|
-        Layout.button Layout.Example
+        UI.button UI.Example
             { label = "Push Message"
             , example = example Send
             , onPress = GotButtonClick
@@ -885,7 +886,7 @@ channelMessagesOn example channelMessages =
     El.el
         [ El.centerX ]
     <|
-        Layout.button Layout.Example
+        UI.button UI.Example
             { label = "Messages On"
             , example = example On
             , onPress = GotButtonClick
@@ -898,7 +899,7 @@ channelMessagesOff example channelMessages =
     El.el
         [ El.alignLeft ]
     <|
-        Layout.button Layout.Example
+        UI.button UI.Example
             { label = "Messages Off"
             , example = example Off
             , onPress = GotButtonClick

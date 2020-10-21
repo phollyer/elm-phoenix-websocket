@@ -18,6 +18,7 @@ import Session exposing (Session)
 import View.Example as Example
 import View.Layout as Layout
 import View.Menu as Menu
+import View.UI as UI
 
 
 
@@ -169,11 +170,11 @@ view model =
             |> Layout.homeMsg (Just GotHomeBtnClick)
             |> Layout.title "Control The Socket Connection"
             |> Layout.introduction
-                [ Layout.paragraph Layout.Example
+                [ UI.paragraph UI.Example
                     [ El.text "Connecting to the Socket is taken care of automatically when a request to join a Channel is made, or when a Channel is pushed to, "
                     , El.text "however, if you want to take manual control, here's a few examples."
                     ]
-                , Layout.paragraph Layout.Example
+                , UI.paragraph UI.Example
                     [ El.text "Clicking on a function will take you to its documentation." ]
                 ]
             |> Layout.menu
@@ -207,17 +208,17 @@ description : Example -> List (Element msg)
 description example =
     case example of
         SimpleConnect _ ->
-            [ Layout.paragraph Layout.Example
+            [ UI.paragraph UI.Example
                 [ El.text "A simple connection to the Socket without sending any params or setting any connect options." ]
             ]
 
         ConnectWithGoodParams _ ->
-            [ Layout.paragraph Layout.Example
+            [ UI.paragraph UI.Example
                 [ El.text "Connect to the Socket with authentication params that are accepted." ]
             ]
 
         ConnectWithBadParams _ ->
-            [ Layout.paragraph Layout.Example
+            [ UI.paragraph UI.Example
                 [ El.text "Try to connect to the Socket with authentication params that are not accepted, causing the connection to be denied." ]
             ]
 
@@ -272,7 +273,7 @@ connectButton exampleFunc phoenix =
     El.el
         [ El.alignRight ]
     <|
-        Layout.button Layout.Example
+        UI.button UI.Example
             { label = "Connect"
             , example = exampleFunc Connect
             , onPress = GotButtonClick
@@ -291,7 +292,7 @@ disconnectButton exampleFunc phoenix =
     El.el
         [ El.alignLeft ]
     <|
-        Layout.button Layout.Example
+        UI.button UI.Example
             { label = "Disconnect"
             , example = exampleFunc Disconnect
             , onPress = GotButtonClick
