@@ -172,6 +172,12 @@ update msg model =
             Session.phoenix model.session
     in
     case msg of
+        GotMenuItem example ->
+            Phoenix.disconnectAndReset (Just 1000) phoenix
+                |> updatePhoenix
+                    (reset model)
+                |> updateExample example
+
         GotButtonClick example ->
             case example of
                 ManageSocketHeartbeat action ->
@@ -273,12 +279,6 @@ update msg model =
 
                 _ ->
                     ( model, Cmd.none )
-
-        GotMenuItem example ->
-            Phoenix.disconnect (Just 1000) phoenix
-                |> updatePhoenix
-                    (reset model)
-                |> updateExample example
 
         GotPhoenixMsg subMsg ->
             let

@@ -1,7 +1,7 @@
 module Phoenix exposing
     ( Model
     , PortConfig, init
-    , connect, addConnectOptions, setConnectOptions, Payload, setConnectParams, disconnect
+    , connect, addConnectOptions, setConnectOptions, Payload, setConnectParams, disconnect, disconnectAndReset
     , Topic, join, Event, JoinConfig, setJoinConfig
     , leave, LeaveConfig, setLeaveConfig
     , RetryStrategy(..), Push, push, pushAll
@@ -115,7 +115,7 @@ If you want to send any params to the Socket when it connects at the Elixir
 end, such as authenticating a user for example, then you can use the
 [setConnectParams](#setConnectParams) function.
 
-@docs connect, addConnectOptions, setConnectOptions, Payload, setConnectParams, disconnect
+@docs connect, addConnectOptions, setConnectOptions, Payload, setConnectParams, disconnect, disconnectAndReset
 
 
 # Joining a Channel
@@ -516,6 +516,41 @@ disconnect code (Model model) =
 
         _ ->
             ( updateSocketState Disconnecting (Model model)
+            , Socket.disconnect code
+                model.portConfig.phoenixSend
+            )
+
+
+{-| Disconnect the Socket, maybe providing a status
+[code](https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent#Status_codes)
+for the closure.
+
+This will also reset parts of the internal model, so information relating to
+Channels that have been joined, Pushes queued, and Presence's will all be
+reset, but any configs that have been set will be kept.
+
+-}
+disconnectAndReset : Maybe Int -> Model -> ( Model, Cmd Msg )
+disconnectAndReset code (Model model) =
+    case model.socketState of
+        Disconnected _ ->
+            ( Model model, Cmd.none )
+
+        Disconnecting ->
+            ( Model model, Cmd.none )
+
+        _ ->
+            ( Model model
+                |> updateSocketState Disconnecting
+                |> updateChannelsBeingJoined Set.empty
+                |> updateChannelsBeingLeft Set.empty
+                |> updateChannelsJoined Set.empty
+                |> updateQueuedPushes Dict.empty
+                |> updateTimeoutPushes Dict.empty
+                |> updatePresenceState Dict.empty
+                |> updatePresenceJoin Dict.empty
+                |> updatePresenceLeave Dict.empty
+                |> updatePresenceDiff Dict.empty
             , Socket.disconnect code
                 model.portConfig.phoenixSend
             )
