@@ -3,7 +3,7 @@ module Main exposing (main)
 import Browser exposing (Document)
 import Browser.Dom as Dom
 import Browser.Navigation as Nav
-import Element as El
+import Element as El exposing (Element)
 import Html
 import Page
 import Page.Blank as Blank
@@ -75,7 +75,6 @@ toSession model =
 {- Model -}
 
 
-{-| -}
 type Model
     = Redirect Session
     | NotFound Session
@@ -162,34 +161,32 @@ subscriptions model =
 
 view : Model -> Document Msg
 view model =
-    let
-        phoenix =
-            Session.phoenix (toSession model)
-
-        viewPage page toMsg config =
-            let
-                { title, body } =
-                    Page.view phoenix page config
-            in
-            { title = title
-            , body = List.map (Html.map toMsg) body
-            }
-    in
     case model of
         Redirect _ ->
-            Page.view phoenix Page.Other Blank.view
+            Page.view Blank.view
 
         NotFound _ ->
-            Page.view phoenix Page.Other NotFound.view
+            Page.view NotFound.view
 
         Home subModel ->
-            viewPage Page.Home GotHomeMsg (Home.view subModel)
+            viewPage GotHomeMsg (Home.view subModel)
 
         ControlTheSocketConnection subModel ->
-            viewPage Page.ControlTheSocketConnection GotControlTheSocketConnectionMsg (ControlTheSocketConnection.view subModel)
+            viewPage GotControlTheSocketConnectionMsg (ControlTheSocketConnection.view subModel)
 
         HandleSocketMessages subModel ->
-            viewPage Page.HandleSocketMessages GotHandleSocketMessagesMsg (HandleSocketMessages.view subModel)
+            viewPage GotHandleSocketMessagesMsg (HandleSocketMessages.view subModel)
+
+
+viewPage : (msg -> Msg) -> { title : String, content : Element msg } -> Document Msg
+viewPage toMsg pageConfig =
+    let
+        { title, body } =
+            Page.view pageConfig
+    in
+    { title = title
+    , body = List.map (Html.map toMsg) body
+    }
 
 
 

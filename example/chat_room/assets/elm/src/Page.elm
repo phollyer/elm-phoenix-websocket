@@ -8,19 +8,17 @@ import Colors.Opaque as Color
 import Element as El exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
-import Html exposing (Html)
 import Phoenix
 
 
 type Page
     = Home
-    | Other
     | ControlTheSocketConnection
     | HandleSocketMessages
 
 
-view : Phoenix.Model -> Page -> { title : String, content : Element msg } -> Document msg
-view phoenix page { title, content } =
+view : { title : String, content : Element msg } -> Document msg
+view { title, content } =
     { title = title ++ " - Elm Phoenix Websocket Example"
     , body =
         [ El.layout
