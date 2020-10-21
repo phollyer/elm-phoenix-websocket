@@ -724,24 +724,25 @@ remoteControls : Model -> Phoenix.Model -> List ( String, Element Msg )
 remoteControls { example, userId, presenceState } phoenix =
     case example of
         ManagePresenceMessages _ ->
-            List.filterMap
-                (\presence ->
-                    if Just presence.id == userId then
-                        Nothing
-
-                    else
-                        Just <|
-                            ( presence.id
-                            , buttons
-                                [ joinButton ManagePresenceMessages (GotRemoteButtonClick presence.id) (presence.meta.exampleState == NotJoined)
-                                , leaveButton ManagePresenceMessages (GotRemoteButtonClick presence.id) (presence.meta.exampleState == Joined)
-                                ]
-                            )
-                )
-                presenceState
+            List.filterMap (maybeRemoteControl userId) presenceState
 
         _ ->
             []
+
+
+maybeRemoteControl : Maybe ID -> Presence -> Maybe ( String, Element Msg )
+maybeRemoteControl userId presence =
+    if Just presence.id == userId then
+        Nothing
+
+    else
+        Just <|
+            ( presence.id
+            , buttons
+                [ joinButton ManagePresenceMessages (GotRemoteButtonClick presence.id) (presence.meta.exampleState == NotJoined)
+                , leaveButton ManagePresenceMessages (GotRemoteButtonClick presence.id) (presence.meta.exampleState == Joined)
+                ]
+            )
 
 
 buttons : List (Element Msg) -> Element Msg
