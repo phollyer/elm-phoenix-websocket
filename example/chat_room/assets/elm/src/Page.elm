@@ -8,7 +8,6 @@ import Colors.Opaque as Color
 import Element as El exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
-import Phoenix
 
 
 type Page

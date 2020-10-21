@@ -8,10 +8,7 @@ module Page.ControlTheSocketConnection exposing
     , view
     )
 
-import Colors.Opaque as Color
 import Element as El exposing (Element)
-import Element.Font as Font
-import Element.Input as Input
 import Example exposing (Action(..), Example(..))
 import Extra.String as String
 import Json.Encode as JE

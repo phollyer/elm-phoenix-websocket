@@ -13,14 +13,7 @@ module View.Layout exposing
     , title
     )
 
-import Colors.Opaque as Color
 import Element as El exposing (Element)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Events as Event
-import Element.Font as Font
-import Element.Input as Input
-import Phoenix
 import Template.Layout.Blank as Blank
 import Template.Layout.Example as Example
 import Template.Layout.Home as Home

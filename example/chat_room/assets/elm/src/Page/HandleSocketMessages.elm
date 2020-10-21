@@ -8,13 +8,9 @@ module Page.HandleSocketMessages exposing
     , view
     )
 
-import Browser.Navigation as Nav
 import Colors.Opaque as Color
 import Element as El exposing (Element)
-import Element.Background as Background
-import Element.Border as Border
 import Element.Font as Font
-import Element.Input as Input
 import Example exposing (Action(..), Example(..))
 import Extra.String as String
 import Json.Decode as JD
