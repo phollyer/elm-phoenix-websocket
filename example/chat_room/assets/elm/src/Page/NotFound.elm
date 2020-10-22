@@ -1,13 +1,17 @@
 module Page.NotFound exposing (view)
 
-import Element exposing (Element)
-import View.Layout as Layout
+import Element as El exposing (Element)
+import Element.Font as Font
 
 
 view : { title : String, content : Element msg }
 view =
     { title = "Not Found"
     , content =
-        Layout.init
-            |> Layout.render Layout.NotFound
+        El.el
+            [ El.centerX
+            , El.centerY
+            , Font.size 40
+            ]
+            (El.text " Page Not Found")
     }

@@ -17,8 +17,6 @@ then passing off the page config to the chosen template.
 
 import Element as El exposing (Element)
 import Template.Layout.App as App
-import Template.Layout.Blank as Blank
-import Template.Layout.NotFound as NotFound
 
 
 {-| -}
@@ -44,8 +42,6 @@ init =
 type Template
     = Example
     | Home
-    | Blank
-    | NotFound
 
 
 {-| -}
@@ -57,12 +53,6 @@ render template (Config config) =
 
         Example ->
             App.render config
-
-        Blank ->
-            Blank.render
-
-        NotFound ->
-            NotFound.render
 
 
 {-| -}
