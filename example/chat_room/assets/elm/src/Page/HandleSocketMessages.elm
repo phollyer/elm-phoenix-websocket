@@ -601,30 +601,30 @@ view model =
         Layout.init
             |> Layout.homeMsg (Just GotHomeBtnClick)
             |> Layout.title "Handle Socket Messages"
-            |> Layout.introduction
-                [ UI.paragraph UI.Example
-                    [ El.text "By default, the PhoenixJS "
-                    , UI.code UI.Example "onMessage"
-                    , El.text " handler for the Socket is setup to send all Socket messages through the incoming "
-                    , UI.code UI.Example "port"
-                    , El.text ", which you may, or may not, want. These examples show how to control the types of messages that are allowed through."
-                    ]
-                , UI.paragraph UI.Example
-                    [ El.text "Clicking on a function will take you to its documentation." ]
-                ]
-            |> Layout.menu
-                (Menu.init
-                    |> Menu.options
-                        [ ( Example.toString (ManageSocketHeartbeat Anything), GotMenuItem (ManageSocketHeartbeat Anything) )
-                        , ( Example.toString (ManageChannelMessages Anything), GotMenuItem (ManageChannelMessages Anything) )
-                        , ( Example.toString (ManagePresenceMessages Anything), GotMenuItem (ManagePresenceMessages Anything) )
-                        ]
-                    |> Menu.selected
-                        (Example.toString model.example)
-                    |> Menu.render Menu.Default
-                )
-            |> Layout.example
+            |> Layout.body
                 (Example.init
+                    |> Example.introduction
+                        [ UI.paragraph UI.Example
+                            [ El.text "By default, the PhoenixJS "
+                            , UI.code UI.Example "onMessage"
+                            , El.text " handler for the Socket is setup to send all Socket messages through the incoming "
+                            , UI.code UI.Example "port"
+                            , El.text ", which you may, or may not, want. These examples show how to control the types of messages that are allowed through."
+                            ]
+                        , UI.paragraph UI.Example
+                            [ El.text "Clicking on a function will take you to its documentation." ]
+                        ]
+                    |> Example.menu
+                        (Menu.init
+                            |> Menu.options
+                                [ ( Example.toString (ManageSocketHeartbeat Anything), GotMenuItem (ManageSocketHeartbeat Anything) )
+                                , ( Example.toString (ManageChannelMessages Anything), GotMenuItem (ManageChannelMessages Anything) )
+                                , ( Example.toString (ManagePresenceMessages Anything), GotMenuItem (ManagePresenceMessages Anything) )
+                                ]
+                            |> Menu.selected
+                                (Example.toString model.example)
+                            |> Menu.render Menu.Default
+                        )
                     |> Example.id model.exampleId
                     |> Example.userId model.userId
                     |> Example.description

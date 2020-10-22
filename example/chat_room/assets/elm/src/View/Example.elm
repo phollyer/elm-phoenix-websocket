@@ -1,7 +1,7 @@
 module View.Example exposing
     ( Config, init
     , Template(..), render
-    , applicableFunctions, controls, description, id, info, remoteControls, usefulFunctions, userId
+    , applicableFunctions, controls, description, id, info, introduction, menu, remoteControls, usefulFunctions, userId
     )
 
 {-| This module is intended to enable building up an example with pipelines and
@@ -12,7 +12,7 @@ only one.
 
 @docs Template, render
 
-@docs applicableFunctions, controls, description, id, info, remoteControls, usefulFunctions, userId
+@docs applicableFunctions, controls, description, id, info, introduction, menu, remoteControls, usefulFunctions, userId
 
 -}
 
@@ -27,6 +27,8 @@ type alias Config msg =
     , description : List (Element msg)
     , id : Maybe String
     , info : List (Element msg)
+    , introduction : List (Element msg)
+    , menu : Element msg
     , remoteControls : List ( String, Element msg )
     , usefulFunctions : List ( String, String )
     , userId : Maybe String
@@ -36,7 +38,9 @@ type alias Config msg =
 {-| -}
 init : Config msg
 init =
-    { id = Nothing
+    { introduction = []
+    , menu = El.none
+    , id = Nothing
     , userId = Nothing
     , description = []
     , controls = El.none
@@ -98,6 +102,18 @@ info content config =
     { config
         | info = content
     }
+
+
+{-| -}
+introduction : List (Element msg) -> Config msg -> Config msg
+introduction list config =
+    { config | introduction = list }
+
+
+{-| -}
+menu : Element msg -> Config msg -> Config msg
+menu menu_ config =
+    { config | menu = menu_ }
 
 
 {-| -}

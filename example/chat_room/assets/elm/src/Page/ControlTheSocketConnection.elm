@@ -169,27 +169,27 @@ view model =
         Layout.init
             |> Layout.homeMsg (Just GotHomeBtnClick)
             |> Layout.title "Control The Socket Connection"
-            |> Layout.introduction
-                [ UI.paragraph UI.Example
-                    [ El.text "Connecting to the Socket is taken care of automatically when a request to join a Channel is made, or when a Channel is pushed to, "
-                    , El.text "however, if you want to take manual control, here's a few examples."
-                    ]
-                , UI.paragraph UI.Example
-                    [ El.text "Clicking on a function will take you to its documentation." ]
-                ]
-            |> Layout.menu
-                (Menu.init
-                    |> Menu.options
-                        [ ( Example.toString (SimpleConnect Anything), GotMenuItem (SimpleConnect Anything) )
-                        , ( Example.toString (ConnectWithGoodParams Anything), GotMenuItem (ConnectWithGoodParams Anything) )
-                        , ( Example.toString (ConnectWithBadParams Anything), GotMenuItem (ConnectWithBadParams Anything) )
-                        ]
-                    |> Menu.selected
-                        (Example.toString model.example)
-                    |> Menu.render Menu.Default
-                )
-            |> Layout.example
+            |> Layout.body
                 (Example.init
+                    |> Example.introduction
+                        [ UI.paragraph UI.Example
+                            [ El.text "Connecting to the Socket is taken care of automatically when a request to join a Channel is made, or when a Channel is pushed to, "
+                            , El.text "however, if you want to take manual control, here's a few examples."
+                            ]
+                        , UI.paragraph UI.Example
+                            [ El.text "Clicking on a function will take you to its documentation." ]
+                        ]
+                    |> Example.menu
+                        (Menu.init
+                            |> Menu.options
+                                [ ( Example.toString (SimpleConnect Anything), GotMenuItem (SimpleConnect Anything) )
+                                , ( Example.toString (ConnectWithGoodParams Anything), GotMenuItem (ConnectWithGoodParams Anything) )
+                                , ( Example.toString (ConnectWithBadParams Anything), GotMenuItem (ConnectWithBadParams Anything) )
+                                ]
+                            |> Menu.selected
+                                (Example.toString model.example)
+                            |> Menu.render Menu.Default
+                        )
                     |> Example.description
                         (description model.example)
                     |> Example.controls

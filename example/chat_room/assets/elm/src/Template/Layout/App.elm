@@ -1,4 +1,4 @@
-module Template.Layout.Example exposing
+module Template.Layout.App exposing
     ( container
     , controls
     , header
@@ -17,12 +17,10 @@ render :
     { c
         | homeMsg : Maybe msg
         , title : String
-        , introduction : List (Element msg)
-        , menu : Element msg
-        , example : Element msg
+        , body : Element msg
     }
     -> Element msg
-render config =
+render { homeMsg, title, body } =
     El.column
         [ El.height El.fill
         , El.width El.fill
@@ -30,30 +28,33 @@ render config =
         , El.clip
         , El.scrollbars
         , El.inFront
-            (homeButton config.homeMsg)
+            (homeButton homeMsg)
         ]
-        [ header config.title
-        , introduction config.introduction
-        , config.menu
-        , config.example
+        [ header title
+        , body
         ]
 
 
 homeButton : Maybe msg -> Element msg
-homeButton msg =
-    El.el
-        [ El.paddingXY 0 10 ]
-    <|
-        Input.button
-            [ El.mouseOver <|
-                [ Font.color Color.aliceblue
-                ]
-            , Font.color Color.darkslateblue
-            , Font.size 20
-            ]
-            { label = El.text "Home"
-            , onPress = msg
-            }
+homeButton maybeMsg =
+    case maybeMsg of
+        Nothing ->
+            El.none
+
+        Just msg ->
+            El.el
+                [ El.paddingXY 0 10 ]
+            <|
+                Input.button
+                    [ El.mouseOver <|
+                        [ Font.color Color.aliceblue
+                        ]
+                    , Font.color Color.darkslateblue
+                    , Font.size 20
+                    ]
+                    { label = El.text "Home"
+                    , onPress = Just msg
+                    }
 
 
 container : List (Element msg) -> Element msg

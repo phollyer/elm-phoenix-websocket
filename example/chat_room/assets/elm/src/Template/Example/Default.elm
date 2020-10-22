@@ -7,12 +7,15 @@ import Element.Border as Border
 import Element.Font as Font
 
 
+{-| -}
 type alias Config msg =
     { applicableFunctions : List String
     , controls : Element msg
     , description : List (Element msg)
     , id : Maybe String
     , info : List (Element msg)
+    , introduction : List (Element msg)
+    , menu : Element msg
     , remoteControls : List ( String, Element msg )
     , usefulFunctions : List ( String, String )
     , userId : Maybe String
@@ -30,7 +33,9 @@ render config =
             [ El.width El.fill
             , El.spacing 20
             ]
-            [ description config.description
+            [ introduction config.introduction
+            , config.menu
+            , description config.description
             , case config.id of
                 Nothing ->
                     El.none
@@ -194,6 +199,19 @@ info content =
             ]
             content
         ]
+
+
+introduction : List (Element msg) -> Element msg
+introduction intro =
+    El.column
+        [ Font.color Color.darkslateblue
+        , Font.size 24
+        , Font.justify
+        , El.spacing 30
+        , Font.family
+            [ Font.typeface "Piedra" ]
+        ]
+        intro
 
 
 usefulFunctions : List ( String, String ) -> Element msg

@@ -16,6 +16,7 @@ import Element.Font as Font
 import Phoenix
 import Route exposing (Route(..))
 import Session exposing (Session)
+import View.Home as Home
 import View.Layout as Layout
 
 
@@ -58,78 +59,45 @@ view model =
     , content =
         Layout.init
             |> Layout.title "Elm-Phoenix-WebSocket Examples"
-            |> Layout.column
-                [ socket
-                , channels
-                , presence
-                ]
+            |> Layout.body
+                (Home.init
+                    |> Home.socket socketExamples
+                    |> Home.channels channelsExamples
+                    |> Home.presence presenceExamples
+                    |> Home.render Home.Default
+                )
             |> Layout.render Layout.Home
     }
 
 
-socket : Element Msg
-socket =
-    El.column
-        [ El.spacing 10
-        , El.width El.fill
-        ]
-        [ El.el
-            [ Font.size 30
-            , Font.color Color.slateblue
-            ]
-            (El.text "Socket")
-        , socketExamples
-        ]
-
-
-socketExamples : Element Msg
+socketExamples : List (Element Msg)
 socketExamples =
-    El.row
-        [ El.width El.fill
-        , El.spacing 10
-        , El.padding 5
-        ]
-    <|
-        List.map panel <|
-            [ { title = "Control the Connection"
-              , description =
-                    [ "Manually connect and disconnect, receiving feedback on the current state of the Socket." ]
-              , route = ControlTheSocketConnection
-              }
-            , { title = "Handle Socket Messages"
-              , description =
-                    [ "Manage the heartbeat, Channel and Presence messages that come in from the Socket." ]
-              , route = HandleSocketMessages Nothing Nothing
-              }
-            ]
-
-
-channels : Element msg
-channels =
-    El.column
-        [ El.width El.fill ]
-        [ El.el
-            [ Font.size 30
-            , Font.color Color.slateblue
-            ]
-            (El.text "Channels")
+    List.map panel <|
+        [ { title = "Control the Connection"
+          , description =
+                [ "Manually connect and disconnect, receiving feedback on the current state of the Socket." ]
+          , onClick = NavigateTo ControlTheSocketConnection
+          }
+        , { title = "Handle Socket Messages"
+          , description =
+                [ "Manage the heartbeat, Channel and Presence messages that come in from the Socket." ]
+          , onClick = NavigateTo (HandleSocketMessages Nothing Nothing)
+          }
         ]
 
 
-presence : Element msg
-presence =
-    El.column
-        [ El.width El.fill ]
-        [ El.el
-            [ Font.size 30
-            , Font.color Color.slateblue
-            ]
-            (El.text "Presence")
-        ]
+channelsExamples : List (Element msg)
+channelsExamples =
+    []
 
 
-panel : { title : String, description : List String, route : Route } -> Element Msg
-panel { title, description, route } =
+presenceExamples : List (Element msg)
+presenceExamples =
+    []
+
+
+panel : { title : String, description : List String, onClick : Msg } -> Element Msg
+panel { title, description, onClick } =
     El.column
         [ Background.color Color.steelblue
         , Border.rounded 20
@@ -148,7 +116,7 @@ panel { title, description, route } =
                 , offset = ( 0, 0 )
                 }
             ]
-        , Event.onClick (NavigateTo route)
+        , Event.onClick onClick
         ]
         [ El.el
             [ Background.color Color.steelblue
