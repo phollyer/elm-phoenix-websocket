@@ -11,7 +11,7 @@ then passing off the page config to the chosen template.
 
 @docs Template, render
 
-@docs homeMsg, title, body, home
+@docs homeMsg, title, body
 
 -}
 
