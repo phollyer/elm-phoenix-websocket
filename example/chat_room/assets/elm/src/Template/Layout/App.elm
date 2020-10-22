@@ -1,9 +1,4 @@
-module Template.Layout.App exposing
-    ( container
-    , controls
-    , header
-    , render
-    )
+module Template.Layout.App exposing (render)
 
 import Colors.Opaque as Color
 import Element as El exposing (Element)
@@ -57,18 +52,6 @@ homeButton maybeMsg =
                     }
 
 
-container : List (Element msg) -> Element msg
-container content =
-    El.column
-        [ El.height El.fill
-        , El.width El.fill
-        , El.spacing 20
-        , El.clip
-        , El.scrollbars
-        ]
-        content
-
-
 header : String -> Element msg
 header title =
     El.el
@@ -87,25 +70,3 @@ header title =
             [ Font.typeface "Oswald" ]
         ]
         (El.text title)
-
-
-introduction : List (Element msg) -> Element msg
-introduction intro =
-    El.column
-        [ Font.color Color.darkslateblue
-        , Font.size 24
-        , Font.justify
-        , El.spacing 30
-        , Font.family
-            [ Font.typeface "Piedra" ]
-        ]
-        intro
-
-
-controls : List (Element msg) -> Element msg
-controls cntrls =
-    El.wrappedRow
-        [ El.centerX
-        , El.spacing 20
-        ]
-        cntrls
