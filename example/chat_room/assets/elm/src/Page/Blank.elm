@@ -1,13 +1,10 @@
 module Page.Blank exposing (view)
 
-import Element exposing (Element)
-import View.Layout as Layout
+import Element as El exposing (Element)
 
 
 view : { title : String, content : Element msg }
 view =
     { title = ""
-    , content =
-        Layout.init
-            |> Layout.render Layout.Blank
+    , content = El.none
     }
