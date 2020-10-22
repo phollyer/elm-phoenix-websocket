@@ -5,6 +5,7 @@ module Page.ControlTheSocketConnection exposing
     , subscriptions
     , toSession
     , update
+    , updateSession
     , view
     )
 
@@ -152,6 +153,30 @@ updatePhoenix model ( phoenix, phoenixCmd ) =
         , Cmd.map GotPhoenixMsg (Phoenix.heartbeatMessagesOff phoenix)
         ]
     )
+
+
+
+{- Subscriptions -}
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.map GotPhoenixMsg <|
+        Phoenix.subscriptions (Session.phoenix model.session)
+
+
+
+{- Session -}
+
+
+toSession : Model -> Session
+toSession model =
+    model.session
+
+
+updateSession : Session -> Model -> Model
+updateSession session model =
+    { model | session = session }
 
 
 
@@ -355,22 +380,3 @@ usefulFunctions example phoenix =
 
         _ ->
             []
-
-
-
-{- Subscriptions -}
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.map GotPhoenixMsg <|
-        Phoenix.subscriptions (Session.phoenix model.session)
-
-
-
-{- Session -}
-
-
-toSession : Model -> Session
-toSession model =
-    model.session

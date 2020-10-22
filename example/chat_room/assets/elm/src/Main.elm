@@ -2,6 +2,7 @@ module Main exposing (main)
 
 import Browser exposing (Document)
 import Browser.Dom as Dom
+import Browser.Events exposing (onResize)
 import Browser.Navigation as Nav
 import Element as El exposing (Element)
 import Html
@@ -20,10 +21,10 @@ import Url exposing (Url)
 {- Init -}
 
 
-init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
-init _ url navKey =
+init : { width : Int, height : Int } -> Url -> Nav.Key -> ( Model, Cmd Msg )
+init flags url navKey =
     changeRouteTo (Route.fromUrl url)
-        (Redirect (Session.init navKey))
+        (Redirect (Session.init navKey (El.classifyDevice flags)))
 
 
 changeRouteTo : Maybe Route -> Model -> ( Model, Cmd Msg )
@@ -71,6 +72,28 @@ toSession model =
             HandleSocketMessages.toSession subModel
 
 
+updateSession : Session -> Model -> Model
+updateSession session model =
+    case model of
+        Redirect _ ->
+            Redirect session
+
+        NotFound _ ->
+            NotFound session
+
+        Home subModel ->
+            Home <|
+                Home.updateSession session subModel
+
+        ControlTheSocketConnection subModel ->
+            ControlTheSocketConnection <|
+                ControlTheSocketConnection.updateSession session subModel
+
+        HandleSocketMessages subModel ->
+            HandleSocketMessages <|
+                HandleSocketMessages.updateSession session subModel
+
+
 
 {- Model -}
 
@@ -90,6 +113,7 @@ type Model
 type Msg
     = ChangedUrl Url
     | ClickedLink Browser.UrlRequest
+    | WindowResized Int Int
     | GotHomeMsg Home.Msg
     | GotControlTheSocketConnectionMsg ControlTheSocketConnection.Msg
     | GotHandleSocketMessagesMsg HandleSocketMessages.Msg
@@ -112,6 +136,17 @@ update msg model =
 
         ( ChangedUrl url, _ ) ->
             changeRouteTo (Route.fromUrl url) model
+
+        ( WindowResized width height, _ ) ->
+            let
+                session =
+                    Session.updateDevice
+                        (El.classifyDevice { width = width, height = height })
+                        (toSession model)
+            in
+            ( model
+            , Cmd.none
+            )
 
         ( GotHomeMsg subMsg, Home subModel ) ->
             Home.update subMsg subModel
@@ -144,15 +179,21 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     case model of
         ControlTheSocketConnection subModel ->
-            Sub.map GotControlTheSocketConnectionMsg <|
-                ControlTheSocketConnection.subscriptions subModel
+            Sub.batch
+                [ Sub.map GotControlTheSocketConnectionMsg <|
+                    ControlTheSocketConnection.subscriptions subModel
+                , onResize WindowResized
+                ]
 
         HandleSocketMessages subModel ->
-            Sub.map GotHandleSocketMessagesMsg <|
-                HandleSocketMessages.subscriptions subModel
+            Sub.batch
+                [ Sub.map GotHandleSocketMessagesMsg <|
+                    HandleSocketMessages.subscriptions subModel
+                , onResize WindowResized
+                ]
 
         _ ->
-            Sub.none
+            onResize WindowResized
 
 
 
@@ -193,7 +234,7 @@ viewPage toMsg pageConfig =
 {- Program -}
 
 
-main : Program () Model Msg
+main : Program { width : Int, height : Int } Model Msg
 main =
     Browser.application
         { init = init

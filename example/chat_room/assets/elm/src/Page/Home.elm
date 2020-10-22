@@ -4,6 +4,7 @@ module Page.Home exposing
     , init
     , toSession
     , update
+    , updateSession
     , view
     )
 
@@ -51,6 +52,11 @@ update msg model =
 toSession : Model -> Session
 toSession model =
     model.session
+
+
+updateSession : Session -> Model -> Model
+updateSession session model =
+    { model | session = session }
 
 
 view : Model -> { title : String, content : Element Msg }
