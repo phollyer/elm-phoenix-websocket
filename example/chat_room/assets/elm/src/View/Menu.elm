@@ -1,6 +1,6 @@
 module View.Menu exposing
     ( Config, init
-    , Template(..), render
+    , render
     , options, selected
     )
 
@@ -21,40 +21,35 @@ import Template.Menu.Default as Default
 
 
 {-| -}
-type alias Config msg =
-    { options : List ( String, msg )
-    , selected : String
-    }
+type Config msg
+    = Config
+        { options : List ( String, msg )
+        , selected : String
+        }
 
 
 {-| -}
 init : Config msg
 init =
-    { options = []
-    , selected = ""
-    }
+    Config
+        { options = []
+        , selected = ""
+        }
 
 
 {-| -}
-type Template
-    = Default
-
-
-{-| -}
-render : Template -> Config msg -> Element msg
-render template config =
-    case template of
-        Default ->
-            Default.render config
+render : Config msg -> Element msg
+render (Config config) =
+    Default.render config
 
 
 {-| -}
 options : List ( String, msg ) -> Config msg -> Config msg
-options options_ config =
-    { config | options = options_ }
+options options_ (Config config) =
+    Config { config | options = options_ }
 
 
 {-| -}
 selected : String -> Config msg -> Config msg
-selected selected_ config =
-    { config | selected = selected_ }
+selected selected_ (Config config) =
+    Config { config | selected = selected_ }

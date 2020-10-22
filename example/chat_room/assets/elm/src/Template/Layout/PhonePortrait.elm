@@ -1,4 +1,4 @@
-module Template.Layout.App exposing (render)
+module Template.Layout.PhonePortrait exposing (render)
 
 import Colors.Opaque as Color
 import Element as El exposing (Element)
@@ -38,7 +38,10 @@ homeButton maybeMsg =
 
         Just msg ->
             El.el
-                [ El.paddingXY 0 10 ]
+                [ El.paddingXY 0 10
+                , Font.family
+                    [ Font.typeface "Piedra" ]
+                ]
             <|
                 Input.button
                     [ El.mouseOver <|
@@ -47,7 +50,7 @@ homeButton maybeMsg =
                     , Font.color Color.darkslateblue
                     , Font.size 20
                     ]
-                    { label = El.text "Home"
+                    { label = El.text "<="
                     , onPress = Just msg
                     }
 
@@ -65,7 +68,7 @@ header title =
         , Font.bold
         , Font.underline
         , Font.color Color.darkslateblue
-        , Font.size 40
+        , Font.size 24
         , Font.family
             [ Font.typeface "Oswald" ]
         ]

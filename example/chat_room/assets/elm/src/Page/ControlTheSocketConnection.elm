@@ -9,7 +9,7 @@ module Page.ControlTheSocketConnection exposing
     , view
     )
 
-import Element as El exposing (Element)
+import Element as El exposing (Device, Element)
 import Example exposing (Action(..), Example(..))
 import Extra.String as String
 import Json.Encode as JE
@@ -20,6 +20,7 @@ import View.Example as Example
 import View.Layout as Layout
 import View.Menu as Menu
 import View.UI as UI
+import View.UI.Button as Button
 
 
 
@@ -180,6 +181,15 @@ updateSession session model =
 
 
 
+{- Device -}
+
+
+toDevice : Model -> Device
+toDevice model =
+    Session.device model.session
+
+
+
 {- View -}
 
 
@@ -188,6 +198,9 @@ view model =
     let
         phoenix =
             Session.phoenix model.session
+
+        device =
+            toDevice model
     in
     { title = "Control The Socket Connection"
     , content =
@@ -197,11 +210,11 @@ view model =
             |> Layout.body
                 (Example.init
                     |> Example.introduction
-                        [ UI.paragraph UI.Example
+                        [ UI.paragraph
                             [ El.text "Connecting to the Socket is taken care of automatically when a request to join a Channel is made, or when a Channel is pushed to, "
                             , El.text "however, if you want to take manual control, here's a few examples."
                             ]
-                        , UI.paragraph UI.Example
+                        , UI.paragraph
                             [ El.text "Clicking on a function will take you to its documentation." ]
                         ]
                     |> Example.menu
@@ -213,19 +226,19 @@ view model =
                                 ]
                             |> Menu.selected
                                 (Example.toString model.example)
-                            |> Menu.render Menu.Default
+                            |> Menu.render
                         )
                     |> Example.description
                         (description model.example)
                     |> Example.controls
-                        (controls model.example phoenix)
+                        (controls model.example device phoenix)
                     |> Example.applicableFunctions
                         (applicableFunctions model.example)
                     |> Example.usefulFunctions
                         (usefulFunctions model.example phoenix)
-                    |> Example.render Example.Default
+                    |> Example.render device
                 )
-            |> Layout.render Layout.Example
+            |> Layout.render device
     }
 
 
@@ -233,17 +246,17 @@ description : Example -> List (Element msg)
 description example =
     case example of
         SimpleConnect _ ->
-            [ UI.paragraph UI.Example
+            [ UI.paragraph
                 [ El.text "A simple connection to the Socket without sending any params or setting any connect options." ]
             ]
 
         ConnectWithGoodParams _ ->
-            [ UI.paragraph UI.Example
+            [ UI.paragraph
                 [ El.text "Connect to the Socket with authentication params that are accepted." ]
             ]
 
         ConnectWithBadParams _ ->
-            [ UI.paragraph UI.Example
+            [ UI.paragraph
                 [ El.text "Try to connect to the Socket with authentication params that are not accepted, causing the connection to be denied." ]
             ]
 
@@ -251,25 +264,25 @@ description example =
             []
 
 
-controls : Example -> Phoenix.Model -> Element Msg
-controls example phoenix =
+controls : Example -> Device -> Phoenix.Model -> Element Msg
+controls example device phoenix =
     case example of
         SimpleConnect _ ->
             buttons
-                [ connectButton SimpleConnect phoenix
-                , disconnectButton SimpleConnect phoenix
+                [ connectButton SimpleConnect device phoenix
+                , disconnectButton SimpleConnect device phoenix
                 ]
 
         ConnectWithGoodParams _ ->
             buttons
-                [ connectButton ConnectWithGoodParams phoenix
-                , disconnectButton ConnectWithGoodParams phoenix
+                [ connectButton ConnectWithGoodParams device phoenix
+                , disconnectButton ConnectWithGoodParams device phoenix
                 ]
 
         ConnectWithBadParams _ ->
             buttons
-                [ connectButton ConnectWithBadParams phoenix
-                , disconnectButton ConnectWithBadParams phoenix
+                [ connectButton ConnectWithBadParams device phoenix
+                , disconnectButton ConnectWithBadParams device phoenix
                 ]
 
         _ ->
@@ -293,36 +306,37 @@ buttons btns =
             btns
 
 
-connectButton : (Action -> Example) -> Phoenix.Model -> Element Msg
-connectButton exampleFunc phoenix =
+connectButton : (Action -> Example) -> Device -> Phoenix.Model -> Element Msg
+connectButton exampleFunc device phoenix =
     El.el
         [ El.alignRight ]
-    <|
-        UI.button UI.Example
-            { label = "Connect"
-            , example = exampleFunc Connect
-            , onPress = GotButtonClick
-            , enabled =
-                case Phoenix.socketState phoenix of
+        (Button.init
+            |> Button.label "Connect"
+            |> Button.example (Just (exampleFunc Connect))
+            |> Button.onPress (Just GotButtonClick)
+            |> Button.enabled
+                (case Phoenix.socketState phoenix of
                     Phoenix.Disconnected _ ->
                         True
 
                     _ ->
                         False
-            }
+                )
+            |> Button.render device
+        )
 
 
-disconnectButton : (Action -> Example) -> Phoenix.Model -> Element Msg
-disconnectButton exampleFunc phoenix =
+disconnectButton : (Action -> Example) -> Device -> Phoenix.Model -> Element Msg
+disconnectButton exampleFunc device phoenix =
     El.el
         [ El.alignLeft ]
-    <|
-        UI.button UI.Example
-            { label = "Disconnect"
-            , example = exampleFunc Disconnect
-            , onPress = GotButtonClick
-            , enabled = Phoenix.socketState phoenix == Phoenix.Connected
-            }
+        (Button.init
+            |> Button.label "Disconnect"
+            |> Button.example (Just (exampleFunc Disconnect))
+            |> Button.onPress (Just GotButtonClick)
+            |> Button.enabled (Phoenix.socketState phoenix == Phoenix.Connected)
+            |> Button.render device
+        )
 
 
 applicableFunctions : Example -> List String

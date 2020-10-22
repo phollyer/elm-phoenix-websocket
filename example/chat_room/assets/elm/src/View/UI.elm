@@ -1,42 +1,31 @@
 module View.UI exposing
-    ( Template(..)
-    , button
-    , code
+    ( code
     , paragraph
     )
 
-import Element exposing (Element)
-import Template.UI.Example as Example
+import Colors.Opaque as Color
+import Element as El exposing (Device, Element)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Font as Font
 
 
-type Template
-    = Example
+code : Device -> String -> Element msg
+code device text =
+    El.el
+        [ Font.family [ Font.typeface "Roboto Mono" ]
+        , Background.color Color.lightgrey
+        , El.padding 2
+        , Border.width 1
+        , Border.color Color.black
+        , Font.size 16
+        , Font.color Color.black
+        ]
+        (El.text text)
 
 
-paragraph : Template -> List (Element msg) -> Element msg
-paragraph template content =
-    case template of
-        Example ->
-            Example.paragraph content
-
-
-type alias Button a msg =
-    { enabled : Bool
-    , label : String
-    , example : a
-    , onPress : a -> msg
-    }
-
-
-button : Template -> Button a msg -> Element msg
-button template config =
-    case template of
-        Example ->
-            Example.button config
-
-
-code : Template -> String -> Element msg
-code template text =
-    case template of
-        Example ->
-            Example.code text
+paragraph : List (Element msg) -> Element msg
+paragraph content =
+    El.paragraph
+        [ El.spacing 10 ]
+        content

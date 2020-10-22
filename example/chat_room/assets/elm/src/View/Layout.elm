@@ -1,6 +1,6 @@
 module View.Layout exposing
     ( Config, init
-    , Template(..), render
+    , render
     , homeMsg, title, body
     )
 
@@ -15,8 +15,9 @@ then passing off the page config to the chosen template.
 
 -}
 
-import Element as El exposing (Element)
-import Template.Layout.App as App
+import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
+import Template.Layout.Desktop as Desktop
+import Template.Layout.PhonePortrait as PhonePortrait
 
 
 {-| -}
@@ -39,20 +40,14 @@ init =
 
 
 {-| -}
-type Template
-    = Example
-    | Home
+render : Device -> Config msg -> Element msg
+render { class, orientation } (Config config) =
+    case ( class, orientation ) of
+        ( Phone, Portrait ) ->
+            PhonePortrait.render config
 
-
-{-| -}
-render : Template -> Config msg -> Element msg
-render template (Config config) =
-    case template of
-        Home ->
-            App.render config
-
-        Example ->
-            App.render config
+        _ ->
+            Desktop.render config
 
 
 {-| -}

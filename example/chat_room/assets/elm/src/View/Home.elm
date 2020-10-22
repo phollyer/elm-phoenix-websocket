@@ -1,6 +1,5 @@
 module View.Home exposing
     ( Config
-    , Template(..)
     , channels
     , init
     , presence
@@ -8,8 +7,9 @@ module View.Home exposing
     , socket
     )
 
-import Element exposing (Element)
-import Template.Home.Default as Default
+import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
+import Template.Home.Desktop as Desktop
+import Template.Home.PhonePortrait as PhonePortrait
 
 
 type Config msg
@@ -29,15 +29,29 @@ init =
         }
 
 
-type Template
-    = Default
+render : Device -> Config msg -> Element msg
+render { class, orientation } (Config config) =
+    case ( class, orientation ) of
+        ( Phone, Portrait ) ->
+            PhonePortrait.render config
 
+        ( Phone, Landscape ) ->
+            El.none
 
-render : Template -> Config msg -> Element msg
-render template (Config config) =
-    case template of
-        Default ->
-            Default.render config
+        ( Tablet, Portrait ) ->
+            El.none
+
+        ( Tablet, Landscape ) ->
+            El.none
+
+        ( Desktop, Portrait ) ->
+            El.none
+
+        ( Desktop, Landscape ) ->
+            Desktop.render config
+
+        ( BigDesktop, _ ) ->
+            El.none
 
 
 channels : List (Element msg) -> Config msg -> Config msg

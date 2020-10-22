@@ -1,8 +1,4 @@
-module Template.UI.Example exposing
-    ( button
-    , code
-    , paragraph
-    )
+module Template.UI.Button.Default exposing (..)
 
 import Colors.Opaque as Color
 import Element as El exposing (Element)
@@ -12,40 +8,18 @@ import Element.Font as Font
 import Element.Input as Input
 
 
-paragraph : List (Element msg) -> Element msg
-paragraph content =
-    El.paragraph
-        [ El.spacing 10 ]
-        content
-
-
-code : String -> Element msg
-code text =
-    El.el
-        [ Font.family [ Font.typeface "Roboto Mono" ]
-        , Background.color Color.lightgrey
-        , El.padding 2
-        , Border.width 1
-        , Border.color Color.black
-        , Font.size 16
-        , Font.color Color.black
-        ]
-        (El.text text)
-
-
-type alias Button a msg =
-    { enabled : Bool
-    , label : String
-    , example : a
-    , onPress : a -> msg
+render :
+    { b
+        | enabled : Bool
+        , label : String
+        , example : Maybe example
+        , onPress : Maybe (example -> msg)
     }
-
-
-button : Button a msg -> Element msg
-button btn =
+    -> Element msg
+render config =
     let
         attrs =
-            if btn.enabled then
+            if config.enabled then
                 [ Background.color Color.darkseagreen
                 , El.mouseOver <|
                     [ Border.shadow
@@ -72,11 +46,12 @@ button btn =
             , Font.size 30
             ]
         )
-        { label = El.text btn.label
+        { label = El.text config.label
         , onPress =
-            if btn.enabled then
-                Just (btn.onPress btn.example)
+            case ( config.onPress, config.example ) of
+                ( Just onPress, Just example ) ->
+                    Just (onPress example)
 
-            else
-                Nothing
+                _ ->
+                    Nothing
         }

@@ -1,6 +1,6 @@
 module View.Example exposing
     ( Config, init
-    , Template(..), render
+    , render
     , applicableFunctions, controls, description, id, info, introduction, menu, remoteControls, usefulFunctions, userId
     )
 
@@ -16,8 +16,10 @@ only one.
 
 -}
 
-import Element as El exposing (Element)
-import Template.Example.Default as Default
+import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
+import Template.Example.Desktop as Desktop
+import Template.Example.PhoneLandscape as PhoneLandscape
+import Template.Example.PhonePortrait as PhonePortrait
 
 
 {-| -}
@@ -52,16 +54,23 @@ init =
 
 
 {-| -}
-type Template
-    = Default
+render : Device -> Config msg -> Element msg
+render { class, orientation } config =
+    case ( class, orientation ) of
+        ( Phone, Portrait ) ->
+            PhonePortrait.render config
 
+        ( Phone, Landscape ) ->
+            PhoneLandscape.render config
 
-{-| -}
-render : Template -> Config msg -> Element msg
-render template config =
-    case template of
-        Default ->
-            Default.render config
+        ( Tablet, _ ) ->
+            Desktop.render config
+
+        ( Desktop, _ ) ->
+            Desktop.render config
+
+        ( BigDesktop, _ ) ->
+            Desktop.render config
 
 
 {-| -}

@@ -1,4 +1,4 @@
-module Template.Example.Default exposing (render)
+module Template.Example.PhonePortrait exposing (render)
 
 import Colors.Opaque as Color
 import Element as El exposing (Element)
@@ -7,22 +7,20 @@ import Element.Border as Border
 import Element.Font as Font
 
 
-{-| -}
-type alias Config msg =
-    { applicableFunctions : List String
-    , controls : Element msg
-    , description : List (Element msg)
-    , id : Maybe String
-    , info : List (Element msg)
-    , introduction : List (Element msg)
-    , menu : Element msg
-    , remoteControls : List ( String, Element msg )
-    , usefulFunctions : List ( String, String )
-    , userId : Maybe String
+render :
+    { c
+        | applicableFunctions : List String
+        , controls : Element msg
+        , description : List (Element msg)
+        , id : Maybe String
+        , info : List (Element msg)
+        , introduction : List (Element msg)
+        , menu : Element msg
+        , remoteControls : List ( String, Element msg )
+        , usefulFunctions : List ( String, String )
+        , userId : Maybe String
     }
-
-
-render : Config msg -> Element msg
+    -> Element msg
 render config =
     El.column
         [ El.height El.fill
@@ -79,7 +77,7 @@ render config =
                     )
                     config.remoteControls
             ]
-        , El.row
+        , El.column
             [ El.spacing 10
             , El.centerX
             ]

@@ -1,19 +1,17 @@
-module Template.Home.Default exposing (..)
+module Template.Home.Desktop exposing (..)
 
 import Colors.Opaque as Color
 import Element as El exposing (Element)
 import Element.Font as Font
 
 
-type Config msg
-    = Config
-        { channels : List (Element msg)
+render :
+    { c
+        | channels : List (Element msg)
         , presence : List (Element msg)
         , socket : List (Element msg)
-        }
-
-
-render : { c | channels : List (Element msg), presence : List (Element msg), socket : List (Element msg) } -> Element msg
+    }
+    -> Element msg
 render { channels, presence, socket } =
     El.column
         [ El.spacing 10
@@ -23,7 +21,7 @@ render { channels, presence, socket } =
 
 
 socketExamples : List (Element msg) -> Element msg
-socketExamples socket =
+socketExamples socketPanels =
     El.column
         [ El.width El.fill
         , El.spacing 10
@@ -37,5 +35,5 @@ socketExamples socket =
             [ El.width El.fill
             , El.spacing 10
             ]
-            socket
+            socketPanels
         ]

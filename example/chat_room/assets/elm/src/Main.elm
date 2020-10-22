@@ -144,7 +144,7 @@ update msg model =
                         (El.classifyDevice { width = width, height = height })
                         (toSession model)
             in
-            ( model
+            ( updateSession session model
             , Cmd.none
             )
 

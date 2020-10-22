@@ -1,5 +1,6 @@
 module Session exposing
     ( Session
+    , device
     , init
     , navKey
     , phoenix
@@ -14,8 +15,8 @@ import Ports
 
 
 init : Nav.Key -> Device -> Session
-init key device =
-    Session key device <|
+init key device_ =
+    Session key device_ <|
         Phoenix.init Ports.config
 
 
@@ -33,11 +34,16 @@ phoenix (Session _ _ phx) =
     phx
 
 
+device : Session -> Device
+device (Session _ device_ _) =
+    device_
+
+
 updateDevice : Device -> Session -> Session
-updateDevice device (Session key _ phx) =
-    Session key device phx
+updateDevice device_ (Session key _ phx) =
+    Session key device_ phx
 
 
 updatePhoenix : Phoenix.Model -> Session -> Session
-updatePhoenix phx (Session key device _) =
-    Session key device phx
+updatePhoenix phx (Session key device_ _) =
+    Session key device_ phx

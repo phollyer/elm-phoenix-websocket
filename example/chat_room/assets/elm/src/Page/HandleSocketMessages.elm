@@ -10,7 +10,7 @@ module Page.HandleSocketMessages exposing
     )
 
 import Colors.Opaque as Color
-import Element as El exposing (Element)
+import Element as El exposing (Device, Element)
 import Element.Font as Font
 import Example exposing (Action(..), Example(..))
 import Extra.String as String
@@ -26,6 +26,7 @@ import View.Example as Example
 import View.Layout as Layout
 import View.Menu as Menu
 import View.UI as UI
+import View.UI.Button as Button
 
 
 
@@ -612,6 +613,15 @@ updateSession session model =
 
 
 
+{- Device -}
+
+
+toDevice : Model -> Device
+toDevice model =
+    Session.device model.session
+
+
+
 {- View -}
 
 
@@ -620,6 +630,9 @@ view model =
     let
         phoenix =
             Session.phoenix model.session
+
+        device =
+            toDevice model
     in
     { title = "Handle Socket Messages"
     , content =
@@ -629,14 +642,14 @@ view model =
             |> Layout.body
                 (Example.init
                     |> Example.introduction
-                        [ UI.paragraph UI.Example
+                        [ UI.paragraph
                             [ El.text "By default, the PhoenixJS "
-                            , UI.code UI.Example "onMessage"
+                            , UI.code device "onMessage"
                             , El.text " handler for the Socket is setup to send all Socket messages through the incoming "
-                            , UI.code UI.Example "port"
+                            , UI.code device "port"
                             , El.text ", which you may, or may not, want. These examples show how to control the types of messages that are allowed through."
                             ]
-                        , UI.paragraph UI.Example
+                        , UI.paragraph
                             [ El.text "Clicking on a function will take you to its documentation." ]
                         ]
                     |> Example.menu
@@ -648,25 +661,25 @@ view model =
                                 ]
                             |> Menu.selected
                                 (Example.toString model.example)
-                            |> Menu.render Menu.Default
+                            |> Menu.render
                         )
                     |> Example.id model.exampleId
                     |> Example.userId model.userId
                     |> Example.description
                         (description model.example model.exampleId)
                     |> Example.controls
-                        (controls model phoenix)
+                        (controls model device phoenix)
                     |> Example.remoteControls
-                        (remoteControls model phoenix)
+                        (remoteControls model device phoenix)
                     |> Example.info
                         (info model)
                     |> Example.applicableFunctions
                         (applicableFunctions model.example)
                     |> Example.usefulFunctions
                         (usefulFunctions model.example phoenix)
-                    |> Example.render Example.Default
+                    |> Example.render device
                 )
-            |> Layout.render Layout.Example
+            |> Layout.render device
     }
 
 
@@ -674,19 +687,19 @@ description : Example -> Maybe ID -> List (Element msg)
 description example maybeId =
     case example of
         ManageSocketHeartbeat _ ->
-            [ UI.paragraph UI.Example
+            [ UI.paragraph
                 [ El.text "Choose whether to receive the heartbeat as an incoming Socket message. For this example, the heartbeat interval is set at 1 second." ]
             ]
 
         ManageChannelMessages _ ->
-            [ UI.paragraph UI.Example
+            [ UI.paragraph
                 [ El.text "Choose whether to receive Channel messages as an incoming Socket message. "
                 , El.text ""
                 ]
             ]
 
         ManagePresenceMessages _ ->
-            [ UI.paragraph UI.Example
+            [ UI.paragraph
                 [ El.text "Choose whether to receive Presence messages as an incoming Socket message. "
                 , El.text "To get the best out of this example, you should open it in mulitple tabs. Click "
                 , El.newTabLink
@@ -711,48 +724,48 @@ description example maybeId =
             []
 
 
-controls : Model -> Phoenix.Model -> Element Msg
-controls { example, heartbeat, channelMessages, presenceMessages } phoenix =
+controls : Model -> Device -> Phoenix.Model -> Element Msg
+controls { example, heartbeat, channelMessages, presenceMessages } device phoenix =
     case example of
         ManageSocketHeartbeat _ ->
             buttons
-                [ connectButton ManageSocketHeartbeat phoenix
-                , heartbeatOnButton ManageSocketHeartbeat heartbeat
-                , heartbeatOffButton ManageSocketHeartbeat heartbeat
-                , disconnectButton ManageSocketHeartbeat phoenix
+                [ connectButton ManageSocketHeartbeat device phoenix
+                , heartbeatOnButton ManageSocketHeartbeat device heartbeat
+                , heartbeatOffButton ManageSocketHeartbeat device heartbeat
+                , disconnectButton ManageSocketHeartbeat device phoenix
                 ]
 
         ManageChannelMessages _ ->
             buttons
-                [ sendMessageButton ManageChannelMessages
-                , channelMessagesOn ManageChannelMessages channelMessages
-                , channelMessagesOff ManageChannelMessages channelMessages
+                [ sendMessageButton ManageChannelMessages device
+                , channelMessagesOn ManageChannelMessages device channelMessages
+                , channelMessagesOff ManageChannelMessages device channelMessages
                 ]
 
         ManagePresenceMessages _ ->
             buttons
-                [ joinButton ManagePresenceMessages GotButtonClick (not <| Phoenix.channelJoined "example:manage_presence_messages" phoenix)
-                , presenceOnButton ManagePresenceMessages presenceMessages
-                , presenceOffButton ManagePresenceMessages presenceMessages
-                , leaveButton ManagePresenceMessages GotButtonClick (Phoenix.channelJoined "example:manage_presence_messages" phoenix)
+                [ joinButton ManagePresenceMessages device GotButtonClick (not <| Phoenix.channelJoined "example:manage_presence_messages" phoenix)
+                , presenceOnButton ManagePresenceMessages device presenceMessages
+                , presenceOffButton ManagePresenceMessages device presenceMessages
+                , leaveButton ManagePresenceMessages device GotButtonClick (Phoenix.channelJoined "example:manage_presence_messages" phoenix)
                 ]
 
         _ ->
             El.none
 
 
-remoteControls : Model -> Phoenix.Model -> List ( String, Element Msg )
-remoteControls { example, userId, presenceState } phoenix =
+remoteControls : Model -> Device -> Phoenix.Model -> List ( String, Element Msg )
+remoteControls { example, userId, presenceState } device phoenix =
     case example of
         ManagePresenceMessages _ ->
-            List.filterMap (maybeRemoteControl userId) presenceState
+            List.filterMap (maybeRemoteControl userId device) presenceState
 
         _ ->
             []
 
 
-maybeRemoteControl : Maybe ID -> Presence -> Maybe ( String, Element Msg )
-maybeRemoteControl userId presence =
+maybeRemoteControl : Maybe ID -> Device -> Presence -> Maybe ( String, Element Msg )
+maybeRemoteControl userId device presence =
     if userId == Just presence.id then
         Nothing
 
@@ -760,8 +773,8 @@ maybeRemoteControl userId presence =
         Just <|
             ( presence.id
             , buttons
-                [ joinButton ManagePresenceMessages (GotRemoteButtonClick presence.id) (presence.meta.exampleState == NotJoined)
-                , leaveButton ManagePresenceMessages (GotRemoteButtonClick presence.id) (presence.meta.exampleState == Joined)
+                [ joinButton ManagePresenceMessages device (GotRemoteButtonClick presence.id) (presence.meta.exampleState == NotJoined)
+                , leaveButton ManagePresenceMessages device (GotRemoteButtonClick presence.id) (presence.meta.exampleState == Joined)
                 ]
             )
 
@@ -783,153 +796,154 @@ buttons btns =
             btns
 
 
-connectButton : (Action -> Example) -> Phoenix.Model -> Element Msg
-connectButton example phoenix =
+connectButton : (Action -> Example) -> Device -> Phoenix.Model -> Element Msg
+connectButton example device phoenix =
     El.el
         [ El.alignRight ]
-    <|
-        UI.button UI.Example
-            { label = "Connect"
-            , example = example Connect
-            , onPress = GotButtonClick
-            , enabled =
-                case Phoenix.socketState phoenix of
+        (Button.init
+            |> Button.label "Connect"
+            |> Button.example (Just (example Connect))
+            |> Button.onPress (Just GotButtonClick)
+            |> Button.enabled
+                (case Phoenix.socketState phoenix of
                     Phoenix.Disconnected _ ->
                         True
 
                     _ ->
                         False
-            }
+                )
+            |> Button.render device
+        )
 
 
-disconnectButton : (Action -> Example) -> Phoenix.Model -> Element Msg
-disconnectButton example phoenix =
+disconnectButton : (Action -> Example) -> Device -> Phoenix.Model -> Element Msg
+disconnectButton example device phoenix =
     El.el
         [ El.alignLeft ]
-    <|
-        UI.button UI.Example
-            { label = "Disconnect"
-            , example = example Disconnect
-            , onPress = GotButtonClick
-            , enabled = Phoenix.socketState phoenix == Phoenix.Connected
-            }
+        (Button.init
+            |> Button.label "Disconnect"
+            |> Button.example (Just (example Disconnect))
+            |> Button.onPress (Just GotButtonClick)
+            |> Button.enabled (Phoenix.socketState phoenix == Phoenix.Connected)
+            |> Button.render device
+        )
 
 
-heartbeatOnButton : (Action -> Example) -> Bool -> Element Msg
-heartbeatOnButton example heartbeat =
+heartbeatOnButton : (Action -> Example) -> Device -> Bool -> Element Msg
+heartbeatOnButton example device heartbeat =
     El.el
         [ El.centerX ]
-    <|
-        UI.button UI.Example
-            { label = "Heartbeat On"
-            , example = example On
-            , onPress = GotButtonClick
-            , enabled = not heartbeat
-            }
+        (Button.init
+            |> Button.label "Heartbeat On"
+            |> Button.example (Just (example On))
+            |> Button.onPress (Just GotButtonClick)
+            |> Button.enabled (not heartbeat)
+            |> Button.render device
+        )
 
 
-heartbeatOffButton : (Action -> Example) -> Bool -> Element Msg
-heartbeatOffButton example heartbeat =
+heartbeatOffButton : (Action -> Example) -> Device -> Bool -> Element Msg
+heartbeatOffButton example device heartbeat =
     El.el
         [ El.centerX ]
-    <|
-        UI.button UI.Example
-            { label = "Heartbeat Off"
-            , example = example Off
-            , onPress = GotButtonClick
-            , enabled = heartbeat
-            }
+        (Button.init
+            |> Button.label "Heartbeat Off"
+            |> Button.example (Just (example Off))
+            |> Button.onPress (Just GotButtonClick)
+            |> Button.enabled heartbeat
+            |> Button.render device
+        )
 
 
-joinButton : (Action -> Example) -> (Example -> Msg) -> Bool -> Element Msg
-joinButton example onPress enabled =
+joinButton : (Action -> Example) -> Device -> (Example -> Msg) -> Bool -> Element Msg
+joinButton example device onPress enabled =
     El.el
         [ El.alignRight ]
-    <|
-        UI.button UI.Example
-            { label = "Join Channel"
-            , example = example Join
-            , onPress = onPress
-            , enabled = enabled
-            }
+        (Button.init
+            |> Button.label "Join Channel"
+            |> Button.example (Just (example Join))
+            |> Button.onPress (Just onPress)
+            |> Button.enabled enabled
+            |> Button.render device
+        )
 
 
-leaveButton : (Action -> Example) -> (Example -> Msg) -> Bool -> Element Msg
-leaveButton example onPress enabled =
+leaveButton : (Action -> Example) -> Device -> (Example -> Msg) -> Bool -> Element Msg
+leaveButton example device onPress enabled =
     El.el
         [ El.alignLeft ]
-    <|
-        UI.button UI.Example
-            { label = "Leave Channel"
-            , example = example Leave
-            , onPress = onPress
-            , enabled = enabled
-            }
+        (Button.init
+            |> Button.label "Leave Channel"
+            |> Button.example (Just (example Leave))
+            |> Button.onPress (Just onPress)
+            |> Button.enabled enabled
+            |> Button.render device
+        )
 
 
-presenceOnButton : (Action -> Example) -> Bool -> Element Msg
-presenceOnButton example presence =
+presenceOnButton : (Action -> Example) -> Device -> Bool -> Element Msg
+presenceOnButton example device presence =
     El.el
         [ El.centerX ]
-    <|
-        UI.button UI.Example
-            { label = "Presence On"
-            , example = example On
-            , onPress = GotButtonClick
-            , enabled = not presence
-            }
+        (Button.init
+            |> Button.label "Presence On"
+            |> Button.example (Just (example On))
+            |> Button.onPress (Just GotButtonClick)
+            |> Button.enabled (not presence)
+            |> Button.render device
+        )
 
 
-presenceOffButton : (Action -> Example) -> Bool -> Element Msg
-presenceOffButton example presence =
+presenceOffButton : (Action -> Example) -> Device -> Bool -> Element Msg
+presenceOffButton example device presence =
     El.el
         [ El.centerX ]
-    <|
-        UI.button UI.Example
-            { label = "Presence Off"
-            , example = example Off
-            , onPress = GotButtonClick
-            , enabled = presence
-            }
+        (Button.init
+            |> Button.label "Presence Off"
+            |> Button.example (Just (example Off))
+            |> Button.onPress (Just GotButtonClick)
+            |> Button.enabled presence
+            |> Button.render device
+        )
 
 
-sendMessageButton : (Action -> Example) -> Element Msg
-sendMessageButton example =
+sendMessageButton : (Action -> Example) -> Device -> Element Msg
+sendMessageButton example device =
     El.el
         [ El.alignRight ]
-    <|
-        UI.button UI.Example
-            { label = "Push Message"
-            , example = example Send
-            , onPress = GotButtonClick
-            , enabled = True
-            }
+        (Button.init
+            |> Button.label "Push Message"
+            |> Button.example (Just (example Send))
+            |> Button.onPress (Just GotButtonClick)
+            |> Button.enabled True
+            |> Button.render device
+        )
 
 
-channelMessagesOn : (Action -> Example) -> Bool -> Element Msg
-channelMessagesOn example channelMessages =
+channelMessagesOn : (Action -> Example) -> Device -> Bool -> Element Msg
+channelMessagesOn example device channelMessages =
     El.el
         [ El.centerX ]
-    <|
-        UI.button UI.Example
-            { label = "Messages On"
-            , example = example On
-            , onPress = GotButtonClick
-            , enabled = not channelMessages
-            }
+        (Button.init
+            |> Button.label "Messages On"
+            |> Button.example (Just (example On))
+            |> Button.onPress (Just GotButtonClick)
+            |> Button.enabled (not channelMessages)
+            |> Button.render device
+        )
 
 
-channelMessagesOff : (Action -> Example) -> Bool -> Element Msg
-channelMessagesOff example channelMessages =
+channelMessagesOff : (Action -> Example) -> Device -> Bool -> Element Msg
+channelMessagesOff example device channelMessages =
     El.el
         [ El.alignLeft ]
-    <|
-        UI.button UI.Example
-            { label = "Messages Off"
-            , example = example Off
-            , onPress = GotButtonClick
-            , enabled = channelMessages
-            }
+        (Button.init
+            |> Button.label "Messages Off"
+            |> Button.example (Just (example Off))
+            |> Button.onPress (Just GotButtonClick)
+            |> Button.enabled channelMessages
+            |> Button.render device
+        )
 
 
 info : Model -> List (Element Msg)
