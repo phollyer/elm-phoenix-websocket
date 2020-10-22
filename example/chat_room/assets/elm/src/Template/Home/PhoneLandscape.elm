@@ -1,5 +1,6 @@
-module Template.Home.PhonePortrait exposing (..)
+module Template.Home.PhoneLandscape exposing (..)
 
+import Colors.Opaque as Color
 import Element as El exposing (Element)
 import Element.Font as Font
 import Template.Home.Common as Common
@@ -23,11 +24,11 @@ socketExamples examplePanels =
     El.column
         Common.containerAttrs
         [ El.el
-            (Font.size 18
+            (Font.size 22
                 :: Common.headingAttrs
             )
             (El.text "Socket Examples")
-        , El.column
+        , El.wrappedRow
             Common.containerAttrs
             examplePanels
         ]

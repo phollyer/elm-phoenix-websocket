@@ -44,6 +44,7 @@ render config =
             [ Border.rounded 10
             , El.padding 10
             , Font.size 30
+            , El.centerY
             ]
         )
         { label = El.text config.label

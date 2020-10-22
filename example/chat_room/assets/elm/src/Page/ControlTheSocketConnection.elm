@@ -226,7 +226,7 @@ view model =
                                 ]
                             |> Menu.selected
                                 (Example.toString model.example)
-                            |> Menu.render
+                            |> Menu.render device
                         )
                     |> Example.description
                         (description model.example)
@@ -264,79 +264,54 @@ description example =
             []
 
 
-controls : Example -> Device -> Phoenix.Model -> Element Msg
+controls : Example -> Device -> Phoenix.Model -> List (Element Msg)
 controls example device phoenix =
     case example of
         SimpleConnect _ ->
-            buttons
-                [ connectButton SimpleConnect device phoenix
-                , disconnectButton SimpleConnect device phoenix
-                ]
+            buttons SimpleConnect device phoenix
 
         ConnectWithGoodParams _ ->
-            buttons
-                [ connectButton ConnectWithGoodParams device phoenix
-                , disconnectButton ConnectWithGoodParams device phoenix
-                ]
+            buttons ConnectWithGoodParams device phoenix
 
         ConnectWithBadParams _ ->
-            buttons
-                [ connectButton ConnectWithBadParams device phoenix
-                , disconnectButton ConnectWithBadParams device phoenix
-                ]
+            buttons ConnectWithBadParams device phoenix
 
         _ ->
-            El.none
+            []
 
 
-buttons : List (Element Msg) -> Element Msg
-buttons btns =
-    El.row
-        [ El.width El.fill
-        , El.height <| El.px 60
-        , El.spacing 20
-        ]
-    <|
-        List.map
-            (El.el
-                [ El.width El.fill
-                , El.centerY
-                ]
-            )
-            btns
+buttons : (Action -> Example) -> Device -> Phoenix.Model -> List (Element Msg)
+buttons example device phoenix =
+    [ connectButton example device phoenix
+    , disconnectButton example device phoenix
+    ]
 
 
 connectButton : (Action -> Example) -> Device -> Phoenix.Model -> Element Msg
-connectButton exampleFunc device phoenix =
-    El.el
-        [ El.alignRight ]
-        (Button.init
-            |> Button.label "Connect"
-            |> Button.example (Just (exampleFunc Connect))
-            |> Button.onPress (Just GotButtonClick)
-            |> Button.enabled
-                (case Phoenix.socketState phoenix of
-                    Phoenix.Disconnected _ ->
-                        True
+connectButton example device phoenix =
+    Button.init
+        |> Button.label "Connect"
+        |> Button.example (Just (example Connect))
+        |> Button.onPress (Just GotButtonClick)
+        |> Button.enabled
+            (case Phoenix.socketState phoenix of
+                Phoenix.Disconnected _ ->
+                    True
 
-                    _ ->
-                        False
-                )
-            |> Button.render device
-        )
+                _ ->
+                    False
+            )
+        |> Button.render device
 
 
 disconnectButton : (Action -> Example) -> Device -> Phoenix.Model -> Element Msg
-disconnectButton exampleFunc device phoenix =
-    El.el
-        [ El.alignLeft ]
-        (Button.init
-            |> Button.label "Disconnect"
-            |> Button.example (Just (exampleFunc Disconnect))
-            |> Button.onPress (Just GotButtonClick)
-            |> Button.enabled (Phoenix.socketState phoenix == Phoenix.Connected)
-            |> Button.render device
-        )
+disconnectButton example device phoenix =
+    Button.init
+        |> Button.label "Disconnect"
+        |> Button.example (Just (example Disconnect))
+        |> Button.onPress (Just GotButtonClick)
+        |> Button.enabled (Phoenix.socketState phoenix == Phoenix.Connected)
+        |> Button.render device
 
 
 applicableFunctions : Example -> List String

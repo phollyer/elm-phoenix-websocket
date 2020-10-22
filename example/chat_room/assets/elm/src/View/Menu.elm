@@ -16,8 +16,9 @@ only one.
 
 -}
 
-import Element exposing (Element)
+import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Template.Menu.Default as Default
+import Template.Menu.PhonePortrait as PhonePortrait
 
 
 {-| -}
@@ -38,9 +39,14 @@ init =
 
 
 {-| -}
-render : Config msg -> Element msg
-render (Config config) =
-    Default.render config
+render : Device -> Config msg -> Element msg
+render { class, orientation } (Config config) =
+    case ( class, orientation ) of
+        ( Phone, Portrait ) ->
+            PhonePortrait.render config
+
+        _ ->
+            Default.render config
 
 
 {-| -}

@@ -17,6 +17,7 @@ then passing off the page config to the chosen template.
 
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Template.Layout.Desktop as Desktop
+import Template.Layout.PhoneLandscape as PhoneLandscape
 import Template.Layout.PhonePortrait as PhonePortrait
 
 
@@ -45,6 +46,9 @@ render { class, orientation } (Config config) =
     case ( class, orientation ) of
         ( Phone, Portrait ) ->
             PhonePortrait.render config
+
+        ( Phone, Landscape ) ->
+            PhoneLandscape.render config
 
         _ ->
             Desktop.render config

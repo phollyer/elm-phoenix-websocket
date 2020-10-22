@@ -647,7 +647,7 @@ view model =
                             , UI.code device "onMessage"
                             , El.text " handler for the Socket is setup to send all Socket messages through the incoming "
                             , UI.code device "port"
-                            , El.text ", which you may, or may not, want. These examples show how to control the types of messages that are allowed through."
+                            , El.text ". These examples demonstrate controlling the types of messages that are allowed through."
                             ]
                         , UI.paragraph
                             [ El.text "Clicking on a function will take you to its documentation." ]
@@ -661,7 +661,7 @@ view model =
                                 ]
                             |> Menu.selected
                                 (Example.toString model.example)
-                            |> Menu.render
+                            |> Menu.render device
                         )
                     |> Example.id model.exampleId
                     |> Example.userId model.userId
@@ -724,37 +724,34 @@ description example maybeId =
             []
 
 
-controls : Model -> Device -> Phoenix.Model -> Element Msg
+controls : Model -> Device -> Phoenix.Model -> List (Element Msg)
 controls { example, heartbeat, channelMessages, presenceMessages } device phoenix =
     case example of
         ManageSocketHeartbeat _ ->
-            buttons
-                [ connectButton ManageSocketHeartbeat device phoenix
-                , heartbeatOnButton ManageSocketHeartbeat device heartbeat
-                , heartbeatOffButton ManageSocketHeartbeat device heartbeat
-                , disconnectButton ManageSocketHeartbeat device phoenix
-                ]
+            [ connectButton ManageSocketHeartbeat device phoenix
+            , heartbeatOnButton ManageSocketHeartbeat device heartbeat
+            , heartbeatOffButton ManageSocketHeartbeat device heartbeat
+            , disconnectButton ManageSocketHeartbeat device phoenix
+            ]
 
         ManageChannelMessages _ ->
-            buttons
-                [ sendMessageButton ManageChannelMessages device
-                , channelMessagesOn ManageChannelMessages device channelMessages
-                , channelMessagesOff ManageChannelMessages device channelMessages
-                ]
+            [ sendMessageButton ManageChannelMessages device
+            , channelMessagesOn ManageChannelMessages device channelMessages
+            , channelMessagesOff ManageChannelMessages device channelMessages
+            ]
 
         ManagePresenceMessages _ ->
-            buttons
-                [ joinButton ManagePresenceMessages device GotButtonClick (not <| Phoenix.channelJoined "example:manage_presence_messages" phoenix)
-                , presenceOnButton ManagePresenceMessages device presenceMessages
-                , presenceOffButton ManagePresenceMessages device presenceMessages
-                , leaveButton ManagePresenceMessages device GotButtonClick (Phoenix.channelJoined "example:manage_presence_messages" phoenix)
-                ]
+            [ joinButton ManagePresenceMessages device GotButtonClick (not <| Phoenix.channelJoined "example:manage_presence_messages" phoenix)
+            , presenceOnButton ManagePresenceMessages device presenceMessages
+            , presenceOffButton ManagePresenceMessages device presenceMessages
+            , leaveButton ManagePresenceMessages device GotButtonClick (Phoenix.channelJoined "example:manage_presence_messages" phoenix)
+            ]
 
         _ ->
-            El.none
+            []
 
 
-remoteControls : Model -> Device -> Phoenix.Model -> List ( String, Element Msg )
+remoteControls : Model -> Device -> Phoenix.Model -> List ( String, List (Element Msg) )
 remoteControls { example, userId, presenceState } device phoenix =
     case example of
         ManagePresenceMessages _ ->
@@ -764,7 +761,7 @@ remoteControls { example, userId, presenceState } device phoenix =
             []
 
 
-maybeRemoteControl : Maybe ID -> Device -> Presence -> Maybe ( String, Element Msg )
+maybeRemoteControl : Maybe ID -> Device -> Presence -> Maybe ( String, List (Element Msg) )
 maybeRemoteControl userId device presence =
     if userId == Just presence.id then
         Nothing
@@ -772,28 +769,10 @@ maybeRemoteControl userId device presence =
     else
         Just <|
             ( presence.id
-            , buttons
-                [ joinButton ManagePresenceMessages device (GotRemoteButtonClick presence.id) (presence.meta.exampleState == NotJoined)
-                , leaveButton ManagePresenceMessages device (GotRemoteButtonClick presence.id) (presence.meta.exampleState == Joined)
-                ]
+            , [ joinButton ManagePresenceMessages device (GotRemoteButtonClick presence.id) (presence.meta.exampleState == NotJoined)
+              , leaveButton ManagePresenceMessages device (GotRemoteButtonClick presence.id) (presence.meta.exampleState == Joined)
+              ]
             )
-
-
-buttons : List (Element Msg) -> Element Msg
-buttons btns =
-    El.row
-        [ El.width El.fill
-        , El.height <| El.px 60
-        , El.spacing 20
-        ]
-    <|
-        List.map
-            (El.el
-                [ El.width El.fill
-                , El.centerY
-                ]
-            )
-            btns
 
 
 connectButton : (Action -> Example) -> Device -> Phoenix.Model -> Element Msg

@@ -1,4 +1,4 @@
-module Template.Layout.PhonePortrait exposing (render)
+module Template.Layout.PhoneLandscape exposing (render)
 
 import Colors.Opaque as Color
 import Element as El exposing (Element)
@@ -18,7 +18,8 @@ render :
     -> Element msg
 render { homeMsg, title, body } =
     El.column
-        (El.inFront (homeButton homeMsg)
+        (El.inFront
+            (homeButton homeMsg)
             :: Common.containerAttrs
         )
         [ header title
@@ -29,7 +30,7 @@ render { homeMsg, title, body } =
 header : String -> Element msg
 header title =
     El.paragraph
-        (Font.size 20
+        (Font.size 30
             :: Common.headerAttrs
         )
         [ El.text title ]
@@ -43,7 +44,7 @@ homeButton maybeMsg =
 
         Just msg ->
             El.el
-                [ El.paddingXY 0 5 ]
+                [ El.paddingXY 0 10 ]
             <|
                 Input.button
                     (Font.size 20

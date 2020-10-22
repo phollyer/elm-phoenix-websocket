@@ -6,6 +6,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Template.Layout.Common as Common
 
 
 render :
@@ -17,17 +18,22 @@ render :
     -> Element msg
 render { homeMsg, title, body } =
     El.column
-        [ El.height El.fill
-        , El.width El.fill
-        , El.spacing 20
-        , El.clip
-        , El.scrollbars
-        , El.inFront
+        (El.inFront
             (homeButton homeMsg)
-        ]
+            :: Common.containerAttrs
+        )
         [ header title
         , body
         ]
+
+
+header : String -> Element msg
+header title =
+    El.paragraph
+        (Font.size 40
+            :: Common.headerAttrs
+        )
+        [ El.text title ]
 
 
 homeButton : Maybe msg -> Element msg
@@ -41,32 +47,9 @@ homeButton maybeMsg =
                 [ El.paddingXY 0 10 ]
             <|
                 Input.button
-                    [ El.mouseOver <|
-                        [ Font.color Color.aliceblue
-                        ]
-                    , Font.color Color.darkslateblue
-                    , Font.size 20
-                    ]
-                    { label = El.text "Home"
+                    (Font.size 20
+                        :: Common.homeButtonAttrs
+                    )
+                    { label = El.text "<="
                     , onPress = Just msg
                     }
-
-
-header : String -> Element msg
-header title =
-    El.el
-        [ El.centerX
-        , El.paddingEach
-            { left = 0
-            , top = 20
-            , right = 0
-            , bottom = 0
-            }
-        , Font.bold
-        , Font.underline
-        , Font.color Color.darkslateblue
-        , Font.size 40
-        , Font.family
-            [ Font.typeface "Oswald" ]
-        ]
-        (El.text title)

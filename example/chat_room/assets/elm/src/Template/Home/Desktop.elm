@@ -1,8 +1,9 @@
-module Template.Home.Desktop exposing (..)
+module Template.Home.Desktop exposing (render)
 
 import Colors.Opaque as Color
 import Element as El exposing (Element)
 import Element.Font as Font
+import Template.Home.Common as Common
 
 
 render :
@@ -14,26 +15,20 @@ render :
     -> Element msg
 render { channels, presence, socket } =
     El.column
-        [ El.spacing 10
-        , El.width El.fill
-        ]
+        Common.containerAttrs
         [ socketExamples socket ]
 
 
 socketExamples : List (Element msg) -> Element msg
-socketExamples socketPanels =
+socketExamples examplePanels =
     El.column
-        [ El.width El.fill
-        , El.spacing 10
-        ]
+        Common.containerAttrs
         [ El.el
-            [ Font.size 30
-            , Font.color Color.slateblue
-            ]
-            (El.text "Socket")
+            (Font.size 30
+                :: Common.headingAttrs
+            )
+            (El.text "Socket Examples")
         , El.row
-            [ El.width El.fill
-            , El.spacing 10
-            ]
-            socketPanels
+            Common.containerAttrs
+            examplePanels
         ]

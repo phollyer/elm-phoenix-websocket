@@ -5,87 +5,176 @@ import Element as El exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Template.Example.Common as Common
 
 
 render :
     { c
         | applicableFunctions : List String
-        , controls : Element msg
+        , controls : List (Element msg)
         , description : List (Element msg)
         , id : Maybe String
         , info : List (Element msg)
         , introduction : List (Element msg)
         , menu : Element msg
-        , remoteControls : List ( String, Element msg )
+        , remoteControls : List ( String, List (Element msg) )
         , usefulFunctions : List ( String, String )
         , userId : Maybe String
     }
     -> Element msg
 render config =
     El.column
-        [ El.height El.fill
-        , El.width El.fill
-        , El.spacing 20
+        Common.containerAttrs
+        [ introduction config.introduction
+        , config.menu
+        , description config.description
+        , maybeId "Example" config.id
+        , maybeId "User" config.userId
+        , controls config.controls
+        , remoteControls config.remoteControls
+        , info config.info
+        , applicableFunctions config.applicableFunctions
+        , usefulFunctions config.usefulFunctions
         ]
-        [ El.column
-            [ El.width El.fill
+
+
+
+{- Introduction -}
+
+
+introduction : List (Element msg) -> Element msg
+introduction intro =
+    El.column
+        (List.append
+            [ Font.size 18
             , El.spacing 20
             ]
-            [ introduction config.introduction
-            , config.menu
-            , description config.description
-            , case config.id of
-                Nothing ->
-                    El.none
+            Common.introductionAttrs
+        )
+        intro
 
-                Just exampleId ->
-                    El.el
-                        [ Font.color Color.lavender
-                        , Font.family
-                            [ Font.typeface "Varela Round" ]
-                        ]
-                        (El.text ("Example ID: " ++ exampleId))
-            , case config.userId of
-                Nothing ->
-                    El.none
 
-                Just userId_ ->
-                    El.el
-                        [ Font.color Color.lavender
-                        , Font.family
-                            [ Font.typeface "Varela Round" ]
-                        ]
-                        (El.text ("User ID: " ++ userId_))
-            , config.controls
-            , El.column
-                [ El.width El.fill
-                , El.spacing 10
+
+{- Description -}
+
+
+description : List (Element msg) -> Element msg
+description content =
+    El.column
+        (Font.size 16
+            :: Common.descriptionAttrs
+        )
+        content
+
+
+
+{- Example & User ID -}
+
+
+maybeId : String -> Maybe String -> Element msg
+maybeId type_ maybeId_ =
+    case maybeId_ of
+        Nothing ->
+            El.none
+
+        Just id ->
+            El.paragraph
+                (List.append
+                    [ Font.center
+                    , Font.size 16
+                    ]
+                    Common.exampleIdAttrs
+                )
+                [ El.el [ Font.color Color.lavender ] (El.text (type_ ++ " ID: "))
+                , El.el [ Font.color Color.powderblue ] (El.text id)
                 ]
-              <|
-                List.map
-                    (\( userId_, buttons ) ->
-                        El.column
-                            [ El.width El.fill ]
-                            [ El.el
-                                [ Font.color Color.lavender
-                                , Font.family
-                                    [ Font.typeface "Varela Round" ]
-                                ]
-                                (El.text ("User ID: " ++ userId_))
-                            , buttons
-                            ]
-                    )
-                    config.remoteControls
-            ]
-        , El.column
-            [ El.spacing 10
-            , El.centerX
-            ]
-            [ El.el [ El.alignTop ] <| applicableFunctions config.applicableFunctions
-            , El.el [ El.alignTop ] <| usefulFunctions config.usefulFunctions
-            , El.el [ El.alignTop, El.width El.fill ] <| info config.info
-            ]
+
+
+
+{- Controls -}
+
+
+controls : List (Element msg) -> Element msg
+controls cntrls =
+    El.column
+        [ El.width El.fill
+        , El.spacing 10
         ]
+    <|
+        List.map
+            (El.el
+                [ El.centerX
+                , El.height <| El.px 60
+                ]
+            )
+            cntrls
+
+
+
+{- Remote Controls -}
+
+
+remoteControls : List ( String, List (Element msg) ) -> Element msg
+remoteControls cntrls =
+    El.column
+        [ El.width El.fill
+        , El.spacing 10
+        ]
+    <|
+        List.map remoteControl cntrls
+
+
+remoteControl : ( String, List (Element msg) ) -> Element msg
+remoteControl ( userId_, cntrls ) =
+    El.column
+        [ El.width El.fill
+        , El.spacing 10
+        ]
+        [ maybeId "User" (Just userId_)
+        , controls cntrls
+        ]
+
+
+
+{- Info -}
+
+
+info : List (Element msg) -> Element msg
+info content =
+    El.column
+        [ Background.color Color.white
+        , Border.width 1
+        , Border.color Color.black
+        , El.paddingEach
+            { left = 10
+            , top = 10
+            , right = 10
+            , bottom = 0
+            }
+        , El.spacing 10
+        , El.centerX
+        , Font.size 18
+        ]
+        [ El.el
+            [ El.centerX
+            , Font.bold
+            , Font.underline
+            , Font.color Color.darkslateblue
+            ]
+            (El.text "Information")
+        , El.column
+            [ El.height <|
+                El.maximum 300 El.shrink
+            , El.clip
+            , El.scrollbars
+            , El.spacing 16
+            ]
+            content
+        ]
+
+
+
+{- Applicable Functions -}
 
 
 applicableFunctions : List String -> Element msg
@@ -94,28 +183,34 @@ applicableFunctions functions =
         [ Background.color Color.white
         , Border.width 1
         , Border.color Color.black
-        , El.height El.fill
-        , El.padding 10
+        , El.width El.fill
         , El.spacing 10
-        , El.centerX
+        , El.padding 10
+        , Font.size 16
         ]
     <|
         El.el
             [ Font.bold
             , Font.underline
             , Font.color Color.darkslateblue
+            , El.width El.fill
             ]
-            (El.text "Applicable Functions")
+            (El.el [ El.centerX ] (El.text "Applicable Functions"))
             :: List.map
                 (\function ->
-                    El.newTabLink
-                        [ Font.family [ Font.typeface "Roboto Mono" ] ]
-                        { url = toPackageUrl function
-                        , label =
-                            El.paragraph
-                                []
-                                (format function)
-                        }
+                    El.row
+                        [ El.width El.fill
+                        , El.scrollbars
+                        ]
+                        [ El.newTabLink
+                            [ Font.family [ Font.typeface "Roboto Mono" ] ]
+                            { url = toPackageUrl function
+                            , label =
+                                El.paragraph
+                                    []
+                                    (format function)
+                            }
+                        ]
                 )
                 functions
 
@@ -153,63 +248,8 @@ format function =
             []
 
 
-description : List (Element msg) -> Element msg
-description content =
-    El.column
-        [ El.spacing 12
-        , Font.color Color.darkslateblue
-        , Font.justify
-        , Font.size 30
-        , Font.family
-            [ Font.typeface "Varela Round" ]
-        ]
-        content
 
-
-info : List (Element msg) -> Element msg
-info content =
-    El.column
-        [ Background.color Color.white
-        , Border.width 1
-        , Border.color Color.black
-        , El.paddingEach
-            { left = 10
-            , top = 10
-            , right = 10
-            , bottom = 0
-            }
-        , El.spacing 10
-        , El.centerX
-        ]
-        [ El.el
-            [ El.centerX
-            , Font.bold
-            , Font.underline
-            , Font.color Color.darkslateblue
-            ]
-            (El.text "Information")
-        , El.column
-            [ El.height <|
-                El.maximum 300 El.shrink
-            , El.clip
-            , El.scrollbars
-            , El.spacing 16
-            ]
-            content
-        ]
-
-
-introduction : List (Element msg) -> Element msg
-introduction intro =
-    El.column
-        [ Font.color Color.darkslateblue
-        , Font.size 24
-        , Font.justify
-        , El.spacing 30
-        , Font.family
-            [ Font.typeface "Piedra" ]
-        ]
-        intro
+{- Useful Functions -}
 
 
 usefulFunctions : List ( String, String ) -> Element msg
@@ -218,10 +258,10 @@ usefulFunctions functions =
         [ Background.color Color.white
         , Border.width 1
         , Border.color Color.black
-        , El.height El.fill
-        , El.padding 10
+        , El.width El.fill
         , El.spacing 10
-        , El.centerX
+        , El.padding 10
+        , Font.size 16
         ]
         [ El.el
             [ El.centerX
@@ -258,19 +298,24 @@ usefulFunctions functions =
                 (\( function, value ) ->
                     El.row
                         [ El.width El.fill
-                        , El.spacing 20
+                        , El.spacing 10
                         ]
-                        [ El.newTabLink
-                            [ Font.family [ Font.typeface "Roboto Mono" ] ]
-                            { url = toPackageUrl function
-                            , label =
-                                El.paragraph
-                                    []
-                                    (format function)
-                            }
-                        , El.el
-                            [ El.alignRight ]
-                            (El.text value)
+                        [ El.row
+                            [ El.width El.fill
+                            , El.scrollbars
+                            ]
+                            [ El.newTabLink
+                                [ Font.family [ Font.typeface "Roboto Mono" ] ]
+                                { url = toPackageUrl function
+                                , label =
+                                    El.paragraph
+                                        []
+                                        (format function)
+                                }
+                            ]
+                        , El.row
+                            []
+                            [ El.text value ]
                         ]
                 )
                 functions

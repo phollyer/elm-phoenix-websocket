@@ -4,7 +4,7 @@ import Browser exposing (Document)
 import Browser.Dom as Dom
 import Browser.Events exposing (onResize)
 import Browser.Navigation as Nav
-import Element as El exposing (Element)
+import Element as El exposing (Device, Element)
 import Html
 import Page
 import Page.Blank as Blank
@@ -53,6 +53,10 @@ changeRouteTo maybeRoute model =
                 |> updateWith HandleSocketMessages GotHandleSocketMessagesMsg
 
 
+
+{- Session -}
+
+
 toSession : Model -> Session
 toSession model =
     case model of
@@ -92,6 +96,15 @@ updateSession session model =
         HandleSocketMessages subModel ->
             HandleSocketMessages <|
                 HandleSocketMessages.updateSession session subModel
+
+
+
+{- Device -}
+
+
+toDevice : Model -> Device
+toDevice model =
+    Session.device (toSession model)
 
 
 
@@ -202,28 +215,32 @@ subscriptions model =
 
 view : Model -> Document Msg
 view model =
+    let
+        device =
+            toDevice model
+    in
     case model of
         Redirect _ ->
-            Page.view Blank.view
+            Page.view device Blank.view
 
         NotFound _ ->
-            Page.view NotFound.view
+            Page.view device NotFound.view
 
         Home subModel ->
-            viewPage GotHomeMsg (Home.view subModel)
+            viewPage device GotHomeMsg (Home.view subModel)
 
         ControlTheSocketConnection subModel ->
-            viewPage GotControlTheSocketConnectionMsg (ControlTheSocketConnection.view subModel)
+            viewPage device GotControlTheSocketConnectionMsg (ControlTheSocketConnection.view subModel)
 
         HandleSocketMessages subModel ->
-            viewPage GotHandleSocketMessagesMsg (HandleSocketMessages.view subModel)
+            viewPage device GotHandleSocketMessagesMsg (HandleSocketMessages.view subModel)
 
 
-viewPage : (msg -> Msg) -> { title : String, content : Element msg } -> Document Msg
-viewPage toMsg pageConfig =
+viewPage : Device -> (msg -> Msg) -> { title : String, content : Element msg } -> Document Msg
+viewPage device toMsg pageConfig =
     let
         { title, body } =
-            Page.view pageConfig
+            Page.view device pageConfig
     in
     { title = title
     , body = List.map (Html.map toMsg) body

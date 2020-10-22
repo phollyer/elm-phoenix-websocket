@@ -8,6 +8,8 @@ module View.UI.Panel exposing
     )
 
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
+import Template.UI.Panel.Desktop as Desktop
+import Template.UI.Panel.PhoneLandscape as PhoneLandscape
 import Template.UI.Panel.PhonePortrait as PhonePortrait
 
 
@@ -34,8 +36,11 @@ render { class, orientation } (Config config) =
         ( Phone, Portrait ) ->
             PhonePortrait.render config
 
+        ( Phone, Landscape ) ->
+            PhoneLandscape.render config
+
         _ ->
-            El.none
+            Desktop.render config
 
 
 title : String -> Config msg -> Config msg

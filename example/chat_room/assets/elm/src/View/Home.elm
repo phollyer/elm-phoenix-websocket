@@ -9,6 +9,7 @@ module View.Home exposing
 
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Template.Home.Desktop as Desktop
+import Template.Home.PhoneLandscape as PhoneLandscape
 import Template.Home.PhonePortrait as PhonePortrait
 
 
@@ -36,22 +37,10 @@ render { class, orientation } (Config config) =
             PhonePortrait.render config
 
         ( Phone, Landscape ) ->
-            El.none
+            PhoneLandscape.render config
 
-        ( Tablet, Portrait ) ->
-            El.none
-
-        ( Tablet, Landscape ) ->
-            El.none
-
-        ( Desktop, Portrait ) ->
-            El.none
-
-        ( Desktop, Landscape ) ->
+        _ ->
             Desktop.render config
-
-        ( BigDesktop, _ ) ->
-            El.none
 
 
 channels : List (Element msg) -> Config msg -> Config msg

@@ -5,32 +5,28 @@ import Element as El exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Template.Example.Common as Common
 
 
 render :
     { c
         | applicableFunctions : List String
-        , controls : Element msg
+        , controls : List (Element msg)
         , description : List (Element msg)
         , id : Maybe String
         , info : List (Element msg)
         , introduction : List (Element msg)
         , menu : Element msg
-        , remoteControls : List ( String, Element msg )
+        , remoteControls : List ( String, List (Element msg) )
         , usefulFunctions : List ( String, String )
         , userId : Maybe String
     }
     -> Element msg
 render config =
     El.column
-        [ El.height El.fill
-        , El.width El.fill
-        , El.spacing 20
-        ]
+        Common.containerAttrs
         [ El.column
-            [ El.width El.fill
-            , El.spacing 20
-            ]
+            Common.contentAttrs
             [ introduction config.introduction
             , config.menu
             , description config.description
@@ -56,26 +52,8 @@ render config =
                             [ Font.typeface "Varela Round" ]
                         ]
                         (El.text ("User ID: " ++ userId_))
-            , config.controls
-            , El.column
-                [ El.width El.fill
-                , El.spacing 10
-                ]
-              <|
-                List.map
-                    (\( userId_, buttons ) ->
-                        El.column
-                            [ El.width El.fill ]
-                            [ El.el
-                                [ Font.color Color.lavender
-                                , Font.family
-                                    [ Font.typeface "Varela Round" ]
-                                ]
-                                (El.text ("User ID: " ++ userId_))
-                            , buttons
-                            ]
-                    )
-                    config.remoteControls
+            , controls config.controls
+            , remoteControls config.remoteControls
             ]
         , El.row
             [ El.spacing 10
@@ -85,6 +63,71 @@ render config =
             , El.el [ El.alignTop ] <| usefulFunctions config.usefulFunctions
             , El.el [ El.alignTop, El.width El.fill ] <| info config.info
             ]
+        ]
+
+
+
+{- Introduction -}
+
+
+introduction : List (Element msg) -> Element msg
+introduction intro =
+    El.column
+        (List.append
+            [ Font.size 18
+            , El.spacing 24
+            ]
+            Common.introductionAttrs
+        )
+        intro
+
+
+
+{- Controls -}
+
+
+controls : List (Element msg) -> Element msg
+controls cntrls =
+    El.row
+        [ El.width El.fill
+        , El.height <| El.px 60
+        , El.spacing 20
+        ]
+    <|
+        List.map
+            (El.el
+                [ El.width El.fill
+                , El.centerY
+                ]
+            )
+            cntrls
+
+
+
+{- Remote Controls -}
+
+
+remoteControls : List ( String, List (Element msg) ) -> Element msg
+remoteControls cntrls =
+    El.column
+        [ El.width El.fill
+        , El.spacing 10
+        ]
+    <|
+        List.map remoteControl cntrls
+
+
+remoteControl : ( String, List (Element msg) ) -> Element msg
+remoteControl ( userId_, cntrls ) =
+    El.column
+        [ El.width El.fill ]
+        [ El.el
+            [ Font.color Color.lavender
+            , Font.family
+                [ Font.typeface "Varela Round" ]
+            ]
+            (El.text ("User ID: " ++ userId_))
+        , controls cntrls
         ]
 
 
@@ -197,19 +240,6 @@ info content =
             ]
             content
         ]
-
-
-introduction : List (Element msg) -> Element msg
-introduction intro =
-    El.column
-        [ Font.color Color.darkslateblue
-        , Font.size 24
-        , Font.justify
-        , El.spacing 30
-        , Font.family
-            [ Font.typeface "Piedra" ]
-        ]
-        intro
 
 
 usefulFunctions : List ( String, String ) -> Element msg
