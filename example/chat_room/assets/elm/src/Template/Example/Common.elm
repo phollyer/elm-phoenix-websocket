@@ -2,9 +2,10 @@ module Template.Example.Common exposing
     ( containerAttrs
     , contentAttrs
     , descriptionAttrs
-    , exampleIdAttrs
+    , idAttrs
+    , idLabelAttrs
+    , idValueAttrs
     , introductionAttrs
-    , userIdAttrs
     )
 
 import Colors.Opaque as Color
@@ -52,15 +53,19 @@ descriptionAttrs =
     ]
 
 
-exampleIdAttrs : List (Attribute msg)
-exampleIdAttrs =
-    [ Font.family
+idAttrs : List (Attribute msg)
+idAttrs =
+    [ Font.center
+    , Font.family
         [ Font.typeface "Varela Round" ]
     ]
 
 
-userIdAttrs : List (Attribute msg)
-userIdAttrs =
-    [ Font.family
-        [ Font.typeface "Varela Round" ]
-    ]
+idLabelAttrs : List (Attribute msg)
+idLabelAttrs =
+    [ Font.color Color.lavender ]
+
+
+idValueAttrs : List (Attribute msg)
+idValueAttrs =
+    [ Font.color Color.powderblue ]

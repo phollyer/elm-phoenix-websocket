@@ -79,14 +79,11 @@ maybeId type_ maybeId_ =
 
         Just id ->
             El.paragraph
-                (List.append
-                    [ Font.center
-                    , Font.size 16
-                    ]
-                    Common.exampleIdAttrs
+                (Font.size 16
+                    :: Common.idAttrs
                 )
-                [ El.el [ Font.color Color.lavender ] (El.text (type_ ++ " ID: "))
-                , El.el [ Font.color Color.powderblue ] (El.text id)
+                [ El.el Common.idLabelAttrs (El.text (type_ ++ " ID: "))
+                , El.el Common.idValueAttrs (El.text id)
                 ]
 
 
@@ -141,36 +138,40 @@ remoteControl ( userId_, cntrls ) =
 
 info : List (Element msg) -> Element msg
 info content =
-    El.column
-        [ Background.color Color.white
-        , Border.width 1
-        , Border.color Color.black
-        , El.paddingEach
-            { left = 10
-            , top = 10
-            , right = 10
-            , bottom = 0
-            }
-        , El.spacing 10
-        , El.centerX
-        , Font.size 18
-        ]
-        [ El.el
-            [ El.centerX
-            , Font.bold
-            , Font.underline
-            , Font.color Color.darkslateblue
+    if content == [] then
+        El.none
+
+    else
+        El.column
+            [ Background.color Color.white
+            , Border.width 1
+            , Border.color Color.black
+            , El.paddingEach
+                { left = 10
+                , top = 10
+                , right = 10
+                , bottom = 0
+                }
+            , El.spacing 10
+            , El.centerX
+            , Font.size 18
             ]
-            (El.text "Information")
-        , El.column
-            [ El.height <|
-                El.maximum 300 El.shrink
-            , El.clip
-            , El.scrollbars
-            , El.spacing 16
+            [ El.el
+                [ El.centerX
+                , Font.bold
+                , Font.underline
+                , Font.color Color.darkslateblue
+                ]
+                (El.text "Information")
+            , El.column
+                [ El.height <|
+                    El.maximum 300 El.shrink
+                , El.clip
+                , El.scrollbars
+                , El.spacing 16
+                ]
+                content
             ]
-            content
-        ]
 
 
 
@@ -193,59 +194,18 @@ applicableFunctions functions =
             [ Font.bold
             , Font.underline
             , Font.color Color.darkslateblue
-            , El.width El.fill
+            , El.centerX
             ]
-            (El.el [ El.centerX ] (El.text "Applicable Functions"))
+            (El.text "Applicable Functions")
             :: List.map
                 (\function ->
                     El.row
                         [ El.width El.fill
-                        , El.scrollbars
+                        , El.scrollbarX
                         ]
-                        [ El.newTabLink
-                            [ Font.family [ Font.typeface "Roboto Mono" ] ]
-                            { url = toPackageUrl function
-                            , label =
-                                El.paragraph
-                                    []
-                                    (format function)
-                            }
-                        ]
+                        [ functionLink function ]
                 )
                 functions
-
-
-toPackageUrl : String -> String
-toPackageUrl function =
-    let
-        base =
-            "https://package.elm-lang.org/packages/phollyer/elm-phoenix-websocket/latest/Phoenix"
-    in
-    case String.split "." function of
-        _ :: func :: [] ->
-            base ++ "#" ++ func
-
-        func :: [] ->
-            base ++ "#" ++ func
-
-        _ ->
-            base
-
-
-format : String -> List (Element msg)
-format function =
-    case String.split "." function of
-        phoenix :: func :: [] ->
-            [ El.el [ Font.color Color.orange ] (El.text phoenix)
-            , El.el [ Font.color Color.darkgrey ] (El.text ("." ++ func))
-            ]
-
-        func :: [] ->
-            [ El.el [ Font.color Color.darkgrey ] (El.text ("." ++ func))
-            ]
-
-        _ ->
-            []
 
 
 
@@ -302,17 +262,9 @@ usefulFunctions functions =
                         ]
                         [ El.row
                             [ El.width El.fill
-                            , El.scrollbars
+                            , El.scrollbarX
                             ]
-                            [ El.newTabLink
-                                [ Font.family [ Font.typeface "Roboto Mono" ] ]
-                                { url = toPackageUrl function
-                                , label =
-                                    El.paragraph
-                                        []
-                                        (format function)
-                                }
-                            ]
+                            [ functionLink function ]
                         , El.row
                             []
                             [ El.text value ]
@@ -321,3 +273,53 @@ usefulFunctions functions =
                 functions
             )
         ]
+
+
+
+{- Helpers -}
+
+
+functionLink : String -> Element msg
+functionLink function =
+    El.newTabLink
+        [ Font.family
+            [ Font.typeface "Roboto Mono" ]
+        ]
+        { url = toPackageUrl function
+        , label =
+            El.paragraph
+                []
+                (format function)
+        }
+
+
+toPackageUrl : String -> String
+toPackageUrl function =
+    let
+        base =
+            "https://package.elm-lang.org/packages/phollyer/elm-phoenix-websocket/latest/Phoenix"
+    in
+    case String.split "." function of
+        _ :: func :: [] ->
+            base ++ "#" ++ func
+
+        func :: [] ->
+            base ++ "#" ++ func
+
+        _ ->
+            base
+
+
+format : String -> List (Element msg)
+format function =
+    case String.split "." function of
+        phoenix :: func :: [] ->
+            [ El.el [ Font.color Color.orange ] (El.text phoenix)
+            , El.el [ Font.color Color.darkgrey ] (El.text ("." ++ func))
+            ]
+
+        func :: [] ->
+            [ El.el [ Font.color Color.darkgrey ] (El.text ("." ++ func)) ]
+
+        _ ->
+            []
