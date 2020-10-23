@@ -1,4 +1,4 @@
-module Template.Menu.PhonePortrait exposing (render)
+module Template.Menu.PhoneLandscape exposing (render)
 
 import Element as El exposing (Element)
 import Element.Font as Font
@@ -13,13 +13,13 @@ type alias Config msg =
 
 render : Config msg -> Element msg
 render config =
-    El.column
+    El.wrappedRow
         (List.append
             [ El.paddingEach
                 { left = 5
-                , top = 16
+                , top = 10
                 , right = 5
-                , bottom = 8
+                , bottom = 0
                 }
             , El.spacing 10
             , Font.size 18
@@ -34,7 +34,8 @@ menuItem selected ( item, msg ) =
     let
         ( attrs, highlight ) =
             if selected == item then
-                ( Common.selectedAttrs
+                ( El.spacing 5
+                    :: Common.selectedAttrs
                 , El.el
                     Common.selectedHighlightAttrs
                     El.none
@@ -45,8 +46,11 @@ menuItem selected ( item, msg ) =
                 , El.none
                 )
     in
-    El.column
-        attrs
-        [ El.text item
-        , highlight
+    El.row
+        [ El.width El.fill ]
+        [ El.column
+            attrs
+            [ El.text item
+            , highlight
+            ]
         ]

@@ -17,7 +17,8 @@ only one.
 -}
 
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
-import Template.Menu.Default as Default
+import Template.Menu.Desktop as Desktop
+import Template.Menu.PhoneLandscape as PhoneLandscape
 import Template.Menu.PhonePortrait as PhonePortrait
 
 
@@ -45,8 +46,11 @@ render { class, orientation } (Config config) =
         ( Phone, Portrait ) ->
             PhonePortrait.render config
 
+        ( Phone, Landscape ) ->
+            PhoneLandscape.render config
+
         _ ->
-            Default.render config
+            Desktop.render config
 
 
 {-| -}
