@@ -3,10 +3,10 @@ module Template.Example.Controls.PhoneLandscape exposing (..)
 import Colors.Opaque as Color
 import Element as El exposing (DeviceClass, Element, Orientation)
 import Element.Border as Border
-import Template.Example.Controls.Common exposing (Config, containerAttrs)
+import Template.Example.Controls.Common as Common
 
 
-view : Config msg c -> Element msg
+view : Common.Config msg c -> Element msg
 view config =
     El.row
         (List.append
@@ -19,7 +19,7 @@ view config =
                 , bottom = 1
                 }
             ]
-            containerAttrs
+            Common.containerAttrs
         )
         [ El.row
             [ El.centerX

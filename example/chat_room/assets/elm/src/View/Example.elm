@@ -17,9 +17,9 @@ only one.
 -}
 
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
-import Template.Example.Desktop as Desktop
 import Template.Example.PhoneLandscape as PhoneLandscape
 import Template.Example.PhonePortrait as PhonePortrait
+import Template.Example.Tablet as Tablet
 
 
 {-| -}
@@ -63,14 +63,8 @@ view { class, orientation } config =
         ( Phone, Landscape ) ->
             PhoneLandscape.view config
 
-        ( Tablet, _ ) ->
-            Desktop.view config
-
-        ( Desktop, _ ) ->
-            Desktop.view config
-
-        ( BigDesktop, _ ) ->
-            Desktop.view config
+        _ ->
+            Tablet.view config
 
 
 {-| -}

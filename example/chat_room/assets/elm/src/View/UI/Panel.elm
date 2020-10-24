@@ -8,9 +8,9 @@ module View.UI.Panel exposing
     )
 
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
-import Template.UI.Panel.Desktop as Desktop
 import Template.UI.Panel.PhoneLandscape as PhoneLandscape
 import Template.UI.Panel.PhonePortrait as PhonePortrait
+import Template.UI.Panel.Tablet as Tablet
 
 
 type Config msg
@@ -40,7 +40,7 @@ view { class, orientation } (Config config) =
             PhoneLandscape.view config
 
         _ ->
-            Desktop.view config
+            Tablet.view config
 
 
 title : String -> Config msg -> Config msg
