@@ -12,8 +12,7 @@ view :
     { b
         | enabled : Bool
         , label : String
-        , example : Maybe example
-        , onPress : Maybe (example -> msg)
+        , onPress : Maybe msg
     }
     -> Element msg
 view config =
@@ -49,11 +48,5 @@ view config =
             ]
         )
         { label = El.text config.label
-        , onPress =
-            case ( config.onPress, config.example ) of
-                ( Just onPress, Just example ) ->
-                    Just (onPress example)
-
-                _ ->
-                    Nothing
+        , onPress = config.onPress
         }

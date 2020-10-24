@@ -298,8 +298,7 @@ connect : (Action -> Example) -> Device -> Phoenix.Model -> Element Msg
 connect example device phoenix =
     Control.init
         |> Control.label "Connect"
-        |> Control.example (Just (example Connect))
-        |> Control.onPress (Just GotControlClick)
+        |> Control.onPress (Just (GotControlClick (example Connect)))
         |> Control.enabled
             (case Phoenix.socketState phoenix of
                 Phoenix.Disconnected _ ->
@@ -315,8 +314,7 @@ disconnect : (Action -> Example) -> Device -> Phoenix.Model -> Element Msg
 disconnect example device phoenix =
     Control.init
         |> Control.label "Disconnect"
-        |> Control.example (Just (example Disconnect))
-        |> Control.onPress (Just GotControlClick)
+        |> Control.onPress (Just (GotControlClick (example Disconnect)))
         |> Control.enabled (Phoenix.socketState phoenix == Phoenix.Connected)
         |> Control.view device
 

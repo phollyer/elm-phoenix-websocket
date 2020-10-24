@@ -810,8 +810,7 @@ connectControl example device phoenix =
         [ El.alignRight ]
         (Control.init
             |> Control.label "Connect"
-            |> Control.example (Just (example Connect))
-            |> Control.onPress (Just GotControlClick)
+            |> Control.onPress (Just (GotControlClick (example Connect)))
             |> Control.enabled
                 (case Phoenix.socketState phoenix of
                     Phoenix.Disconnected _ ->
@@ -830,8 +829,7 @@ disconnectControl example device phoenix =
         [ El.alignLeft ]
         (Control.init
             |> Control.label "Disconnect"
-            |> Control.example (Just (example Disconnect))
-            |> Control.onPress (Just GotControlClick)
+            |> Control.onPress (Just (GotControlClick (example Disconnect)))
             |> Control.enabled (Phoenix.socketState phoenix == Phoenix.Connected)
             |> Control.view device
         )
@@ -843,8 +841,7 @@ heartbeatOnControl example device heartbeat =
         [ El.centerX ]
         (Control.init
             |> Control.label "Heartbeat On"
-            |> Control.example (Just (example On))
-            |> Control.onPress (Just GotControlClick)
+            |> Control.onPress (Just (GotControlClick (example On)))
             |> Control.enabled (not heartbeat)
             |> Control.view device
         )
@@ -856,8 +853,7 @@ heartbeatOffControl example device heartbeat =
         [ El.centerX ]
         (Control.init
             |> Control.label "Heartbeat Off"
-            |> Control.example (Just (example Off))
-            |> Control.onPress (Just GotControlClick)
+            |> Control.onPress (Just (GotControlClick (example Off)))
             |> Control.enabled heartbeat
             |> Control.view device
         )
@@ -869,8 +865,7 @@ joinControl example device onPress enabled =
         [ El.alignRight ]
         (Control.init
             |> Control.label "Join Channel"
-            |> Control.example (Just (example Join))
-            |> Control.onPress (Just onPress)
+            |> Control.onPress (Just (onPress (example Join)))
             |> Control.enabled enabled
             |> Control.view device
         )
@@ -882,8 +877,7 @@ leaveControl example device onPress enabled =
         [ El.alignLeft ]
         (Control.init
             |> Control.label "Leave Channel"
-            |> Control.example (Just (example Leave))
-            |> Control.onPress (Just onPress)
+            |> Control.onPress (Just (onPress (example Leave)))
             |> Control.enabled enabled
             |> Control.view device
         )
@@ -895,8 +889,7 @@ presenceOnControl example device presence =
         [ El.centerX ]
         (Control.init
             |> Control.label "Presence On"
-            |> Control.example (Just (example On))
-            |> Control.onPress (Just GotControlClick)
+            |> Control.onPress (Just (GotControlClick (example On)))
             |> Control.enabled (not presence)
             |> Control.view device
         )
@@ -908,8 +901,7 @@ presenceOffControl example device presence =
         [ El.centerX ]
         (Control.init
             |> Control.label "Presence Off"
-            |> Control.example (Just (example Off))
-            |> Control.onPress (Just GotControlClick)
+            |> Control.onPress (Just (GotControlClick (example Off)))
             |> Control.enabled presence
             |> Control.view device
         )
@@ -921,8 +913,7 @@ sendMessageControl example device =
         [ El.alignRight ]
         (Control.init
             |> Control.label "Push Message"
-            |> Control.example (Just (example Send))
-            |> Control.onPress (Just GotControlClick)
+            |> Control.onPress (Just (GotControlClick (example Send)))
             |> Control.enabled True
             |> Control.view device
         )
@@ -934,8 +925,7 @@ channelMessagesOn example device channelMessages =
         [ El.centerX ]
         (Control.init
             |> Control.label "Messages On"
-            |> Control.example (Just (example On))
-            |> Control.onPress (Just GotControlClick)
+            |> Control.onPress (Just (GotControlClick (example On)))
             |> Control.enabled (not channelMessages)
             |> Control.view device
         )
@@ -947,8 +937,7 @@ channelMessagesOff example device channelMessages =
         [ El.alignLeft ]
         (Control.init
             |> Control.label "Messages Off"
-            |> Control.example (Just (example Off))
-            |> Control.onPress (Just GotControlClick)
+            |> Control.onPress (Just (GotControlClick (example Off)))
             |> Control.enabled channelMessages
             |> Control.view device
         )

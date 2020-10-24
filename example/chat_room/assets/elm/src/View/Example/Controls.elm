@@ -37,7 +37,8 @@ view ({ class, orientation } as device) (Config config) =
                 |> PhonePortrait.view
 
         _ ->
-            PhoneLandscape.view config
+            orderElements device config
+                |> PhoneLandscape.view
 
 
 elements : List (Element msg) -> Config msg -> Config msg
