@@ -1,4 +1,4 @@
-module View.Menu exposing
+module View.Example.Menu exposing
     ( Config, init
     , view
     , options, selected
@@ -17,10 +17,10 @@ then passing off the menu config to the relevant template.
 -}
 
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
-import Template.Menu.Desktop as Desktop
-import Template.Menu.PhoneLandscape as PhoneLandscape
-import Template.Menu.PhonePortrait as PhonePortrait
-import Template.Menu.TabletPortrait as TabletPortrait
+import Template.Example.Menu.Desktop as Desktop
+import Template.Example.Menu.PhoneLandscape as PhoneLandscape
+import Template.Example.Menu.PhonePortrait as PhonePortrait
+import Template.Example.Menu.TabletPortrait as TabletPortrait
 
 
 {-| -}

@@ -1,4 +1,4 @@
-module Template.Menu.Common exposing
+module Template.Example.Menu.Common exposing
     ( Config
     , containerAttrs
     , layoutTypeFor

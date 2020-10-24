@@ -17,8 +17,8 @@ import Phoenix
 import Route
 import Session exposing (Session)
 import View.Example as Example
+import View.Example.Menu as Menu
 import View.Layout as Layout
-import View.Menu as Menu
 import View.UI as UI
 import View.UI.Button as Button
 

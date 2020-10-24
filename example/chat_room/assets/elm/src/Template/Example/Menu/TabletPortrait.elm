@@ -1,13 +1,13 @@
-module Template.Menu.PhoneLandscape exposing (view)
+module Template.Example.Menu.TabletPortrait exposing (view)
 
 import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))
 import Element.Font as Font
-import Template.Menu.Common as Common
+import Template.Example.Menu.Common as Common
 
 
 view : Common.Config msg c -> Element msg
 view config =
-    layoutFor Phone Landscape config
+    layoutFor Tablet Portrait config
 
 
 layoutFor : DeviceClass -> Orientation -> Common.Config msg c -> Element msg
@@ -31,8 +31,8 @@ attrs =
             , right = 5
             , bottom = 5
             }
-        , El.spacing 10
-        , Font.size 18
+        , El.spacing 20
+        , Font.size 20
         ]
         Common.containerAttrs
 
