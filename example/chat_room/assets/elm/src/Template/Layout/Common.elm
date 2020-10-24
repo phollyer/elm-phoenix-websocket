@@ -1,13 +1,22 @@
 module Template.Layout.Common exposing
-    ( containerAttrs
+    ( Config
+    , containerAttrs
     , headerAttrs
     , homeButtonAttrs
     )
 
 import Colors.Opaque as Color
-import Element as El exposing (Attribute)
+import Element as El exposing (Attribute, Element)
 import Element.Border as Border
 import Element.Font as Font
+
+
+type alias Config msg c =
+    { c
+        | homeMsg : Maybe msg
+        , title : String
+        , body : Element msg
+    }
 
 
 containerAttrs : List (Attribute msg)

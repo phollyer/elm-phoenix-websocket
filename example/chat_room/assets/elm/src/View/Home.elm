@@ -3,8 +3,8 @@ module View.Home exposing
     , channels
     , init
     , presence
-    , render
     , socket
+    , view
     )
 
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
@@ -30,17 +30,17 @@ init =
         }
 
 
-render : Device -> Config msg -> Element msg
-render { class, orientation } (Config config) =
+view : Device -> Config msg -> Element msg
+view { class, orientation } (Config config) =
     case ( class, orientation ) of
         ( Phone, Portrait ) ->
-            PhonePortrait.render config
+            PhonePortrait.view config
 
         ( Phone, Landscape ) ->
-            PhoneLandscape.render config
+            PhoneLandscape.view config
 
         _ ->
-            Desktop.render config
+            Desktop.view config
 
 
 channels : List (Element msg) -> Config msg -> Config msg

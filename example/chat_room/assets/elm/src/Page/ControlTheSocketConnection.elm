@@ -226,7 +226,7 @@ view model =
                                 ]
                             |> Menu.selected
                                 (Example.toString model.example)
-                            |> Menu.render device
+                            |> Menu.view device
                         )
                     |> Example.description
                         (description model.example)
@@ -236,9 +236,9 @@ view model =
                         (applicableFunctions model.example)
                     |> Example.usefulFunctions
                         (usefulFunctions model.example phoenix)
-                    |> Example.render device
+                    |> Example.view device
                 )
-            |> Layout.render device
+            |> Layout.view device
     }
 
 
@@ -301,7 +301,7 @@ connectButton example device phoenix =
                 _ ->
                     False
             )
-        |> Button.render device
+        |> Button.view device
 
 
 disconnectButton : (Action -> Example) -> Device -> Phoenix.Model -> Element Msg
@@ -311,7 +311,7 @@ disconnectButton example device phoenix =
         |> Button.example (Just (example Disconnect))
         |> Button.onPress (Just GotButtonClick)
         |> Button.enabled (Phoenix.socketState phoenix == Phoenix.Connected)
-        |> Button.render device
+        |> Button.view device
 
 
 applicableFunctions : Example -> List String

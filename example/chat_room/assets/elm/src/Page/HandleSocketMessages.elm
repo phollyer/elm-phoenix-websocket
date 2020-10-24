@@ -661,7 +661,7 @@ view model =
                                 ]
                             |> Menu.selected
                                 (Example.toString model.example)
-                            |> Menu.render device
+                            |> Menu.view device
                         )
                     |> Example.id model.exampleId
                     |> Example.userId model.userId
@@ -677,9 +677,9 @@ view model =
                         (applicableFunctions model.example)
                     |> Example.usefulFunctions
                         (usefulFunctions model.example phoenix)
-                    |> Example.render device
+                    |> Example.view device
                 )
-            |> Layout.render device
+            |> Layout.view device
     }
 
 
@@ -791,7 +791,7 @@ connectButton example device phoenix =
                     _ ->
                         False
                 )
-            |> Button.render device
+            |> Button.view device
         )
 
 
@@ -804,7 +804,7 @@ disconnectButton example device phoenix =
             |> Button.example (Just (example Disconnect))
             |> Button.onPress (Just GotButtonClick)
             |> Button.enabled (Phoenix.socketState phoenix == Phoenix.Connected)
-            |> Button.render device
+            |> Button.view device
         )
 
 
@@ -817,7 +817,7 @@ heartbeatOnButton example device heartbeat =
             |> Button.example (Just (example On))
             |> Button.onPress (Just GotButtonClick)
             |> Button.enabled (not heartbeat)
-            |> Button.render device
+            |> Button.view device
         )
 
 
@@ -830,7 +830,7 @@ heartbeatOffButton example device heartbeat =
             |> Button.example (Just (example Off))
             |> Button.onPress (Just GotButtonClick)
             |> Button.enabled heartbeat
-            |> Button.render device
+            |> Button.view device
         )
 
 
@@ -843,7 +843,7 @@ joinButton example device onPress enabled =
             |> Button.example (Just (example Join))
             |> Button.onPress (Just onPress)
             |> Button.enabled enabled
-            |> Button.render device
+            |> Button.view device
         )
 
 
@@ -856,7 +856,7 @@ leaveButton example device onPress enabled =
             |> Button.example (Just (example Leave))
             |> Button.onPress (Just onPress)
             |> Button.enabled enabled
-            |> Button.render device
+            |> Button.view device
         )
 
 
@@ -869,7 +869,7 @@ presenceOnButton example device presence =
             |> Button.example (Just (example On))
             |> Button.onPress (Just GotButtonClick)
             |> Button.enabled (not presence)
-            |> Button.render device
+            |> Button.view device
         )
 
 
@@ -882,7 +882,7 @@ presenceOffButton example device presence =
             |> Button.example (Just (example Off))
             |> Button.onPress (Just GotButtonClick)
             |> Button.enabled presence
-            |> Button.render device
+            |> Button.view device
         )
 
 
@@ -895,7 +895,7 @@ sendMessageButton example device =
             |> Button.example (Just (example Send))
             |> Button.onPress (Just GotButtonClick)
             |> Button.enabled True
-            |> Button.render device
+            |> Button.view device
         )
 
 
@@ -908,7 +908,7 @@ channelMessagesOn example device channelMessages =
             |> Button.example (Just (example On))
             |> Button.onPress (Just GotButtonClick)
             |> Button.enabled (not channelMessages)
-            |> Button.render device
+            |> Button.view device
         )
 
 
@@ -921,7 +921,7 @@ channelMessagesOff example device channelMessages =
             |> Button.example (Just (example Off))
             |> Button.onPress (Just GotButtonClick)
             |> Button.enabled channelMessages
-            |> Button.render device
+            |> Button.view device
         )
 
 

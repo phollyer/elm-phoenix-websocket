@@ -1,6 +1,6 @@
 module View.Example exposing
     ( Config, init
-    , render
+    , view
     , applicableFunctions, controls, description, id, info, introduction, menu, remoteControls, usefulFunctions, userId
     )
 
@@ -10,7 +10,7 @@ only one.
 
 @docs Config, init
 
-@docs Template, render
+@docs Template, view
 
 @docs applicableFunctions, controls, description, id, info, introduction, menu, remoteControls, usefulFunctions, userId
 
@@ -54,23 +54,23 @@ init =
 
 
 {-| -}
-render : Device -> Config msg -> Element msg
-render { class, orientation } config =
+view : Device -> Config msg -> Element msg
+view { class, orientation } config =
     case ( class, orientation ) of
         ( Phone, Portrait ) ->
-            PhonePortrait.render config
+            PhonePortrait.view config
 
         ( Phone, Landscape ) ->
-            PhoneLandscape.render config
+            PhoneLandscape.view config
 
         ( Tablet, _ ) ->
-            Desktop.render config
+            Desktop.view config
 
         ( Desktop, _ ) ->
-            Desktop.render config
+            Desktop.view config
 
         ( BigDesktop, _ ) ->
-            Desktop.render config
+            Desktop.view config
 
 
 {-| -}

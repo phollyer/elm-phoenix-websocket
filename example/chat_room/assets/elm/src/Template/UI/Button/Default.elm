@@ -8,7 +8,7 @@ import Element.Font as Font
 import Element.Input as Input
 
 
-render :
+view :
     { b
         | enabled : Bool
         , label : String
@@ -16,7 +16,7 @@ render :
         , onPress : Maybe (example -> msg)
     }
     -> Element msg
-render config =
+view config =
     let
         attrs =
             if config.enabled then

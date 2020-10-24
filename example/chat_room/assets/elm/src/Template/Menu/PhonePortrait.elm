@@ -1,18 +1,12 @@
-module Template.Menu.PhonePortrait exposing (render)
+module Template.Menu.PhonePortrait exposing (view)
 
 import Element as El exposing (Element)
 import Element.Font as Font
 import Template.Menu.Common as Common
 
 
-type alias Config msg =
-    { options : List ( String, msg )
-    , selected : String
-    }
-
-
-render : Config msg -> Element msg
-render config =
+view : Common.Config msg c -> Element msg
+view config =
     El.column
         (List.append
             [ El.paddingEach

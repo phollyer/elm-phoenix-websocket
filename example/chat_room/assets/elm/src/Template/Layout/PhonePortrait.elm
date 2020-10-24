@@ -1,4 +1,4 @@
-module Template.Layout.PhonePortrait exposing (render)
+module Template.Layout.PhonePortrait exposing (view)
 
 import Colors.Opaque as Color
 import Element as El exposing (Element)
@@ -9,14 +9,8 @@ import Element.Input as Input
 import Template.Layout.Common as Common
 
 
-render :
-    { c
-        | homeMsg : Maybe msg
-        , title : String
-        , body : Element msg
-    }
-    -> Element msg
-render { homeMsg, title, body } =
+view : Common.Config msg c -> Element msg
+view { homeMsg, title, body } =
     El.column
         (El.inFront (homeButton homeMsg)
             :: Common.containerAttrs

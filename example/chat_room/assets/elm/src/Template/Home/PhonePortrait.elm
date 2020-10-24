@@ -5,14 +5,8 @@ import Element.Font as Font
 import Template.Home.Common as Common
 
 
-render :
-    { c
-        | channels : List (Element msg)
-        , presence : List (Element msg)
-        , socket : List (Element msg)
-    }
-    -> Element msg
-render { channels, presence, socket } =
+view : Common.Config msg c -> Element msg
+view { channels, presence, socket } =
     El.column
         Common.containerAttrs
         [ socketExamples socket ]

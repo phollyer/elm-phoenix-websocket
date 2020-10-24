@@ -1,5 +1,6 @@
 module Template.UI.Panel.Common exposing
-    ( containerAttrs
+    ( Config
+    , containerAttrs
     , contentAttrs
     , descriptionAttrs
     , headerAttrs
@@ -8,11 +9,19 @@ module Template.UI.Panel.Common exposing
     )
 
 import Colors.Opaque as Color
-import Element as El exposing (Attribute)
+import Element as El exposing (Attribute, Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
+
+
+type alias Config msg c =
+    { c
+        | title : String
+        , description : List String
+        , onClick : Maybe msg
+    }
 
 
 onClick : Maybe msg -> List (Attribute msg)

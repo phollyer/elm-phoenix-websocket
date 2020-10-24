@@ -1,4 +1,4 @@
-module Template.Example.PhoneLandscape exposing (render)
+module Template.Example.PhoneLandscape exposing (view)
 
 import Colors.Opaque as Color
 import Element as El exposing (Element)
@@ -8,21 +8,8 @@ import Element.Font as Font
 import Template.Example.Common as Common
 
 
-render :
-    { c
-        | applicableFunctions : List String
-        , controls : List (Element msg)
-        , description : List (Element msg)
-        , id : Maybe String
-        , info : List (Element msg)
-        , introduction : List (Element msg)
-        , menu : Element msg
-        , remoteControls : List ( String, List (Element msg) )
-        , usefulFunctions : List ( String, String )
-        , userId : Maybe String
-    }
-    -> Element msg
-render config =
+view : Common.Config msg c -> Element msg
+view config =
     El.column
         Common.containerAttrs
         [ introduction config.introduction

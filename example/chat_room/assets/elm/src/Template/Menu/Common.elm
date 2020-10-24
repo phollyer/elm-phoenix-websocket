@@ -1,5 +1,6 @@
 module Template.Menu.Common exposing
-    ( containerAttrs
+    ( Config
+    , containerAttrs
     , selectedAttrs
     , selectedHighlightAttrs
     , unselectedAttrs
@@ -11,6 +12,13 @@ import Element as El exposing (Attribute)
 import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
+
+
+type alias Config msg c =
+    { c
+        | options : List ( String, msg )
+        , selected : String
+    }
 
 
 containerAttrs : List (Attribute msg)

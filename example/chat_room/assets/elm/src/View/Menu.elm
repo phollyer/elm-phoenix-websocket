@@ -1,16 +1,15 @@
 module View.Menu exposing
     ( Config, init
-    , render
+    , view
     , options, selected
     )
 
 {-| This module is intended to enable building up a menu with pipelines and
-then passing off the menu config to the chosen template - currently there is
-only one.
+then passing off the menu config to the relevant template.
 
 @docs Config, init
 
-@docs Template, render
+@docs Template, view
 
 @docs options, selected
 
@@ -40,17 +39,17 @@ init =
 
 
 {-| -}
-render : Device -> Config msg -> Element msg
-render { class, orientation } (Config config) =
+view : Device -> Config msg -> Element msg
+view { class, orientation } (Config config) =
     case ( class, orientation ) of
         ( Phone, Portrait ) ->
-            PhonePortrait.render config
+            PhonePortrait.view config
 
         ( Phone, Landscape ) ->
-            PhoneLandscape.render config
+            PhoneLandscape.view config
 
         _ ->
-            Desktop.render config
+            Desktop.view config
 
 
 {-| -}

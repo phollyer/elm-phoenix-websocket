@@ -1,18 +1,12 @@
-module Template.UI.Panel.PhonePortrait exposing (render)
+module Template.UI.Panel.PhonePortrait exposing (view)
 
 import Element as El exposing (Element)
 import Element.Font as Font
 import Template.UI.Panel.Common as Common
 
 
-render :
-    { p
-        | title : String
-        , description : List String
-        , onClick : Maybe msg
-    }
-    -> Element msg
-render { title, description, onClick } =
+view : Common.Config msg c -> Element msg
+view { title, description, onClick } =
     El.column
         (List.concat
             [ [ El.height <|

@@ -1,6 +1,6 @@
 module View.Layout exposing
     ( Config, init
-    , render
+    , view
     , homeMsg, title, body
     )
 
@@ -9,7 +9,7 @@ then passing off the page config to the chosen template.
 
 @docs Config, init
 
-@docs Template, render
+@docs Template, view
 
 @docs homeMsg, title, body
 
@@ -41,17 +41,17 @@ init =
 
 
 {-| -}
-render : Device -> Config msg -> Element msg
-render { class, orientation } (Config config) =
+view : Device -> Config msg -> Element msg
+view { class, orientation } (Config config) =
     case ( class, orientation ) of
         ( Phone, Portrait ) ->
-            PhonePortrait.render config
+            PhonePortrait.view config
 
         ( Phone, Landscape ) ->
-            PhoneLandscape.render config
+            PhoneLandscape.view config
 
         _ ->
-            Desktop.render config
+            Desktop.view config
 
 
 {-| -}

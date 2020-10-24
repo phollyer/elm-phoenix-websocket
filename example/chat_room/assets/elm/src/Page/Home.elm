@@ -80,9 +80,9 @@ view model =
                     |> Home.socket (socketExamples device)
                     |> Home.channels channelsExamples
                     |> Home.presence presenceExamples
-                    |> Home.render device
+                    |> Home.view device
                 )
-            |> Layout.render device
+            |> Layout.view device
     }
 
 
@@ -93,13 +93,13 @@ socketExamples device =
         |> Panel.description
             [ "Manually connect and disconnect, receiving feedback on the current state of the Socket." ]
         |> Panel.onClick (Just (NavigateTo ControlTheSocketConnection))
-        |> Panel.render device
+        |> Panel.view device
     , Panel.init
         |> Panel.title "Handle Socket Messages"
         |> Panel.description
             [ "Manage the heartbeat, Channel and Presence messages that come in from the Socket." ]
         |> Panel.onClick (Just (NavigateTo (HandleSocketMessages Nothing Nothing)))
-        |> Panel.render device
+        |> Panel.view device
     ]
 
 

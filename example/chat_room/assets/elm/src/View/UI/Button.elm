@@ -5,7 +5,7 @@ module View.UI.Button exposing
     , init
     , label
     , onPress
-    , render
+    , view
     )
 
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
@@ -31,11 +31,11 @@ init =
         }
 
 
-render : Device -> Config a msg -> Element msg
-render { class, orientation } (Config config) =
+view : Device -> Config a msg -> Element msg
+view { class, orientation } (Config config) =
     case ( class, orientation ) of
         _ ->
-            Default.render config
+            Default.view config
 
 
 enabled : Bool -> Config e m -> Config e m

@@ -1,5 +1,6 @@
 module Template.Example.Common exposing
-    ( containerAttrs
+    ( Config
+    , containerAttrs
     , contentAttrs
     , descriptionAttrs
     , idAttrs
@@ -9,8 +10,23 @@ module Template.Example.Common exposing
     )
 
 import Colors.Opaque as Color
-import Element as El exposing (Attribute)
+import Element as El exposing (Attribute, Element)
 import Element.Font as Font
+
+
+type alias Config msg c =
+    { c
+        | applicableFunctions : List String
+        , controls : List (Element msg)
+        , description : List (Element msg)
+        , id : Maybe String
+        , info : List (Element msg)
+        , introduction : List (Element msg)
+        , menu : Element msg
+        , remoteControls : List ( String, List (Element msg) )
+        , usefulFunctions : List ( String, String )
+        , userId : Maybe String
+    }
 
 
 containerAttrs : List (Attribute msg)
