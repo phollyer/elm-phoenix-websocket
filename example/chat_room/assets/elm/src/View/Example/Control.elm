@@ -1,7 +1,8 @@
-module View.UI.Button exposing
+module View.Example.Control exposing
     ( Config
     , enabled
     , example
+    , id
     , init
     , label
     , onPress
@@ -9,12 +10,13 @@ module View.UI.Button exposing
     )
 
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
-import Template.UI.Button.Default as Default
+import Template.Example.Controls.Control.PhonePortrait as PhonePortrait
 
 
 type Config example msg
     = Config
-        { enabled : Bool
+        { id : String
+        , enabled : Bool
         , label : String
         , example : Maybe example
         , onPress : Maybe (example -> msg)
@@ -24,7 +26,8 @@ type Config example msg
 init : Config example msg
 init =
     Config
-        { enabled = False
+        { id = ""
+        , enabled = False
         , label = ""
         , example = Nothing
         , onPress = Nothing
@@ -33,9 +36,12 @@ init =
 
 view : Device -> Config a msg -> Element msg
 view { class, orientation } (Config config) =
-    case ( class, orientation ) of
-        _ ->
-            Default.view config
+    PhonePortrait.view config
+
+
+id : String -> Config e m -> Config e m
+id id_ (Config config) =
+    Config { config | id = id_ }
 
 
 enabled : Bool -> Config e m -> Config e m

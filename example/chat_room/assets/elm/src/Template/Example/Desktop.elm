@@ -17,7 +17,7 @@ view config =
         , description config.description
         , maybeId "Example" config.id
         , El.el [] (maybeId "User" config.userId)
-        , controls config.controls
+        , config.controls
         , remoteControls config.remoteControls
         , El.row
             [ El.spacing 10
@@ -80,27 +80,6 @@ maybeId type_ maybeId_ =
 
 
 
-{- Controls -}
-
-
-controls : List (Element msg) -> Element msg
-controls cntrls =
-    El.row
-        [ El.width El.fill
-        , El.height <| El.px 60
-        , El.spacing 20
-        ]
-    <|
-        List.map
-            (El.el
-                [ El.width El.fill
-                , El.centerY
-                ]
-            )
-            cntrls
-
-
-
 {- Remote Controls -}
 
 
@@ -124,7 +103,6 @@ remoteControl ( userId_, cntrls ) =
                 [ Font.typeface "Varela Round" ]
             ]
             (El.text ("User ID: " ++ userId_))
-        , controls cntrls
         ]
 
 

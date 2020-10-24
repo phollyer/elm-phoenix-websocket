@@ -20,7 +20,7 @@ import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..)
 import Template.Example.Menu.Desktop as Desktop
 import Template.Example.Menu.PhoneLandscape as PhoneLandscape
 import Template.Example.Menu.PhonePortrait as PhonePortrait
-import Template.Example.Menu.TabletPortrait as TabletPortrait
+import Template.Example.Menu.TabletLandscape as TabletLandscape
 
 
 {-| -}
@@ -53,10 +53,10 @@ view { class, orientation } (Config config) =
             PhoneLandscape.view config
 
         ( Tablet, Portrait ) ->
-            TabletPortrait.view config
+            PhoneLandscape.view config
 
         _ ->
-            Desktop.view config
+            TabletLandscape.view config
 
 
 {-| -}

@@ -1,4 +1,4 @@
-module Template.UI.Button.Default exposing (..)
+module Template.Example.Controls.Control.PhonePortrait exposing (view)
 
 import Colors.Opaque as Color
 import Element as El exposing (Element)
@@ -28,7 +28,7 @@ view config =
                         , color = Color.seagreen
                         , offset = ( 0, 0 )
                         }
-                    , Font.size 31
+                    , Font.size 22
                     ]
                 , Font.color Color.darkolivegreen
                 ]
@@ -43,8 +43,9 @@ view config =
             attrs
             [ Border.rounded 10
             , El.padding 10
-            , Font.size 30
+            , Font.size 20
             , El.centerY
+            , El.centerX
             ]
         )
         { label = El.text config.label

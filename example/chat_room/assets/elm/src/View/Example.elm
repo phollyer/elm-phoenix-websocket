@@ -25,7 +25,7 @@ import Template.Example.PhonePortrait as PhonePortrait
 {-| -}
 type alias Config msg =
     { applicableFunctions : List String
-    , controls : List (Element msg)
+    , controls : Element msg
     , description : List (Element msg)
     , id : Maybe String
     , info : List (Element msg)
@@ -45,7 +45,7 @@ init =
     , id = Nothing
     , userId = Nothing
     , description = []
-    , controls = []
+    , controls = El.none
     , remoteControls = []
     , info = []
     , applicableFunctions = []
@@ -82,7 +82,7 @@ applicableFunctions functions config =
 
 
 {-| -}
-controls : List (Element msg) -> Config msg -> Config msg
+controls : Element msg -> Config msg -> Config msg
 controls cntrls config =
     { config
         | controls = cntrls

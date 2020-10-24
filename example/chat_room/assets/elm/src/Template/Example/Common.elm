@@ -7,17 +7,20 @@ module Template.Example.Common exposing
     , idLabelAttrs
     , idValueAttrs
     , introductionAttrs
+    , layoutTypeFor
+    , rows
+    , toRows
     )
 
 import Colors.Opaque as Color
-import Element as El exposing (Attribute, Element)
+import Element as El exposing (Attribute, DeviceClass, Element, Orientation)
 import Element.Font as Font
 
 
 type alias Config msg c =
     { c
         | applicableFunctions : List String
-        , controls : List (Element msg)
+        , controls : Element msg
         , description : List (Element msg)
         , id : Maybe String
         , info : List (Element msg)
@@ -85,3 +88,41 @@ idLabelAttrs =
 idValueAttrs : List (Attribute msg)
 idValueAttrs =
     [ Font.color Color.powderblue ]
+
+
+layoutTypeFor : DeviceClass -> Orientation -> List ( DeviceClass, Orientation, List Int ) -> Maybe (List Int)
+layoutTypeFor class orientation layouts =
+    List.filterMap
+        (\( class_, orientation_, rows_ ) ->
+            if class == class_ && orientation == orientation_ then
+                Just rows_
+
+            else
+                Nothing
+        )
+        layouts
+        |> List.head
+
+
+rows : (a -> Element msg) -> List a -> (List (Element msg) -> Element msg) -> List Int -> List (Element msg)
+rows toElement elements container rowCount =
+    toRows rowCount elements
+        |> List.map
+            (\row ->
+                container <|
+                    List.map toElement row
+            )
+
+
+toRows : List Int -> List a -> List (List a)
+toRows rowCount elements =
+    List.foldl
+        (\num ( elements_, rows_ ) ->
+            ( List.drop num elements_
+            , List.take num elements_ :: rows_
+            )
+        )
+        ( elements, [] )
+        rowCount
+        |> Tuple.second
+        |> List.reverse

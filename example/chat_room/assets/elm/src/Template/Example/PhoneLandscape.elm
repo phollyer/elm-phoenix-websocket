@@ -17,7 +17,7 @@ view config =
         , description config.description
         , maybeId "Example" config.id
         , maybeId "User" config.userId
-        , controls config.controls
+        , config.controls
         , remoteControls config.remoteControls
         , info config.info
         , applicableFunctions config.applicableFunctions
@@ -75,26 +75,6 @@ maybeId type_ maybeId_ =
 
 
 
-{- Controls -}
-
-
-controls : List (Element msg) -> Element msg
-controls cntrls =
-    El.column
-        [ El.width El.fill
-        , El.spacing 10
-        ]
-    <|
-        List.map
-            (El.el
-                [ El.centerX
-                , El.height <| El.px 60
-                ]
-            )
-            cntrls
-
-
-
 {- Remote Controls -}
 
 
@@ -115,7 +95,6 @@ remoteControl ( userId_, cntrls ) =
         , El.spacing 10
         ]
         [ maybeId "User" (Just userId_)
-        , controls cntrls
         ]
 
 

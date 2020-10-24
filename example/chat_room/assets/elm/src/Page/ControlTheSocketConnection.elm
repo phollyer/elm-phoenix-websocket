@@ -17,10 +17,11 @@ import Phoenix
 import Route
 import Session exposing (Session)
 import View.Example as Example
+import View.Example.Control as Control
+import View.Example.Controls as Controls
 import View.Example.Menu as Menu
 import View.Layout as Layout
 import View.UI as UI
-import View.UI.Button as Button
 
 
 
@@ -51,7 +52,7 @@ type alias Model =
 
 
 type Msg
-    = GotButtonClick Example
+    = GotControlClick Example
     | GotHomeBtnClick
     | GotMenuItem Example
     | GotPhoenixMsg Phoenix.Msg
@@ -80,7 +81,7 @@ update msg model =
                 |> updatePhoenix model
                 |> updateExample example
 
-        GotButtonClick example ->
+        GotControlClick example ->
             case example of
                 SimpleConnect action ->
                     case action of
@@ -227,15 +228,18 @@ view model =
                             |> Menu.selected
                                 (Example.toString model.example)
                             |> Menu.layouts
-                                [ ( Phone, Landscape, [ 1, 2 ] )
-                                , ( Tablet, Portrait, [ 1, 2 ] )
-                                ]
+                                [ ( Phone, Landscape, [ 1, 2 ] ) ]
                             |> Menu.view device
                         )
                     |> Example.description
                         (description model.example)
                     |> Example.controls
-                        (controls model.example device phoenix)
+                        (Controls.init
+                            |> Controls.elements
+                                (controls model.example device phoenix)
+                            |> Controls.layouts []
+                            |> Controls.view device
+                        )
                     |> Example.applicableFunctions
                         (applicableFunctions model.example)
                     |> Example.usefulFunctions
@@ -272,32 +276,31 @@ controls : Example -> Device -> Phoenix.Model -> List (Element Msg)
 controls example device phoenix =
     case example of
         SimpleConnect _ ->
-            buttons SimpleConnect device phoenix
+            [ connect SimpleConnect device phoenix
+            , disconnect SimpleConnect device phoenix
+            ]
 
         ConnectWithGoodParams _ ->
-            buttons ConnectWithGoodParams device phoenix
+            [ connect ConnectWithGoodParams device phoenix
+            , disconnect ConnectWithGoodParams device phoenix
+            ]
 
         ConnectWithBadParams _ ->
-            buttons ConnectWithBadParams device phoenix
+            [ connect ConnectWithBadParams device phoenix
+            , disconnect ConnectWithBadParams device phoenix
+            ]
 
         _ ->
             []
 
 
-buttons : (Action -> Example) -> Device -> Phoenix.Model -> List (Element Msg)
-buttons example device phoenix =
-    [ connectButton example device phoenix
-    , disconnectButton example device phoenix
-    ]
-
-
-connectButton : (Action -> Example) -> Device -> Phoenix.Model -> Element Msg
-connectButton example device phoenix =
-    Button.init
-        |> Button.label "Connect"
-        |> Button.example (Just (example Connect))
-        |> Button.onPress (Just GotButtonClick)
-        |> Button.enabled
+connect : (Action -> Example) -> Device -> Phoenix.Model -> Element Msg
+connect example device phoenix =
+    Control.init
+        |> Control.label "Connect"
+        |> Control.example (Just (example Connect))
+        |> Control.onPress (Just GotControlClick)
+        |> Control.enabled
             (case Phoenix.socketState phoenix of
                 Phoenix.Disconnected _ ->
                     True
@@ -305,17 +308,17 @@ connectButton example device phoenix =
                 _ ->
                     False
             )
-        |> Button.view device
+        |> Control.view device
 
 
-disconnectButton : (Action -> Example) -> Device -> Phoenix.Model -> Element Msg
-disconnectButton example device phoenix =
-    Button.init
-        |> Button.label "Disconnect"
-        |> Button.example (Just (example Disconnect))
-        |> Button.onPress (Just GotButtonClick)
-        |> Button.enabled (Phoenix.socketState phoenix == Phoenix.Connected)
-        |> Button.view device
+disconnect : (Action -> Example) -> Device -> Phoenix.Model -> Element Msg
+disconnect example device phoenix =
+    Control.init
+        |> Control.label "Disconnect"
+        |> Control.example (Just (example Disconnect))
+        |> Control.onPress (Just GotControlClick)
+        |> Control.enabled (Phoenix.socketState phoenix == Phoenix.Connected)
+        |> Control.view device
 
 
 applicableFunctions : Example -> List String
