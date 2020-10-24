@@ -1,6 +1,6 @@
 module Template.Menu.PhonePortrait exposing (view)
 
-import Element as El exposing (Element)
+import Element as El exposing (DeviceClass(..), Element, Orientation(..))
 import Element.Font as Font
 import Template.Menu.Common as Common
 
@@ -20,7 +20,8 @@ view config =
             ]
             Common.containerAttrs
         )
-        (List.map (menuItem config.selected) config.options)
+    <|
+        List.map (menuItem config.selected) config.options
 
 
 menuItem : String -> ( String, msg ) -> Element msg

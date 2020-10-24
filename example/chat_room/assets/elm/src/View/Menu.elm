@@ -2,6 +2,7 @@ module View.Menu exposing
     ( Config, init
     , view
     , options, selected
+    , layouts
     )
 
 {-| This module is intended to enable building up a menu with pipelines and
@@ -19,6 +20,7 @@ import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..)
 import Template.Menu.Desktop as Desktop
 import Template.Menu.PhoneLandscape as PhoneLandscape
 import Template.Menu.PhonePortrait as PhonePortrait
+import Template.Menu.TabletPortrait as TabletPortrait
 
 
 {-| -}
@@ -26,6 +28,7 @@ type Config msg
     = Config
         { options : List ( String, msg )
         , selected : String
+        , layouts : List ( DeviceClass, Orientation, List Int )
         }
 
 
@@ -35,6 +38,7 @@ init =
     Config
         { options = []
         , selected = ""
+        , layouts = []
         }
 
 
@@ -47,6 +51,9 @@ view { class, orientation } (Config config) =
 
         ( Phone, Landscape ) ->
             PhoneLandscape.view config
+
+        ( Tablet, Portrait ) ->
+            TabletPortrait.view config
 
         _ ->
             Desktop.view config
@@ -62,3 +69,9 @@ options options_ (Config config) =
 selected : String -> Config msg -> Config msg
 selected selected_ (Config config) =
     Config { config | selected = selected_ }
+
+
+{-| -}
+layouts : List ( DeviceClass, Orientation, List Int ) -> Config msg -> Config msg
+layouts layouts_ (Config config) =
+    Config { config | layouts = layouts_ }

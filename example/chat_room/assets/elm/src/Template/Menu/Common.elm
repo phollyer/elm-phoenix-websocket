@@ -1,6 +1,8 @@
 module Template.Menu.Common exposing
     ( Config
     , containerAttrs
+    , layoutTypeFor
+    , rows
     , selectedAttrs
     , selectedHighlightAttrs
     , unselectedAttrs
@@ -8,7 +10,7 @@ module Template.Menu.Common exposing
 
 import Colors.Alpha as Alpha
 import Colors.Opaque as Color
-import Element as El exposing (Attribute)
+import Element as El exposing (Attribute, DeviceClass, Element, Orientation)
 import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
@@ -18,6 +20,7 @@ type alias Config msg c =
     { c
         | options : List ( String, msg )
         , selected : String
+        , layouts : List ( DeviceClass, Orientation, List Int )
     }
 
 
@@ -73,3 +76,41 @@ unselectedAttrs msg =
     , Event.onClick msg
     , Font.color Color.darkslateblue
     ]
+
+
+layoutTypeFor : DeviceClass -> Orientation -> List ( DeviceClass, Orientation, List Int ) -> Maybe (List Int)
+layoutTypeFor class orientation layouts =
+    List.filterMap
+        (\( class_, orientation_, rows_ ) ->
+            if class == class_ && orientation == orientation_ then
+                Just rows_
+
+            else
+                Nothing
+        )
+        layouts
+        |> List.head
+
+
+rows : (( String, msg ) -> Element msg) -> List ( String, msg ) -> List Int -> List (Element msg)
+rows optionToElement options rowCount =
+    rowsOfOptions rowCount options
+        |> List.map
+            (\rowOfOptions ->
+                El.row [ El.width El.fill ] <|
+                    List.map optionToElement rowOfOptions
+            )
+
+
+rowsOfOptions : List Int -> List ( String, msg ) -> List (List ( String, msg ))
+rowsOfOptions rowCount options =
+    List.foldl
+        (\num ( options_, rows_ ) ->
+            ( List.drop num options_
+            , List.take num options_ :: rows_
+            )
+        )
+        ( options, [] )
+        rowCount
+        |> Tuple.second
+        |> List.reverse

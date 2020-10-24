@@ -9,7 +9,7 @@ module Page.ControlTheSocketConnection exposing
     , view
     )
 
-import Element as El exposing (Device, Element)
+import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Example exposing (Action(..), Example(..))
 import Extra.String as String
 import Json.Encode as JE
@@ -226,6 +226,10 @@ view model =
                                 ]
                             |> Menu.selected
                                 (Example.toString model.example)
+                            |> Menu.layouts
+                                [ ( Phone, Landscape, [ 1, 2 ] )
+                                , ( Tablet, Portrait, [ 1, 2 ] )
+                                ]
                             |> Menu.view device
                         )
                     |> Example.description
