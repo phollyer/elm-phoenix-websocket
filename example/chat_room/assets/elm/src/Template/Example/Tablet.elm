@@ -120,35 +120,39 @@ remoteControl ( userId_, cntrls ) =
 
 info : List (Element msg) -> Element msg
 info content =
-    El.column
-        [ Background.color Color.white
-        , Border.width 1
-        , Border.color Color.black
-        , El.paddingEach
-            { left = 10
-            , top = 10
-            , right = 10
-            , bottom = 0
-            }
-        , El.spacing 10
-        , El.centerX
-        ]
-        [ El.el
-            [ El.centerX
-            , Font.bold
-            , Font.underline
-            , Font.color Color.darkslateblue
+    if content == [] then
+        El.none
+
+    else
+        El.column
+            [ Background.color Color.white
+            , Border.width 1
+            , Border.color Color.black
+            , El.paddingEach
+                { left = 10
+                , top = 10
+                , right = 10
+                , bottom = 0
+                }
+            , El.spacing 10
+            , El.centerX
             ]
-            (El.text "Information")
-        , El.column
-            [ El.height <|
-                El.maximum 300 El.shrink
-            , El.clip
-            , El.scrollbars
-            , El.spacing 16
+            [ El.el
+                [ El.centerX
+                , Font.bold
+                , Font.underline
+                , Font.color Color.darkslateblue
+                ]
+                (El.text "Information")
+            , El.column
+                [ El.height <|
+                    El.maximum 300 El.shrink
+                , El.clip
+                , El.scrollbars
+                , El.spacing 16
+                ]
+                content
             ]
-            content
-        ]
 
 
 
