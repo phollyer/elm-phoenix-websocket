@@ -31,10 +31,6 @@ init =
 
 view : Device -> Config msg -> Element msg
 view ({ class, orientation } as device) (Config config) =
-    let
-        _ =
-            Debug.log "" ( class, orientation )
-    in
     case ( class, orientation ) of
         ( Phone, Portrait ) ->
             orderElements device config
