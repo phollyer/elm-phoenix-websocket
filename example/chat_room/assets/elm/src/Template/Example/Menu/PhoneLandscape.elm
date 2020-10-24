@@ -2,25 +2,20 @@ module Template.Example.Menu.PhoneLandscape exposing (view)
 
 import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))
 import Element.Font as Font
-import Template.Example.Common as Common
-import Template.Example.Menu.Common as Common exposing (Config, containerAttrs)
+import Template.Example.Common exposing (layoutTypeFor, toRows)
+import Template.Example.Menu.Common as Common
 
 
-view : Config msg c -> Element msg
+view : Common.Config msg c -> Element msg
 view config =
-    layoutFor Phone Landscape config
-
-
-layoutFor : DeviceClass -> Orientation -> Config msg c -> Element msg
-layoutFor class orientation config =
-    case Common.layoutTypeFor class orientation config.layouts of
+    case layoutTypeFor Phone Landscape config.layouts of
         Nothing ->
             El.wrappedRow attrs <|
                 List.map (menuItem config.selected) config.options
 
         Just rowItems ->
             El.column attrs <|
-                Common.rows (menuItem config.selected) config.options (El.row [ El.width El.fill ]) rowItems
+                toRows (menuItem config.selected) config.options (El.row [ El.width El.fill ]) rowItems
 
 
 attrs : List (Attribute msg)
@@ -35,7 +30,7 @@ attrs =
         , El.spacing 10
         , Font.size 18
         ]
-        containerAttrs
+        Common.containerAttrs
 
 
 menuItem : String -> ( String, msg ) -> Element msg

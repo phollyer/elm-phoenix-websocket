@@ -3,25 +3,20 @@ module Template.Example.Controls.PhonePortrait exposing (..)
 import Colors.Opaque as Color
 import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))
 import Element.Border as Border
-import Template.Example.Common as Common
-import Template.Example.Controls.Common as Common exposing (Config, containerAttrs)
+import Template.Example.Common exposing (layoutTypeFor, toRows)
+import Template.Example.Controls.Common as Common
 
 
-view : Config msg c -> Element msg
+view : Common.Config msg c -> Element msg
 view config =
-    layoutFor Phone Portrait config
-
-
-layoutFor : DeviceClass -> Orientation -> Config msg c -> Element msg
-layoutFor class orientation config =
-    case Common.layoutTypeFor class orientation config.layouts of
+    case layoutTypeFor Phone Portrait config.layouts of
         Nothing ->
             El.wrappedRow attrs
                 (List.map control config.elements)
 
         Just rows ->
             El.column attrs
-                (Common.rows control
+                (toRows control
                     config.elements
                     (El.wrappedRow
                         [ El.spacing 10
@@ -44,7 +39,7 @@ attrs =
             , bottom = 1
             }
         ]
-        containerAttrs
+        Common.containerAttrs
 
 
 control : Element msg -> Element msg

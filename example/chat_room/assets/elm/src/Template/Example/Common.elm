@@ -8,7 +8,6 @@ module Template.Example.Common exposing
     , idValueAttrs
     , introductionAttrs
     , layoutTypeFor
-    , rows
     , toRows
     )
 
@@ -104,18 +103,8 @@ layoutTypeFor class orientation layouts =
         |> List.head
 
 
-rows : (a -> Element msg) -> List a -> (List (Element msg) -> Element msg) -> List Int -> List (Element msg)
-rows toElement elements container rowCount =
-    toRows rowCount elements
-        |> List.map
-            (\row ->
-                container <|
-                    List.map toElement row
-            )
-
-
-toRows : List Int -> List a -> List (List a)
-toRows rowCount elements =
+toRows : (a -> Element msg) -> List a -> (List (Element msg) -> Element msg) -> List Int -> List (Element msg)
+toRows toElement elements container rowCount =
     List.foldl
         (\num ( elements_, rows_ ) ->
             ( List.drop num elements_
@@ -126,3 +115,8 @@ toRows rowCount elements =
         rowCount
         |> Tuple.second
         |> List.reverse
+        |> List.map
+            (\row ->
+                container <|
+                    List.map toElement row
+            )
