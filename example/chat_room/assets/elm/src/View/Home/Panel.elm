@@ -1,4 +1,4 @@
-module View.UI.Panel exposing
+module View.Home.Panel exposing
     ( Config
     , description
     , init
@@ -8,9 +8,9 @@ module View.UI.Panel exposing
     )
 
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
-import Template.UI.Panel.PhoneLandscape as PhoneLandscape
-import Template.UI.Panel.PhonePortrait as PhonePortrait
-import Template.UI.Panel.Tablet as Tablet
+import Template.Home.Panel.PhoneLandscape as PhoneLandscape
+import Template.Home.Panel.PhonePortrait as PhonePortrait
+import Template.Home.Panel.Tablet as Tablet
 
 
 type Config msg
