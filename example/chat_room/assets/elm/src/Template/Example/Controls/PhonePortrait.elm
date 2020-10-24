@@ -11,7 +11,7 @@ view : Common.Config msg c -> Element msg
 view config =
     case layoutTypeFor Phone Portrait config.layouts of
         Nothing ->
-            El.wrappedRow attrs
+            El.column attrs
                 (List.map control config.elements)
 
         Just rows ->

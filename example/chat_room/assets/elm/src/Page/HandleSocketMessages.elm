@@ -763,8 +763,8 @@ order { example } =
         ManageSocketHeartbeat _ ->
             [ ( Phone, Portrait, [ 0, 2, 3, 1 ] ) ]
 
-        ManageChannelMessages _ ->
-            []
+        ManagePresenceMessages _ ->
+            [ ( Phone, Portrait, [ 0, 2, 3, 1 ] ) ]
 
         _ ->
             []
@@ -774,6 +774,9 @@ layouts : Model -> List ( DeviceClass, Orientation, List Int )
 layouts { example } =
     case example of
         ManageSocketHeartbeat _ ->
+            [ ( Phone, Portrait, [ 2, 2 ] ) ]
+
+        ManagePresenceMessages _ ->
             [ ( Phone, Portrait, [ 2, 2 ] ) ]
 
         _ ->
@@ -806,141 +809,108 @@ maybeRemoteControl userId device presence =
 
 connectControl : (Action -> Example) -> Device -> Phoenix.Model -> Element Msg
 connectControl example device phoenix =
-    El.el
-        [ El.alignRight ]
-        (Control.init
-            |> Control.label "Connect"
-            |> Control.onPress (Just (GotControlClick (example Connect)))
-            |> Control.enabled
-                (case Phoenix.socketState phoenix of
-                    Phoenix.Disconnected _ ->
-                        True
+    Control.init
+        |> Control.label "Connect"
+        |> Control.onPress (Just (GotControlClick (example Connect)))
+        |> Control.enabled
+            (case Phoenix.socketState phoenix of
+                Phoenix.Disconnected _ ->
+                    True
 
-                    _ ->
-                        False
-                )
-            |> Control.view device
-        )
+                _ ->
+                    False
+            )
+        |> Control.view device
 
 
 disconnectControl : (Action -> Example) -> Device -> Phoenix.Model -> Element Msg
 disconnectControl example device phoenix =
-    El.el
-        [ El.alignLeft ]
-        (Control.init
-            |> Control.label "Disconnect"
-            |> Control.onPress (Just (GotControlClick (example Disconnect)))
-            |> Control.enabled (Phoenix.socketState phoenix == Phoenix.Connected)
-            |> Control.view device
-        )
+    Control.init
+        |> Control.label "Disconnect"
+        |> Control.onPress (Just (GotControlClick (example Disconnect)))
+        |> Control.enabled (Phoenix.socketState phoenix == Phoenix.Connected)
+        |> Control.view device
 
 
 heartbeatOnControl : (Action -> Example) -> Device -> Bool -> Element Msg
 heartbeatOnControl example device heartbeat =
-    El.el
-        [ El.centerX ]
-        (Control.init
-            |> Control.label "Heartbeat On"
-            |> Control.onPress (Just (GotControlClick (example On)))
-            |> Control.enabled (not heartbeat)
-            |> Control.view device
-        )
+    Control.init
+        |> Control.label "Heartbeat On"
+        |> Control.onPress (Just (GotControlClick (example On)))
+        |> Control.enabled (not heartbeat)
+        |> Control.view device
 
 
 heartbeatOffControl : (Action -> Example) -> Device -> Bool -> Element Msg
 heartbeatOffControl example device heartbeat =
-    El.el
-        [ El.centerX ]
-        (Control.init
-            |> Control.label "Heartbeat Off"
-            |> Control.onPress (Just (GotControlClick (example Off)))
-            |> Control.enabled heartbeat
-            |> Control.view device
-        )
+    Control.init
+        |> Control.label "Heartbeat Off"
+        |> Control.onPress (Just (GotControlClick (example Off)))
+        |> Control.enabled heartbeat
+        |> Control.view device
 
 
 joinControl : (Action -> Example) -> Device -> (Example -> Msg) -> Bool -> Element Msg
 joinControl example device onPress enabled =
-    El.el
-        [ El.alignRight ]
-        (Control.init
-            |> Control.label "Join Channel"
-            |> Control.onPress (Just (onPress (example Join)))
-            |> Control.enabled enabled
-            |> Control.view device
-        )
+    Control.init
+        |> Control.label "Join Channel"
+        |> Control.onPress (Just (onPress (example Join)))
+        |> Control.enabled enabled
+        |> Control.view device
 
 
 leaveControl : (Action -> Example) -> Device -> (Example -> Msg) -> Bool -> Element Msg
 leaveControl example device onPress enabled =
-    El.el
-        [ El.alignLeft ]
-        (Control.init
-            |> Control.label "Leave Channel"
-            |> Control.onPress (Just (onPress (example Leave)))
-            |> Control.enabled enabled
-            |> Control.view device
-        )
+    Control.init
+        |> Control.label "Leave Channel"
+        |> Control.onPress (Just (onPress (example Leave)))
+        |> Control.enabled enabled
+        |> Control.view device
 
 
 presenceOnControl : (Action -> Example) -> Device -> Bool -> Element Msg
 presenceOnControl example device presence =
-    El.el
-        [ El.centerX ]
-        (Control.init
-            |> Control.label "Presence On"
-            |> Control.onPress (Just (GotControlClick (example On)))
-            |> Control.enabled (not presence)
-            |> Control.view device
-        )
+    Control.init
+        |> Control.label "Presence On"
+        |> Control.onPress (Just (GotControlClick (example On)))
+        |> Control.enabled (not presence)
+        |> Control.view device
 
 
 presenceOffControl : (Action -> Example) -> Device -> Bool -> Element Msg
 presenceOffControl example device presence =
-    El.el
-        [ El.centerX ]
-        (Control.init
-            |> Control.label "Presence Off"
-            |> Control.onPress (Just (GotControlClick (example Off)))
-            |> Control.enabled presence
-            |> Control.view device
-        )
+    Control.init
+        |> Control.label "Presence Off"
+        |> Control.onPress (Just (GotControlClick (example Off)))
+        |> Control.enabled presence
+        |> Control.view device
 
 
 sendMessageControl : (Action -> Example) -> Device -> Element Msg
 sendMessageControl example device =
-    El.el
-        [ El.alignRight ]
-        (Control.init
-            |> Control.label "Push Message"
-            |> Control.onPress (Just (GotControlClick (example Send)))
-            |> Control.enabled True
-            |> Control.view device
-        )
+    Control.init
+        |> Control.label "Push Message"
+        |> Control.onPress (Just (GotControlClick (example Send)))
+        |> Control.enabled True
+        |> Control.view device
 
 
 channelMessagesOn : (Action -> Example) -> Device -> Bool -> Element Msg
 channelMessagesOn example device channelMessages =
-    El.el
-        [ El.centerX ]
-        (Control.init
-            |> Control.label "Messages On"
-            |> Control.onPress (Just (GotControlClick (example On)))
-            |> Control.enabled (not channelMessages)
-            |> Control.view device
-        )
+    Control.init
+        |> Control.label "Messages On"
+        |> Control.onPress (Just (GotControlClick (example On)))
+        |> Control.enabled (not channelMessages)
+        |> Control.view device
 
 
 channelMessagesOff : (Action -> Example) -> Device -> Bool -> Element Msg
 channelMessagesOff example device channelMessages =
-    El.el
-        [ El.alignLeft ]
-        (Control.init
-            |> Control.label "Messages Off"
-            |> Control.onPress (Just (GotControlClick (example Off)))
-            |> Control.enabled channelMessages
-            |> Control.view device
-        )
+    Control.init
+        |> Control.label "Messages Off"
+        |> Control.onPress (Just (GotControlClick (example Off)))
+        |> Control.enabled channelMessages
+        |> Control.view device
 
 
 info : Model -> List (Element Msg)
