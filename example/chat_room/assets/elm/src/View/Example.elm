@@ -31,7 +31,7 @@ type alias Config msg =
     , info : List (Element msg)
     , introduction : List (Element msg)
     , menu : Element msg
-    , remoteControls : List ( String, List (Element msg) )
+    , remoteControls : List (Element msg)
     , usefulFunctions : List ( String, String )
     }
 
@@ -118,7 +118,7 @@ menu menu_ config =
 
 
 {-| -}
-remoteControls : List ( String, List (Element msg) ) -> Config msg -> Config msg
+remoteControls : List (Element msg) -> Config msg -> Config msg
 remoteControls list config =
     { config
         | remoteControls = list

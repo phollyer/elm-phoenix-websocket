@@ -25,7 +25,7 @@ type alias Config msg c =
         , info : List (Element msg)
         , introduction : List (Element msg)
         , menu : Element msg
-        , remoteControls : List ( String, List (Element msg) )
+        , remoteControls : List (Element msg)
         , usefulFunctions : List ( String, String )
     }
 

@@ -783,7 +783,7 @@ layouts { example } =
             []
 
 
-remoteControls : Model -> Device -> Phoenix.Model -> List ( String, List (Element Msg) )
+remoteControls : Model -> Device -> Phoenix.Model -> List (Element Msg)
 remoteControls { example, userId, presenceState } device phoenix =
     case example of
         ManagePresenceMessages _ ->
@@ -793,17 +793,20 @@ remoteControls { example, userId, presenceState } device phoenix =
             []
 
 
-maybeRemoteControl : Maybe ID -> Device -> Presence -> Maybe ( String, List (Element Msg) )
+maybeRemoteControl : Maybe ID -> Device -> Presence -> Maybe (Element Msg)
 maybeRemoteControl userId device presence =
     if userId == Just presence.id then
         Nothing
 
     else
         Just <|
-            ( presence.id
-            , [ joinControl ManagePresenceMessages device (GotRemoteControlClick presence.id) (presence.meta.exampleState == NotJoined)
-              , leaveControl ManagePresenceMessages device (GotRemoteControlClick presence.id) (presence.meta.exampleState == Joined)
-              ]
+            (Controls.init
+                |> Controls.userId (Just presence.id)
+                |> Controls.elements
+                    [ joinControl ManagePresenceMessages device (GotRemoteControlClick presence.id) (presence.meta.exampleState == NotJoined)
+                    , leaveControl ManagePresenceMessages device (GotRemoteControlClick presence.id) (presence.meta.exampleState == Joined)
+                    ]
+                |> Controls.view device
             )
 
 

@@ -90,27 +90,13 @@ maybeId type_ maybeId_ =
 {- Remote Controls -}
 
 
-remoteControls : List ( String, List (Element msg) ) -> Element msg
+remoteControls : List (Element msg) -> Element msg
 remoteControls cntrls =
     El.column
         [ El.width El.fill
         , El.spacing 10
         ]
-    <|
-        List.map remoteControl cntrls
-
-
-remoteControl : ( String, List (Element msg) ) -> Element msg
-remoteControl ( userId_, cntrls ) =
-    El.column
-        [ El.width El.fill ]
-        [ El.el
-            [ Font.color Color.lavender
-            , Font.family
-                [ Font.typeface "Varela Round" ]
-            ]
-            (El.text ("User ID: " ++ userId_))
-        ]
+        cntrls
 
 
 
