@@ -1,7 +1,7 @@
 module View.Example exposing
     ( Config, init
     , view
-    , applicableFunctions, controls, description, id, info, introduction, menu, remoteControls, usefulFunctions, userId
+    , applicableFunctions, controls, description, id, info, introduction, menu, remoteControls, usefulFunctions
     )
 
 {-| This module is intended to enable building up an example with pipelines and
@@ -33,7 +33,6 @@ type alias Config msg =
     , menu : Element msg
     , remoteControls : List ( String, List (Element msg) )
     , usefulFunctions : List ( String, String )
-    , userId : Maybe String
     }
 
 
@@ -43,7 +42,6 @@ init =
     { introduction = []
     , menu = El.none
     , id = Nothing
-    , userId = Nothing
     , description = []
     , controls = El.none
     , remoteControls = []
@@ -132,12 +130,4 @@ usefulFunctions : List ( String, String ) -> Config msg -> Config msg
 usefulFunctions functions config =
     { config
         | usefulFunctions = functions
-    }
-
-
-{-| -}
-userId : Maybe String -> Config msg -> Config msg
-userId maybeId config =
-    { config
-        | userId = maybeId
     }

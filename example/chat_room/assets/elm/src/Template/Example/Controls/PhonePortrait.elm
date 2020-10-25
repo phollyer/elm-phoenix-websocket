@@ -12,18 +12,21 @@ view config =
     case layoutTypeFor Phone Portrait config.layouts of
         Nothing ->
             El.column attrs
-                (List.map control config.elements)
+                (El.el [] (Common.maybeId "User" config.userId)
+                    :: List.map control config.elements
+                )
 
         Just rows ->
             El.column attrs
-                (toRows control
-                    config.elements
-                    (El.wrappedRow
-                        [ El.spacing 10
-                        , El.centerX
-                        ]
-                    )
-                    rows
+                (El.el [] (Common.maybeId "User" config.userId)
+                    :: toRows control
+                        config.elements
+                        (El.wrappedRow
+                            [ El.spacing 10
+                            , El.centerX
+                            ]
+                        )
+                        rows
                 )
 
 

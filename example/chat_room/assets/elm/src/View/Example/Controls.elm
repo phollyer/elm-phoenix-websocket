@@ -4,6 +4,7 @@ module View.Example.Controls exposing
     , init
     , layouts
     , order
+    , userId
     , view
     )
 
@@ -14,7 +15,8 @@ import Template.Example.Controls.PhonePortrait as PhonePortrait
 
 type Config msg
     = Config
-        { elements : List (Element msg)
+        { userId : Maybe String
+        , elements : List (Element msg)
         , layouts : List ( DeviceClass, Orientation, List Int )
         , order : List ( DeviceClass, Orientation, List Int )
         }
@@ -23,7 +25,8 @@ type Config msg
 init : Config msg
 init =
     Config
-        { elements = []
+        { userId = Nothing
+        , elements = []
         , layouts = []
         , order = []
         }
@@ -39,6 +42,12 @@ view ({ class, orientation } as device) (Config config) =
         _ ->
             orderElements device config
                 |> PhoneLandscape.view
+
+
+{-| -}
+userId : Maybe String -> Config msg -> Config msg
+userId maybeId (Config config) =
+    Config { config | userId = maybeId }
 
 
 elements : List (Element msg) -> Config msg -> Config msg

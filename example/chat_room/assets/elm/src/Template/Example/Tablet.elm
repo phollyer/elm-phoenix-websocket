@@ -16,7 +16,6 @@ view config =
         , config.menu
         , description config.description
         , maybeId "Example" config.id
-        , El.el [] (maybeId "User" config.userId)
         , config.controls
         , remoteControls config.remoteControls
         , El.row
@@ -68,7 +67,7 @@ description content =
 
 
 
-{- Example & User ID -}
+{- Example ID -}
 
 
 maybeId : String -> Maybe String -> Element msg

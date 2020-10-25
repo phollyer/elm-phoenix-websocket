@@ -27,7 +27,6 @@ type alias Config msg c =
         , menu : Element msg
         , remoteControls : List ( String, List (Element msg) )
         , usefulFunctions : List ( String, String )
-        , userId : Maybe String
     }
 
 

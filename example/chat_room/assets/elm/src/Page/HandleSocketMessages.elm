@@ -665,11 +665,11 @@ view model =
                             |> Menu.view device
                         )
                     |> Example.id model.exampleId
-                    |> Example.userId model.userId
                     |> Example.description
                         (description model.example model.exampleId)
                     |> Example.controls
                         (Controls.init
+                            |> Controls.userId model.userId
                             |> Controls.elements (controls model device phoenix)
                             |> Controls.order (order model)
                             |> Controls.layouts (layouts model)
