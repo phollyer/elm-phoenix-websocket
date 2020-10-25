@@ -806,6 +806,8 @@ maybeRemoteControl userId device presence =
                     [ joinControl ManagePresenceMessages device (GotRemoteControlClick presence.id) (presence.meta.exampleState == NotJoined)
                     , leaveControl ManagePresenceMessages device (GotRemoteControlClick presence.id) (presence.meta.exampleState == Joined)
                     ]
+                |> Controls.layouts
+                    [ ( Phone, Portrait, [ 2 ] ) ]
                 |> Controls.view device
             )
 
