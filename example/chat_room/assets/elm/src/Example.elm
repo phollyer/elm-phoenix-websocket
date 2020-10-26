@@ -1,6 +1,6 @@
 module Example exposing
     ( Action(..), Example(..)
-    , fromString, toString, toAction
+    , fromString, toString, toAction, toFunc
     )
 
 {-|
@@ -10,7 +10,7 @@ module Example exposing
 
 # Helpers
 
-@docs fromString, toString, toAction
+@docs fromString, toString, toAction, toFunc
 
 -}
 
@@ -72,9 +72,9 @@ fromString example =
 
 
 {-| -}
-toString : Example -> String
+toString : (Action -> Example) -> String
 toString example =
-    case example of
+    case example Anything of
         SimpleConnect _ ->
             "Simple Connect"
 
@@ -115,3 +115,26 @@ toAction example =
 
         ManagePresenceMessages action ->
             action
+
+
+{-| -}
+toFunc : Example -> (Action -> Example)
+toFunc example =
+    case example of
+        SimpleConnect _ ->
+            SimpleConnect
+
+        ConnectWithGoodParams _ ->
+            ConnectWithGoodParams
+
+        ConnectWithBadParams _ ->
+            ConnectWithBadParams
+
+        ManageSocketHeartbeat _ ->
+            ManageSocketHeartbeat
+
+        ManageChannelMessages _ ->
+            ManageChannelMessages
+
+        ManagePresenceMessages _ ->
+            ManagePresenceMessages

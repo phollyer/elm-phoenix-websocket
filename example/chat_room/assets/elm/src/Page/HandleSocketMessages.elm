@@ -172,7 +172,7 @@ type Msg
     = GotControlClick Example
     | GotHomeBtnClick
     | GotRemoteControlClick ID Example
-    | GotMenuItem Example
+    | GotMenuItem (Action -> Example)
     | GotPhoenixMsg Phoenix.Msg
 
 
@@ -512,9 +512,9 @@ resetHeartbeatCount ( model, cmd ) =
     )
 
 
-updateExample : Example -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+updateExample : (Action -> Example) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 updateExample example ( model, cmd ) =
-    getExampleId { model | example = example }
+    getExampleId { model | example = example Anything }
         |> Tuple.mapSecond (\cmd_ -> Cmd.batch [ cmd, cmd_ ])
 
 
@@ -661,12 +661,12 @@ view model =
                     |> Example.menu
                         (Menu.init
                             |> Menu.options
-                                [ ( Example.toString (ManageSocketHeartbeat Anything), GotMenuItem (ManageSocketHeartbeat Anything) )
-                                , ( Example.toString (ManageChannelMessages Anything), GotMenuItem (ManageChannelMessages Anything) )
-                                , ( Example.toString (ManagePresenceMessages Anything), GotMenuItem (ManagePresenceMessages Anything) )
+                                [ ( Example.toString ManageSocketHeartbeat, GotMenuItem ManageSocketHeartbeat )
+                                , ( Example.toString ManageChannelMessages, GotMenuItem ManageChannelMessages )
+                                , ( Example.toString ManagePresenceMessages, GotMenuItem ManagePresenceMessages )
                                 ]
                             |> Menu.selected
-                                (Example.toString model.example)
+                                (Example.toString <| Example.toFunc model.example)
                             |> Menu.view device
                         )
                     |> Example.id model.exampleId

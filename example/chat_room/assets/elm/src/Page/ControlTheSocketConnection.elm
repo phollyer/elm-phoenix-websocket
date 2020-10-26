@@ -57,7 +57,7 @@ type alias Model =
 type Msg
     = GotControlClick Example
     | GotHomeBtnClick
-    | GotMenuItem Example
+    | GotMenuItem (Action -> Example)
     | GotPhoenixMsg Phoenix.Msg
 
 
@@ -139,10 +139,10 @@ update msg model =
                     ( model, Cmd.none )
 
 
-updateExample : Example -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+updateExample : (Action -> Example) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 updateExample example ( model, cmd ) =
     ( { model
-        | example = example
+        | example = example Anything
       }
     , cmd
     )
@@ -224,12 +224,12 @@ view model =
                     |> Example.menu
                         (Menu.init
                             |> Menu.options
-                                [ ( Example.toString (SimpleConnect Anything), GotMenuItem (SimpleConnect Anything) )
-                                , ( Example.toString (ConnectWithGoodParams Anything), GotMenuItem (ConnectWithGoodParams Anything) )
-                                , ( Example.toString (ConnectWithBadParams Anything), GotMenuItem (ConnectWithBadParams Anything) )
+                                [ ( Example.toString SimpleConnect, GotMenuItem SimpleConnect )
+                                , ( Example.toString ConnectWithGoodParams, GotMenuItem ConnectWithGoodParams )
+                                , ( Example.toString ConnectWithBadParams, GotMenuItem ConnectWithBadParams )
                                 ]
                             |> Menu.selected
-                                (Example.toString model.example)
+                                (Example.toString <| Example.toFunc model.example)
                             |> Menu.layouts
                                 [ ( Phone, Landscape, [ 1, 2 ] ) ]
                             |> Menu.view device
