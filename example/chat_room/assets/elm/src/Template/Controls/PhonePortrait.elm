@@ -3,20 +3,21 @@ module Template.Controls.PhonePortrait exposing (view)
 import Colors.Opaque as Color
 import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))
 import Element.Border as Border
+import Extra.List as List
 import List.Extra as List
 import Template.Controls.Common as Common
 
 
 view : Common.Config msg c -> Element msg
 view config =
-    case List.find (\( class, orientation, _ ) -> class == Phone && orientation == Portrait) config.layouts of
+    case List.findByClassAndOrientation Phone Portrait config.layouts of
         Nothing ->
             El.column attrs
                 (El.el [] (Common.maybeId "User" config.userId)
                     :: List.map control config.elements
                 )
 
-        Just ( _, _, groups ) ->
+        Just groups ->
             El.column attrs
                 (El.el [] (Common.maybeId "User" config.userId)
                     :: (List.groupsOfVarying groups config.elements
