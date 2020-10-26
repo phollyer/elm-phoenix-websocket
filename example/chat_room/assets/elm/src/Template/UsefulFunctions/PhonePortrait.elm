@@ -3,8 +3,8 @@ module Template.UsefulFunctions.PhonePortrait exposing (..)
 import Colors.Opaque as Color
 import Element as El exposing (Element)
 import Element.Font as Font
-import Template.Example.Common exposing (functionLink)
 import Template.UsefulFunctions.Common as Common
+import UI
 
 
 view : Common.Config -> Element msg
@@ -26,7 +26,7 @@ view { functions } =
             , El.spacing 5
             ]
             (List.map
-                (\( func, val ) -> functionLink func)
+                (\( func, val ) -> UI.functionLink func)
                 functions
             )
         ]

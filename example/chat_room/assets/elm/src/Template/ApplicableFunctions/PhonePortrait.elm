@@ -4,7 +4,7 @@ import Colors.Opaque as Color
 import Element as El exposing (Element)
 import Element.Font as Font
 import Template.ApplicableFunctions.Common as Common
-import Template.Example.Common exposing (functionLink)
+import UI
 
 
 view : Common.Config -> Element msg
@@ -25,5 +25,5 @@ view { functions } =
             [ Font.size 16
             , El.spacing 5
             ]
-            (List.map functionLink functions)
+            (List.map UI.functionLink functions)
         ]
