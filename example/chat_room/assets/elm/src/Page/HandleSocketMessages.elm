@@ -29,6 +29,8 @@ import View.Example as Example
 import View.Feedback as Feedback
 import View.Layout as Layout
 import View.Menu as Menu
+import View.StatusReport as StatusReport
+import View.StatusReports as StatusReports
 import View.UsefulFunctions as UsefulFunctions
 import View.Utils as Utils
 
@@ -680,8 +682,6 @@ view model =
                         )
                     |> Example.remoteControls
                         (remoteControls model device phoenix)
-                    |> Example.info
-                        (info model)
                     |> Example.feedback
                         (Feedback.init
                             |> Feedback.elements
@@ -691,6 +691,10 @@ view model =
                                 , UsefulFunctions.init
                                     |> UsefulFunctions.functions (usefulFunctions model.example phoenix)
                                     |> UsefulFunctions.view device
+                                , StatusReports.init
+                                    |> StatusReports.title "Info"
+                                    |> StatusReports.reports (statusReports device model)
+                                    |> StatusReports.view device
                                 ]
                             |> Feedback.view device
                         )
@@ -929,40 +933,41 @@ channelMessagesOff example device channelMessages =
         |> Control.view device
 
 
-info : Model -> List (Element Msg)
-info model =
-    let
-        container =
-            El.el
-                [ El.paddingXY 0 10 ]
-    in
+statusReports : Device -> Model -> List (Element Msg)
+statusReports device model =
     case model.example of
         ManageSocketHeartbeat _ ->
-            [ container
-                (El.text ("Heartbeat Count: " ++ String.fromInt model.heartbeatCount))
+            [ StatusReport.init
+                |> StatusReport.title "Heartbeat Count"
+                |> StatusReport.report
+                    (El.text (String.fromInt model.heartbeatCount))
+                |> StatusReport.view device
             ]
 
         ManageChannelMessages _ ->
-            container
-                (El.paragraph
-                    []
-                    [ El.el [ Font.color Color.darkslateblue ] (El.text "Message Count: ")
-                    , El.text (String.fromInt model.channelMessageCount)
-                    ]
-                )
-                :: List.map formatChannelMessages model.channelMessageList
+            List.append
+                [ StatusReport.init
+                    |> StatusReport.title "Message Count"
+                    |> StatusReport.report
+                        (El.text (String.fromInt model.channelMessageCount))
+                    |> StatusReport.view device
+                ]
+                (List.map (formatChannelMessage device) model.channelMessageList)
 
         ManagePresenceMessages _ ->
-            [ container
-                (El.text ("Message Count: " ++ String.fromInt model.presenceMessageCount))
+            [ StatusReport.init
+                |> StatusReport.title "Message Count"
+                |> StatusReport.report
+                    (El.text (String.fromInt model.presenceMessageCount))
+                |> StatusReport.view device
             ]
 
         _ ->
             [ El.none ]
 
 
-formatChannelMessages : ChannelMsg -> Element Msg
-formatChannelMessages msg =
+formatChannelMessage : Device -> ChannelMsg -> Element Msg
+formatChannelMessage device msg =
     let
         formatted =
             List.map
@@ -980,15 +985,10 @@ formatChannelMessages msg =
                 , ( "Ref: ", Maybe.withDefault "Nothing" msg.ref )
                 ]
     in
-    El.column
-        [ El.spacing 10 ]
-    <|
-        List.append
-            [ El.el
-                [ Font.bold ]
-                (El.text "Channel Message")
-            ]
-            formatted
+    StatusReport.init
+        |> StatusReport.title "Channel Message"
+        |> StatusReport.report (El.column [] formatted)
+        |> StatusReport.view device
 
 
 applicableFunctions : Example -> List String
