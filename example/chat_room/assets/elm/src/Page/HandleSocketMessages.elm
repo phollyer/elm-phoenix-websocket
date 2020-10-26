@@ -23,9 +23,12 @@ import Phoenix.Socket as Socket
 import Route
 import Session exposing (Session)
 import View.Example as Example
+import View.Example.ApplicableFunctions as ApplicableFunctions
 import View.Example.Control as Control
 import View.Example.Controls as Controls
+import View.Example.Feedback as Feedback
 import View.Example.Menu as Menu
+import View.Example.UsefulFunctions as UsefulFunctions
 import View.Layout as Layout
 import View.UI as UI
 
@@ -679,10 +682,18 @@ view model =
                         (remoteControls model device phoenix)
                     |> Example.info
                         (info model)
-                    |> Example.applicableFunctions
-                        (applicableFunctions model.example)
-                    |> Example.usefulFunctions
-                        (usefulFunctions model.example phoenix)
+                    |> Example.feedback
+                        (Feedback.init
+                            |> Feedback.elements
+                                [ ApplicableFunctions.init
+                                    |> ApplicableFunctions.functions (applicableFunctions model.example)
+                                    |> ApplicableFunctions.view device
+                                , UsefulFunctions.init
+                                    |> UsefulFunctions.functions (usefulFunctions model.example phoenix)
+                                    |> UsefulFunctions.view device
+                                ]
+                            |> Feedback.view device
+                        )
                     |> Example.view device
                 )
             |> Layout.view device

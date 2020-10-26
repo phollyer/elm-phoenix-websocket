@@ -18,9 +18,8 @@ view config =
         , maybeId "Example" config.id
         , config.controls
         , remoteControls config.remoteControls
+        , config.feedback
         , info config.info
-        , applicableFunctions config.applicableFunctions
-        , usefulFunctions config.usefulFunctions
         ]
 
 
@@ -126,40 +125,6 @@ info content =
                 ]
                 content
             ]
-
-
-
-{- Applicable Functions -}
-
-
-applicableFunctions : List String -> Element msg
-applicableFunctions functions =
-    El.column
-        [ Background.color Color.white
-        , Border.width 1
-        , Border.color Color.black
-        , El.width El.fill
-        , El.spacing 10
-        , El.padding 10
-        , Font.size 16
-        ]
-    <|
-        El.el
-            [ Font.bold
-            , Font.underline
-            , Font.color Color.darkslateblue
-            , El.centerX
-            ]
-            (El.text "Applicable Functions")
-            :: List.map
-                (\function ->
-                    El.row
-                        [ El.width El.fill
-                        , El.scrollbarX
-                        ]
-                        [ functionLink function ]
-                )
-                functions
 
 
 

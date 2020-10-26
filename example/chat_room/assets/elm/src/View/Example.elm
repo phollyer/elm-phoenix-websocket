@@ -1,7 +1,7 @@
 module View.Example exposing
     ( Config, init
     , view
-    , applicableFunctions, controls, description, id, info, introduction, menu, remoteControls, usefulFunctions
+    , id, introduction, menu, description, controls, remoteControls, feedback, info
     )
 
 {-| This module is intended to enable building up an example with pipelines and
@@ -12,7 +12,7 @@ only one.
 
 @docs Template, view
 
-@docs applicableFunctions, controls, description, id, info, introduction, menu, remoteControls, usefulFunctions, userId
+@docs id, introduction, menu, description, controls, remoteControls, feedback, info
 
 -}
 
@@ -24,30 +24,28 @@ import Template.Example.Tablet as Tablet
 
 {-| -}
 type alias Config msg =
-    { applicableFunctions : List String
-    , controls : Element msg
-    , description : List (Element msg)
-    , id : Maybe String
-    , info : List (Element msg)
+    { id : Maybe String
     , introduction : List (Element msg)
     , menu : Element msg
+    , description : List (Element msg)
+    , controls : Element msg
     , remoteControls : List (Element msg)
-    , usefulFunctions : List ( String, String )
+    , feedback : Element msg
+    , info : List (Element msg)
     }
 
 
 {-| -}
 init : Config msg
 init =
-    { introduction = []
+    { id = Nothing
+    , introduction = []
     , menu = El.none
-    , id = Nothing
     , description = []
     , controls = El.none
     , remoteControls = []
+    , feedback = El.none
     , info = []
-    , applicableFunctions = []
-    , usefulFunctions = []
     }
 
 
@@ -66,14 +64,6 @@ view { class, orientation } config =
 
 
 {-| -}
-applicableFunctions : List String -> Config msg -> Config msg
-applicableFunctions functions config =
-    { config
-        | applicableFunctions = functions
-    }
-
-
-{-| -}
 controls : Element msg -> Config msg -> Config msg
 controls cntrls config =
     { config
@@ -86,6 +76,14 @@ description : List (Element msg) -> Config msg -> Config msg
 description desc config =
     { config
         | description = desc
+    }
+
+
+{-| -}
+feedback : Element msg -> Config msg -> Config msg
+feedback feedback_ config =
+    { config
+        | feedback = feedback_
     }
 
 
@@ -122,12 +120,4 @@ remoteControls : List (Element msg) -> Config msg -> Config msg
 remoteControls list config =
     { config
         | remoteControls = list
-    }
-
-
-{-| -}
-usefulFunctions : List ( String, String ) -> Config msg -> Config msg
-usefulFunctions functions config =
-    { config
-        | usefulFunctions = functions
     }

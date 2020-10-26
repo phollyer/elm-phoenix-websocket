@@ -3,6 +3,7 @@ module Template.Example.Common exposing
     , containerAttrs
     , contentAttrs
     , descriptionAttrs
+    , functionLink
     , idAttrs
     , idLabelAttrs
     , idValueAttrs
@@ -18,15 +19,14 @@ import Element.Font as Font
 
 type alias Config msg c =
     { c
-        | applicableFunctions : List String
-        , controls : Element msg
-        , description : List (Element msg)
-        , id : Maybe String
-        , info : List (Element msg)
+        | id : Maybe String
         , introduction : List (Element msg)
         , menu : Element msg
+        , description : List (Element msg)
+        , controls : Element msg
         , remoteControls : List (Element msg)
-        , usefulFunctions : List ( String, String )
+        , feedback : Element msg
+        , info : List (Element msg)
     }
 
 
@@ -119,3 +119,50 @@ toRows toElement elements container rowCount =
                 container <|
                     List.map toElement row
             )
+
+
+functionLink : String -> Element msg
+functionLink function =
+    El.newTabLink
+        [ Font.family
+            [ Font.typeface "Roboto Mono" ]
+        ]
+        { url = toPackageUrl function
+        , label =
+            El.paragraph
+                []
+                (format function)
+        }
+
+
+toPackageUrl : String -> String
+toPackageUrl function =
+    let
+        base =
+            "https://package.elm-lang.org/packages/phollyer/elm-phoenix-websocket/latest/Phoenix"
+    in
+    case String.split "." function of
+        _ :: func :: [] ->
+            base ++ "#" ++ func
+
+        func :: [] ->
+            base ++ "#" ++ func
+
+        _ ->
+            base
+
+
+format : String -> List (Element msg)
+format function =
+    case String.split "." function of
+        phoenix :: func :: [] ->
+            [ El.el [ Font.color Color.orange ] (El.text phoenix)
+            , El.el [ Font.color Color.darkgrey ] (El.text ("." ++ func))
+            ]
+
+        func :: [] ->
+            [ El.el [ Font.color Color.darkgrey ] (El.text ("." ++ func))
+            ]
+
+        _ ->
+            []

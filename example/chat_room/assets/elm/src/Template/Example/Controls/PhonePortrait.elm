@@ -1,4 +1,4 @@
-module Template.Example.Controls.PhonePortrait exposing (..)
+module Template.Example.Controls.PhonePortrait exposing (view)
 
 import Colors.Opaque as Color
 import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))

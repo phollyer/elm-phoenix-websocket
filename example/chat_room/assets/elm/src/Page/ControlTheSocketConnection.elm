@@ -17,9 +17,12 @@ import Phoenix
 import Route
 import Session exposing (Session)
 import View.Example as Example
+import View.Example.ApplicableFunctions as ApplicableFunctions
 import View.Example.Control as Control
 import View.Example.Controls as Controls
+import View.Example.Feedback as Feedback
 import View.Example.Menu as Menu
+import View.Example.UsefulFunctions as UsefulFunctions
 import View.Layout as Layout
 import View.UI as UI
 
@@ -240,14 +243,79 @@ view model =
                             |> Controls.layouts []
                             |> Controls.view device
                         )
-                    |> Example.applicableFunctions
-                        (applicableFunctions model.example)
-                    |> Example.usefulFunctions
-                        (usefulFunctions model.example phoenix)
+                    |> Example.feedback
+                        (Feedback.init
+                            |> Feedback.elements
+                                [ ApplicableFunctions.init
+                                    |> ApplicableFunctions.functions (applicableFunctions model.example)
+                                    |> ApplicableFunctions.view device
+                                , UsefulFunctions.init
+                                    |> UsefulFunctions.functions (usefulFunctions model.example phoenix)
+                                    |> UsefulFunctions.view device
+                                ]
+                            |> Feedback.view device
+                        )
                     |> Example.view device
                 )
             |> Layout.view device
     }
+
+
+applicableFunctions : Example -> List String
+applicableFunctions example =
+    case example of
+        SimpleConnect _ ->
+            [ "Phoenix.connect"
+            , "Phoenix.disconnect"
+            ]
+
+        ConnectWithGoodParams _ ->
+            [ "Phoenix.setConnectParams"
+            , "Phoenix.connect"
+            , "Phoenix.disconnect"
+            ]
+
+        ConnectWithBadParams _ ->
+            [ "Phoenix.setConnectParams"
+            , "Phoenix.connect"
+            , "Phoenix.disconnect"
+            ]
+
+        _ ->
+            []
+
+
+usefulFunctions : Example -> Phoenix.Model -> List ( String, String )
+usefulFunctions example phoenix =
+    case example of
+        SimpleConnect _ ->
+            [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
+            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
+            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
+            ]
+
+        ConnectWithGoodParams _ ->
+            [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
+            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
+            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
+            ]
+
+        ConnectWithBadParams _ ->
+            [ ( "Phoenix.disconnectReason"
+              , case Phoenix.disconnectReason phoenix of
+                    Nothing ->
+                        "Nothing"
+
+                    Just reason ->
+                        "Just " ++ String.printQuoted reason
+              )
+            , ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
+            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
+            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
+            ]
+
+        _ ->
+            []
 
 
 description : Example -> List (Element msg)
@@ -317,60 +385,3 @@ disconnect example device phoenix =
         |> Control.onPress (Just (GotControlClick (example Disconnect)))
         |> Control.enabled (Phoenix.socketState phoenix == Phoenix.Connected)
         |> Control.view device
-
-
-applicableFunctions : Example -> List String
-applicableFunctions example =
-    case example of
-        SimpleConnect _ ->
-            [ "Phoenix.connect"
-            , "Phoenix.disconnect"
-            ]
-
-        ConnectWithGoodParams _ ->
-            [ "Phoenix.setConnectParams"
-            , "Phoenix.connect"
-            , "Phoenix.disconnect"
-            ]
-
-        ConnectWithBadParams _ ->
-            [ "Phoenix.setConnectParams"
-            , "Phoenix.connect"
-            , "Phoenix.disconnect"
-            ]
-
-        _ ->
-            []
-
-
-usefulFunctions : Example -> Phoenix.Model -> List ( String, String )
-usefulFunctions example phoenix =
-    case example of
-        SimpleConnect _ ->
-            [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
-            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
-            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
-            ]
-
-        ConnectWithGoodParams _ ->
-            [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
-            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
-            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
-            ]
-
-        ConnectWithBadParams _ ->
-            [ ( "Phoenix.disconnectReason"
-              , case Phoenix.disconnectReason phoenix of
-                    Nothing ->
-                        "Nothing"
-
-                    Just reason ->
-                        "Just " ++ String.printQuoted reason
-              )
-            , ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
-            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
-            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
-            ]
-
-        _ ->
-            []
