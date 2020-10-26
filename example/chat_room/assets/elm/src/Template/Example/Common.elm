@@ -8,12 +8,12 @@ module Template.Example.Common exposing
     , idValueAttrs
     , introductionAttrs
     , layoutTypeFor
-    , toRows
     )
 
 import Colors.Opaque as Color
 import Element as El exposing (Attribute, DeviceClass, Element, Orientation)
 import Element.Font as Font
+import List.Extra as List
 
 
 type alias Config msg c =
@@ -99,22 +99,3 @@ layoutTypeFor class orientation layouts =
         )
         layouts
         |> List.head
-
-
-toRows : (a -> Element msg) -> List a -> (List (Element msg) -> Element msg) -> List Int -> List (Element msg)
-toRows toElement elements container rowCount =
-    List.foldl
-        (\num ( elements_, rows_ ) ->
-            ( List.drop num elements_
-            , List.take num elements_ :: rows_
-            )
-        )
-        ( elements, [] )
-        rowCount
-        |> Tuple.second
-        |> List.reverse
-        |> List.map
-            (\row ->
-                container <|
-                    List.map toElement row
-            )

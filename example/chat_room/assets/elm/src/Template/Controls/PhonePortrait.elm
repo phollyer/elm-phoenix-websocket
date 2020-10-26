@@ -3,8 +3,9 @@ module Template.Controls.PhonePortrait exposing (view)
 import Colors.Opaque as Color
 import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))
 import Element.Border as Border
+import List.Extra as List
 import Template.Controls.Common as Common
-import Template.Example.Common exposing (layoutTypeFor, toRows)
+import Template.Example.Common exposing (layoutTypeFor)
 
 
 view : Common.Config msg c -> Element msg
@@ -16,17 +17,20 @@ view config =
                     :: List.map control config.elements
                 )
 
-        Just rows ->
+        Just groups ->
             El.column attrs
                 (El.el [] (Common.maybeId "User" config.userId)
-                    :: toRows control
-                        config.elements
-                        (El.wrappedRow
-                            [ El.spacing 10
-                            , El.centerX
-                            ]
-                        )
-                        rows
+                    :: (List.groupsOfVarying groups config.elements
+                            |> List.map
+                                (\group ->
+                                    El.wrappedRow
+                                        [ El.spacing 10
+                                        , El.centerX
+                                        ]
+                                    <|
+                                        List.map control group
+                                )
+                       )
                 )
 
 

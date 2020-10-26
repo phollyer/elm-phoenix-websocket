@@ -2,7 +2,8 @@ module Template.Menu.PhoneLandscape exposing (view)
 
 import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))
 import Element.Font as Font
-import Template.Example.Common exposing (layoutTypeFor, toRows)
+import List.Extra as List
+import Template.Example.Common exposing (layoutTypeFor)
 import Template.Menu.Common as Common
 
 
@@ -13,9 +14,17 @@ view config =
             El.wrappedRow attrs <|
                 List.map (menuItem config.selected) config.options
 
-        Just rowItems ->
+        Just groups ->
             El.column attrs <|
-                toRows (menuItem config.selected) config.options (El.row [ El.width El.fill ]) rowItems
+                (List.groupsOfVarying groups config.options
+                    |> List.map
+                        (\group ->
+                            El.row
+                                [ El.width El.fill ]
+                            <|
+                                List.map (menuItem config.selected) group
+                        )
+                )
 
 
 attrs : List (Attribute msg)
