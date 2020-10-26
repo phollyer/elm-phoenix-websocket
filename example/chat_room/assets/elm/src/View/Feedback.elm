@@ -33,11 +33,11 @@ view : Device -> Config msg -> Element msg
 view ({ class, orientation } as device) (Config config) =
     case ( class, orientation ) of
         ( Phone, Portrait ) ->
-            orderElements device config
+            Utils.orderElementsForDevice device config
                 |> PhonePortrait.view
 
         _ ->
-            orderElements device config
+            Utils.orderElementsForDevice device config
                 |> PhonePortrait.view
 
 
@@ -54,21 +54,3 @@ layouts list (Config config) =
 order : List ( DeviceClass, Orientation, List Int ) -> Config msg -> Config msg
 order list (Config config) =
     Config { config | order = list }
-
-
-orderElements :
-    Device
-    ->
-        { c
-            | elements : List (Element msg)
-            , order : List ( DeviceClass, Orientation, List Int )
-        }
-    ->
-        { c
-            | elements : List (Element msg)
-            , order : List ( DeviceClass, Orientation, List Int )
-        }
-orderElements device config =
-    { config
-        | elements = Utils.orderElementsForDevice device config.order config.elements
-    }
