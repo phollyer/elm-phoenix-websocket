@@ -13,17 +13,17 @@ view config =
     case List.findByClassAndOrientation Phone Portrait config.layouts of
         Nothing ->
             El.column attrs
-                (List.map control config.elements)
+                (controls config.elements)
 
         Just groups ->
             El.column attrs <|
                 (List.groupsOfVarying groups config.elements
                     |> List.map
-                        (\group ->
+                        (\elements ->
                             El.row
                                 [ El.width El.fill ]
                             <|
-                                List.map control group
+                                controls elements
                         )
                 )
 
@@ -35,6 +35,11 @@ attrs =
         , El.paddingXY 0 10
         ]
         Common.containerAttrs
+
+
+controls : List (Element msg) -> List (Element msg)
+controls elements =
+    List.map control elements
 
 
 control : Element msg -> Element msg

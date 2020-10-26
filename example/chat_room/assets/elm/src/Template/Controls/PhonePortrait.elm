@@ -13,22 +13,22 @@ view config =
     case List.findByClassAndOrientation Phone Portrait config.layouts of
         Nothing ->
             El.column attrs
-                (El.el [] (Common.maybeId "User" config.userId)
-                    :: List.map control config.elements
+                (userId config.userId
+                    :: controls config.elements
                 )
 
         Just groups ->
             El.column attrs
-                (El.el [] (Common.maybeId "User" config.userId)
+                (userId config.userId
                     :: (List.groupsOfVarying groups config.elements
                             |> List.map
-                                (\group ->
+                                (\elements ->
                                     El.wrappedRow
                                         [ El.spacing 10
                                         , El.centerX
                                         ]
                                     <|
-                                        List.map control group
+                                        controls elements
                                 )
                        )
                 )
@@ -49,7 +49,16 @@ attrs =
         Common.containerAttrs
 
 
+userId : Maybe String -> Element msg
+userId maybeId =
+    El.el [] (Common.maybeId "User" maybeId)
+
+
+controls : List (Element msg) -> List (Element msg)
+controls elements =
+    List.map control elements
+
+
 control : Element msg -> Element msg
 control item =
-    El.el [ El.width El.fill ]
-        item
+    El.el [ El.width El.fill ] item

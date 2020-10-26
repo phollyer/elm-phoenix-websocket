@@ -12,17 +12,17 @@ view config =
     case List.findByClassAndOrientation Phone Landscape config.layouts of
         Nothing ->
             El.wrappedRow attrs <|
-                List.map (menuItem config.selected) config.options
+                menuItems config.selected config.options
 
         Just groups ->
             El.column attrs <|
                 (List.groupsOfVarying groups config.options
                     |> List.map
-                        (\group ->
+                        (\options ->
                             El.row
                                 [ El.width El.fill ]
                             <|
-                                List.map (menuItem config.selected) group
+                                menuItems config.selected options
                         )
                 )
 
@@ -40,6 +40,11 @@ attrs =
         , Font.size 18
         ]
         Common.containerAttrs
+
+
+menuItems : String -> List ( String, msg ) -> List (Element msg)
+menuItems selected options =
+    List.map (menuItem selected) options
 
 
 menuItem : String -> ( String, msg ) -> Element msg
