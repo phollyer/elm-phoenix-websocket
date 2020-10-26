@@ -21,11 +21,6 @@ init =
         { body = El.none }
 
 
-body : Element msg -> Config msg -> Config msg
-body body_ (Config config) =
-    Config { config | body = body_ }
-
-
 view : Device -> Config msg -> Html msg
 view { class } (Config config) =
     case class of
@@ -37,3 +32,8 @@ view { class } (Config config) =
 
         _ ->
             Desktop.view config
+
+
+body : Element msg -> Config msg -> Config msg
+body body_ (Config config) =
+    Config { config | body = body_ }

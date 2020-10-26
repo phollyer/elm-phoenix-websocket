@@ -29,8 +29,8 @@ import View.Example as Example
 import View.Feedback as Feedback
 import View.Layout as Layout
 import View.Menu as Menu
-import View.UI as UI
 import View.UsefulFunctions as UsefulFunctions
+import View.Utils as Utils
 
 
 
@@ -646,14 +646,14 @@ view model =
             |> Layout.body
                 (Example.init
                     |> Example.introduction
-                        [ UI.paragraph
+                        [ Utils.paragraph
                             [ El.text "By default, the PhoenixJS "
-                            , UI.code device "onMessage"
+                            , Utils.code device "onMessage"
                             , El.text " handler for the Socket is setup to send all Socket messages through the incoming "
-                            , UI.code device "port"
+                            , Utils.code device "port"
                             , El.text ". These examples demonstrate controlling the types of messages that are allowed through."
                             ]
-                        , UI.paragraph
+                        , Utils.paragraph
                             [ El.text "Clicking on a function will take you to its documentation." ]
                         ]
                     |> Example.menu
@@ -704,19 +704,19 @@ description : Example -> Maybe ID -> List (Element msg)
 description example maybeId =
     case example of
         ManageSocketHeartbeat _ ->
-            [ UI.paragraph
+            [ Utils.paragraph
                 [ El.text "Choose whether to receive the heartbeat as an incoming Socket message. For this example, the heartbeat interval is set at 1 second." ]
             ]
 
         ManageChannelMessages _ ->
-            [ UI.paragraph
+            [ Utils.paragraph
                 [ El.text "Choose whether to receive Channel messages as an incoming Socket message. "
                 , El.text ""
                 ]
             ]
 
         ManagePresenceMessages _ ->
-            [ UI.paragraph
+            [ Utils.paragraph
                 [ El.text "Choose whether to receive Presence messages as an incoming Socket message. "
                 , El.text "To get the best out of this example, you should open it in mulitple tabs. Click "
                 , El.newTabLink

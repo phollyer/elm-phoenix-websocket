@@ -23,35 +23,37 @@ import Template.Example.Tablet as Tablet
 
 
 {-| -}
-type alias Config msg =
-    { id : Maybe String
-    , introduction : List (Element msg)
-    , menu : Element msg
-    , description : List (Element msg)
-    , controls : Element msg
-    , remoteControls : List (Element msg)
-    , feedback : Element msg
-    , info : List (Element msg)
-    }
+type Config msg
+    = Config
+        { id : Maybe String
+        , introduction : List (Element msg)
+        , menu : Element msg
+        , description : List (Element msg)
+        , controls : Element msg
+        , remoteControls : List (Element msg)
+        , feedback : Element msg
+        , info : List (Element msg)
+        }
 
 
 {-| -}
 init : Config msg
 init =
-    { id = Nothing
-    , introduction = []
-    , menu = El.none
-    , description = []
-    , controls = El.none
-    , remoteControls = []
-    , feedback = El.none
-    , info = []
-    }
+    Config
+        { id = Nothing
+        , introduction = []
+        , menu = El.none
+        , description = []
+        , controls = El.none
+        , remoteControls = []
+        , feedback = El.none
+        , info = []
+        }
 
 
 {-| -}
 view : Device -> Config msg -> Element msg
-view { class, orientation } config =
+view { class, orientation } (Config config) =
     case ( class, orientation ) of
         ( Phone, Portrait ) ->
             PhonePortrait.view config
@@ -65,59 +67,47 @@ view { class, orientation } config =
 
 {-| -}
 controls : Element msg -> Config msg -> Config msg
-controls cntrls config =
-    { config
-        | controls = cntrls
-    }
+controls cntrls (Config config) =
+    Config { config | controls = cntrls }
 
 
 {-| -}
 description : List (Element msg) -> Config msg -> Config msg
-description desc config =
-    { config
-        | description = desc
-    }
+description desc (Config config) =
+    Config { config | description = desc }
 
 
 {-| -}
 feedback : Element msg -> Config msg -> Config msg
-feedback feedback_ config =
-    { config
-        | feedback = feedback_
-    }
+feedback feedback_ (Config config) =
+    Config { config | feedback = feedback_ }
 
 
 {-| -}
 id : Maybe String -> Config msg -> Config msg
-id maybeId config =
-    { config
-        | id = maybeId
-    }
+id maybeId (Config config) =
+    Config { config | id = maybeId }
 
 
 {-| -}
 info : List (Element msg) -> Config msg -> Config msg
-info content config =
-    { config
-        | info = content
-    }
+info content (Config config) =
+    Config { config | info = content }
 
 
 {-| -}
 introduction : List (Element msg) -> Config msg -> Config msg
-introduction list config =
-    { config | introduction = list }
+introduction list (Config config) =
+    Config { config | introduction = list }
 
 
 {-| -}
 menu : Element msg -> Config msg -> Config msg
-menu menu_ config =
-    { config | menu = menu_ }
+menu menu_ (Config config) =
+    Config { config | menu = menu_ }
 
 
 {-| -}
 remoteControls : List (Element msg) -> Config msg -> Config msg
-remoteControls list config =
-    { config
-        | remoteControls = list
-    }
+remoteControls list (Config config) =
+    Config { config | remoteControls = list }

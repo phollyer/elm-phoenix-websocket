@@ -45,17 +45,14 @@ view { class, orientation } (Config config) =
 
 channels : List (Element msg) -> Config msg -> Config msg
 channels channels_ (Config config) =
-    Config
-        { config | channels = channels_ }
+    Config { config | channels = channels_ }
 
 
 presence : List (Element msg) -> Config msg -> Config msg
 presence presence_ (Config config) =
-    Config
-        { config | presence = presence_ }
+    Config { config | presence = presence_ }
 
 
 socket : List (Element msg) -> Config msg -> Config msg
 socket socket_ (Config config) =
-    Config
-        { config | socket = socket_ }
+    Config { config | socket = socket_ }

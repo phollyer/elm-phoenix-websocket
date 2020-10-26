@@ -36,10 +36,17 @@ init =
 
 
 view : Device -> Config msg -> Element msg
-view device (Config config) =
-    Utils.orderElementsForDevice device config
-        |> Utils.layoutForDevice device
-        |> PhonePortrait.view
+view ({ class, orientation } as device) (Config config) =
+    case ( class, orientation ) of
+        ( Phone, Portrait ) ->
+            Utils.orderElementsForDevice device config
+                |> Utils.layoutForDevice device
+                |> PhonePortrait.view
+
+        _ ->
+            Utils.orderElementsForDevice device config
+                |> Utils.layoutForDevice device
+                |> PhoneLandscape.view
 
 
 {-| -}

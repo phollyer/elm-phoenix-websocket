@@ -7,7 +7,7 @@ module View.Control exposing
     , view
     )
 
-import Element as El exposing (Device, Element)
+import Element exposing (Device, Element)
 import Template.Control.PhonePortrait as PhonePortrait
 
 

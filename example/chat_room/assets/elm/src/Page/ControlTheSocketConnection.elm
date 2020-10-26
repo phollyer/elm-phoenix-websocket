@@ -23,8 +23,8 @@ import View.Example as Example
 import View.Feedback as Feedback
 import View.Layout as Layout
 import View.Menu as Menu
-import View.UI as UI
 import View.UsefulFunctions as UsefulFunctions
+import View.Utils as Utils
 
 
 
@@ -214,11 +214,11 @@ view model =
             |> Layout.body
                 (Example.init
                     |> Example.introduction
-                        [ UI.paragraph
+                        [ Utils.paragraph
                             [ El.text "Connecting to the Socket is taken care of automatically when a request to join a Channel is made, or when a Channel is pushed to, "
                             , El.text "however, if you want to take manual control, here's a few examples."
                             ]
-                        , UI.paragraph
+                        , Utils.paragraph
                             [ El.text "Clicking on a function will take you to its documentation." ]
                         ]
                     |> Example.menu
@@ -322,17 +322,17 @@ description : Example -> List (Element msg)
 description example =
     case example of
         SimpleConnect _ ->
-            [ UI.paragraph
+            [ Utils.paragraph
                 [ El.text "A simple connection to the Socket without sending any params or setting any connect options." ]
             ]
 
         ConnectWithGoodParams _ ->
-            [ UI.paragraph
+            [ Utils.paragraph
                 [ El.text "Connect to the Socket with authentication params that are accepted." ]
             ]
 
         ConnectWithBadParams _ ->
-            [ UI.paragraph
+            [ Utils.paragraph
                 [ El.text "Try to connect to the Socket with authentication params that are not accepted, causing the connection to be denied." ]
             ]
 

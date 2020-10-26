@@ -59,8 +59,11 @@ view ({ class, orientation } as device) (Config config) =
         ( Tablet, Portrait ) ->
             PhoneLandscape.view config
 
-        _ ->
+        ( Tablet, Landscape ) ->
             TabletLandscape.view config
+
+        _ ->
+            Desktop.view config
 
 
 {-| -}

@@ -57,19 +57,16 @@ view { class, orientation } (Config config) =
 {-| -}
 homeMsg : Maybe msg -> Config msg -> Config msg
 homeMsg msg (Config config) =
-    Config
-        { config | homeMsg = msg }
+    Config { config | homeMsg = msg }
 
 
 {-| -}
 title : String -> Config msg -> Config msg
 title text (Config config) =
-    Config
-        { config | title = text }
+    Config { config | title = text }
 
 
 {-| -}
 body : Element msg -> Config msg -> Config msg
 body body_ (Config config) =
-    Config
-        { config | body = body_ }
+    Config { config | body = body_ }
