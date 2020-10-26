@@ -10,14 +10,14 @@ import Template.Feedback.Common as Common
 
 view : Common.Config msg c -> Element msg
 view config =
-    case List.findByClassAndOrientation Phone Portrait config.layouts of
+    case config.layout of
         Nothing ->
             El.column attrs
                 (controls config.elements)
 
-        Just groups ->
+        Just layout ->
             El.column attrs <|
-                (List.groupsOfVarying groups config.elements
+                (List.groupsOfVarying layout config.elements
                     |> List.map
                         (\elements ->
                             El.row

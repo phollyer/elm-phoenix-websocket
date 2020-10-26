@@ -15,7 +15,7 @@ type alias Config msg c =
     { c
         | userId : Maybe String
         , elements : List (Element msg)
-        , layouts : List ( DeviceClass, Orientation, List Int )
+        , layout : Maybe (List Int)
     }
 
 

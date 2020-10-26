@@ -10,17 +10,17 @@ import Template.Controls.Common as Common
 
 view : Common.Config msg c -> Element msg
 view config =
-    case List.findByClassAndOrientation Phone Portrait config.layouts of
+    case config.layout of
         Nothing ->
             El.column attrs
                 (userId config.userId
                     :: controls config.elements
                 )
 
-        Just groups ->
+        Just layout ->
             El.column attrs
                 (userId config.userId
-                    :: (List.groupsOfVarying groups config.elements
+                    :: (List.groupsOfVarying layout config.elements
                             |> List.map
                                 (\elements ->
                                     El.wrappedRow

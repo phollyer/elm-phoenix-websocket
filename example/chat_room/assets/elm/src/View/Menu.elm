@@ -21,6 +21,7 @@ import Template.Menu.Desktop as Desktop
 import Template.Menu.PhoneLandscape as PhoneLandscape
 import Template.Menu.PhonePortrait as PhonePortrait
 import Template.Menu.TabletLandscape as TabletLandscape
+import View.Utils as Utils
 
 
 {-| -}
@@ -28,6 +29,7 @@ type Config msg
     = Config
         { options : List ( String, msg )
         , selected : String
+        , layout : Maybe (List Int)
         , layouts : List ( DeviceClass, Orientation, List Int )
         }
 
@@ -38,19 +40,21 @@ init =
     Config
         { options = []
         , selected = ""
+        , layout = Nothing
         , layouts = []
         }
 
 
 {-| -}
 view : Device -> Config msg -> Element msg
-view { class, orientation } (Config config) =
+view ({ class, orientation } as device) (Config config) =
     case ( class, orientation ) of
         ( Phone, Portrait ) ->
             PhonePortrait.view config
 
         ( Phone, Landscape ) ->
-            PhoneLandscape.view config
+            Utils.layoutForDevice device config
+                |> PhoneLandscape.view
 
         ( Tablet, Portrait ) ->
             PhoneLandscape.view config

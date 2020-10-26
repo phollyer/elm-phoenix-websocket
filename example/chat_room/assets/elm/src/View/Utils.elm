@@ -4,6 +4,24 @@ import Element exposing (Device, DeviceClass, Element, Orientation)
 import Extra.List as List
 
 
+layoutForDevice :
+    Device
+    ->
+        { c
+            | layout : Maybe (List Int)
+            , layouts : List ( DeviceClass, Orientation, List Int )
+        }
+    ->
+        { c
+            | layout : Maybe (List Int)
+            , layouts : List ( DeviceClass, Orientation, List Int )
+        }
+layoutForDevice { class, orientation } config =
+    { config
+        | layout = List.findByClassAndOrientation class orientation config.layouts
+    }
+
+
 orderElementsForDevice :
     Device
     ->

@@ -19,7 +19,7 @@ type alias Config msg c =
     { c
         | options : List ( String, msg )
         , selected : String
-        , layouts : List ( DeviceClass, Orientation, List Int )
+        , layout : Maybe (List Int)
     }
 
 

@@ -17,6 +17,7 @@ type Config msg
         { elements : List (Element msg)
         , layouts : List ( DeviceClass, Orientation, List Int )
         , order : List ( DeviceClass, Orientation, List Int )
+        , layout : Maybe (List Int)
         }
 
 
@@ -25,20 +26,16 @@ init =
     Config
         { elements = []
         , layouts = []
+        , layout = Nothing
         , order = []
         }
 
 
 view : Device -> Config msg -> Element msg
-view ({ class, orientation } as device) (Config config) =
-    case ( class, orientation ) of
-        ( Phone, Portrait ) ->
-            Utils.orderElementsForDevice device config
-                |> PhonePortrait.view
-
-        _ ->
-            Utils.orderElementsForDevice device config
-                |> PhonePortrait.view
+view device (Config config) =
+    Utils.orderElementsForDevice device config
+        |> Utils.layoutForDevice device
+        |> PhonePortrait.view
 
 
 elements : List (Element msg) -> Config msg -> Config msg

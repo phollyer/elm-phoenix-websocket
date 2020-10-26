@@ -9,14 +9,14 @@ import Template.Menu.Common as Common
 
 view : Common.Config msg c -> Element msg
 view config =
-    case List.findByClassAndOrientation Phone Landscape config.layouts of
+    case config.layout of
         Nothing ->
             El.wrappedRow attrs <|
                 menuItems config.selected config.options
 
-        Just groups ->
+        Just layout ->
             El.column attrs <|
-                (List.groupsOfVarying groups config.options
+                (List.groupsOfVarying layout config.options
                     |> List.map
                         (\options ->
                             El.row
