@@ -11,6 +11,7 @@ module View.Controls exposing
 import Element exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Template.Controls.PhoneLandscape as PhoneLandscape
 import Template.Controls.PhonePortrait as PhonePortrait
+import View.Utils as Utils
 
 
 type Config msg
@@ -77,28 +78,7 @@ orderElements :
             | elements : List (Element msg)
             , order : List ( DeviceClass, Orientation, List Int )
         }
-orderElements { class, orientation } config =
+orderElements device config =
     { config
-        | elements =
-            List.foldl
-                (\( class_, orientation_, order_ ) elements_ ->
-                    if class == class_ && orientation == orientation_ then
-                        sortElements order_ elements_
-
-                    else
-                        elements_
-                )
-                config.elements
-                config.order
+        | elements = Utils.orderElementsForDevice device config.order config.elements
     }
-
-
-sortElements : List Int -> List (Element msg) -> List (Element msg)
-sortElements sortOrder elements_ =
-    List.indexedMap Tuple.pair elements_
-        |> List.map2
-            (\newIndex ( _, element ) -> ( newIndex, element ))
-            sortOrder
-        |> List.sortBy Tuple.first
-        |> List.unzip
-        |> Tuple.second

@@ -1,4 +1,7 @@
-module Extra.List exposing (..)
+module Extra.List exposing
+    ( findByClassAndOrientation
+    , reIndex
+    )
 
 import Element exposing (DeviceClass, Orientation)
 import List.Extra as List
@@ -12,3 +15,14 @@ findByClassAndOrientation class orientation list =
 
         Just ( _, _, a ) ->
             Just a
+
+
+reIndex : List Int -> List a -> List a
+reIndex sortOrder elements_ =
+    List.indexedMap Tuple.pair elements_
+        |> List.map2
+            (\newIndex ( _, element ) -> ( newIndex, element ))
+            sortOrder
+        |> List.sortBy Tuple.first
+        |> List.unzip
+        |> Tuple.second
