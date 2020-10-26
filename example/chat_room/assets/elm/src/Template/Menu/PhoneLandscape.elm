@@ -3,18 +3,17 @@ module Template.Menu.PhoneLandscape exposing (view)
 import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))
 import Element.Font as Font
 import List.Extra as List
-import Template.Example.Common exposing (layoutTypeFor)
 import Template.Menu.Common as Common
 
 
 view : Common.Config msg c -> Element msg
 view config =
-    case layoutTypeFor Phone Landscape config.layouts of
+    case List.find (\( class, orientation, _ ) -> class == Phone && orientation == Landscape) config.layouts of
         Nothing ->
             El.wrappedRow attrs <|
                 List.map (menuItem config.selected) config.options
 
-        Just groups ->
+        Just ( _, _, groups ) ->
             El.column attrs <|
                 (List.groupsOfVarying groups config.options
                     |> List.map

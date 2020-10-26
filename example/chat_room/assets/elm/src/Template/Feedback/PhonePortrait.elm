@@ -3,20 +3,28 @@ module Template.Feedback.PhonePortrait exposing (view)
 import Colors.Opaque as Color
 import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))
 import Element.Border as Border
-import Template.Example.Common exposing (layoutTypeFor)
+import List.Extra as List
 import Template.Feedback.Common as Common
 
 
 view : Common.Config msg c -> Element msg
 view config =
-    case layoutTypeFor Phone Portrait config.layouts of
+    case List.find (\( class, orientation, _ ) -> class == Phone && orientation == Portrait) config.layouts of
         Nothing ->
             El.column attrs
                 (List.map control config.elements)
 
-        Just rows ->
-            El.column attrs
-                config.elements
+        Just ( _, _, groups ) ->
+            El.column attrs <|
+                (List.groupsOfVarying groups config.elements
+                    |> List.map
+                        (\group ->
+                            El.row
+                                [ El.width El.fill ]
+                            <|
+                                List.map control group
+                        )
+                )
 
 
 attrs : List (Attribute msg)

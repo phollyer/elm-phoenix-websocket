@@ -7,7 +7,6 @@ module Template.Example.Common exposing
     , idLabelAttrs
     , idValueAttrs
     , introductionAttrs
-    , layoutTypeFor
     )
 
 import Colors.Opaque as Color
@@ -85,17 +84,3 @@ idLabelAttrs =
 idValueAttrs : List (Attribute msg)
 idValueAttrs =
     [ Font.color Color.powderblue ]
-
-
-layoutTypeFor : DeviceClass -> Orientation -> List ( DeviceClass, Orientation, List Int ) -> Maybe (List Int)
-layoutTypeFor class orientation layouts =
-    List.filterMap
-        (\( class_, orientation_, rows_ ) ->
-            if class == class_ && orientation == orientation_ then
-                Just rows_
-
-            else
-                Nothing
-        )
-        layouts
-        |> List.head

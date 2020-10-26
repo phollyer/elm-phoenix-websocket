@@ -5,19 +5,18 @@ import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(
 import Element.Border as Border
 import List.Extra as List
 import Template.Controls.Common as Common
-import Template.Example.Common exposing (layoutTypeFor)
 
 
 view : Common.Config msg c -> Element msg
 view config =
-    case layoutTypeFor Phone Portrait config.layouts of
+    case List.find (\( class, orientation, _ ) -> class == Phone && orientation == Portrait) config.layouts of
         Nothing ->
             El.column attrs
                 (El.el [] (Common.maybeId "User" config.userId)
                     :: List.map control config.elements
                 )
 
-        Just groups ->
+        Just ( _, _, groups ) ->
             El.column attrs
                 (El.el [] (Common.maybeId "User" config.userId)
                     :: (List.groupsOfVarying groups config.elements
