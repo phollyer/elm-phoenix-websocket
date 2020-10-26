@@ -8,7 +8,7 @@ module View.Example.Feedback exposing
     )
 
 import Element exposing (Device, DeviceClass(..), Element, Orientation(..))
-import Template.Example.Feedback.PhonePortrait as PhonePortrait
+import Template.Feedback.PhonePortrait as PhonePortrait
 
 
 type Config msg

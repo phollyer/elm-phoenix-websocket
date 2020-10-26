@@ -1,21 +1,21 @@
-module Template.Example.Menu.TabletLandscape exposing (..)
+module Template.Menu.PhonePortrait exposing (view)
 
 import Element as El exposing (DeviceClass(..), Element, Orientation(..))
 import Element.Font as Font
-import Template.Example.Menu.Common as Common
+import Template.Menu.Common as Common
 
 
 view : Common.Config msg c -> Element msg
 view config =
-    El.row
+    El.column
         (List.append
             [ El.paddingEach
                 { left = 5
                 , top = 16
                 , right = 5
-                , bottom = 0
+                , bottom = 8
                 }
-            , El.spacing 30
+            , El.spacing 10
             , Font.size 18
             ]
             Common.containerAttrs

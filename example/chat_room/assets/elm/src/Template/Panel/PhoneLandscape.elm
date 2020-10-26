@@ -1,8 +1,8 @@
-module Template.Home.Panel.Tablet exposing (view)
+module Template.Panel.PhoneLandscape exposing (view)
 
 import Element as El exposing (Element)
 import Element.Font as Font
-import Template.Home.Panel.Common as Common
+import Template.Panel.Common as Common
 
 
 view : Common.Config msg c -> Element msg
@@ -10,7 +10,7 @@ view { title, description, onClick } =
     El.column
         (List.concat
             [ [ El.height El.fill
-              , El.width <| El.px 250
+              , El.width <| El.px 200
               , El.centerX
               ]
             , Common.onClick onClick
@@ -18,7 +18,7 @@ view { title, description, onClick } =
             ]
         )
         [ El.el
-            (Font.size 20
+            (Font.size 18
                 :: Common.headerAttrs
             )
             (El.paragraph
@@ -30,7 +30,7 @@ view { title, description, onClick } =
             (List.map
                 (\para ->
                     El.paragraph
-                        (Font.size 18
+                        (Font.size 16
                             :: Common.descriptionAttrs
                         )
                         [ El.text para ]

@@ -9,8 +9,8 @@ module View.Example.Controls exposing
     )
 
 import Element exposing (Device, DeviceClass(..), Element, Orientation(..))
-import Template.Example.Controls.PhoneLandscape as PhoneLandscape
-import Template.Example.Controls.PhonePortrait as PhonePortrait
+import Template.Controls.PhoneLandscape as PhoneLandscape
+import Template.Controls.PhonePortrait as PhonePortrait
 
 
 type Config msg

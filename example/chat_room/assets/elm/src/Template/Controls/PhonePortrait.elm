@@ -1,10 +1,10 @@
-module Template.Example.Controls.PhonePortrait exposing (view)
+module Template.Controls.PhonePortrait exposing (view)
 
 import Colors.Opaque as Color
 import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))
 import Element.Border as Border
+import Template.Controls.Common as Common
 import Template.Example.Common exposing (layoutTypeFor, toRows)
-import Template.Example.Controls.Common as Common
 
 
 view : Common.Config msg c -> Element msg

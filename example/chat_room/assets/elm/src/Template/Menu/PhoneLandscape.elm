@@ -1,9 +1,9 @@
-module Template.Example.Menu.PhoneLandscape exposing (view)
+module Template.Menu.PhoneLandscape exposing (view)
 
 import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))
 import Element.Font as Font
 import Template.Example.Common exposing (layoutTypeFor, toRows)
-import Template.Example.Menu.Common as Common
+import Template.Menu.Common as Common
 
 
 view : Common.Config msg c -> Element msg

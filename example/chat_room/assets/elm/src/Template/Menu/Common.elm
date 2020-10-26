@@ -1,4 +1,4 @@
-module Template.Example.Menu.Common exposing
+module Template.Menu.Common exposing
     ( Config
     , containerAttrs
     , selectedAttrs

@@ -1,10 +1,10 @@
-module Template.Example.Feedback.UsefulFunctions.PhonePortrait exposing (..)
+module Template.ApplicableFunctions.PhonePortrait exposing (..)
 
 import Colors.Opaque as Color
 import Element as El exposing (Element)
 import Element.Font as Font
+import Template.ApplicableFunctions.Common as Common
 import Template.Example.Common exposing (functionLink)
-import Template.Example.Feedback.UsefulFunctions.Common as Common
 
 
 view : Common.Config -> Element msg
@@ -20,13 +20,10 @@ view { functions } =
             , Font.bold
             , Font.size 16
             ]
-            (El.text "Useful Functions")
+            (El.text "Applicable Functions")
         , El.column
             [ Font.size 16
             , El.spacing 5
             ]
-            (List.map
-                (\( func, val ) -> functionLink func)
-                functions
-            )
+            (List.map functionLink functions)
         ]

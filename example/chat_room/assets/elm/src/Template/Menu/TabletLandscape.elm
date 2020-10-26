@@ -1,26 +1,27 @@
-module Template.Example.Menu.Desktop exposing (view)
+module Template.Menu.TabletLandscape exposing (..)
 
-import Element as El exposing (Element)
+import Element as El exposing (DeviceClass(..), Element, Orientation(..))
 import Element.Font as Font
-import Template.Example.Menu.Common as Common
+import Template.Menu.Common as Common
 
 
 view : Common.Config msg c -> Element msg
 view config =
-    El.wrappedRow
+    El.row
         (List.append
             [ El.paddingEach
                 { left = 5
-                , top = 10
+                , top = 16
                 , right = 5
                 , bottom = 0
                 }
-            , El.spacing 20
-            , Font.size 20
+            , El.spacing 30
+            , Font.size 18
             ]
             Common.containerAttrs
         )
-        (List.map (menuItem config.selected) config.options)
+    <|
+        List.map (menuItem config.selected) config.options
 
 
 menuItem : String -> ( String, msg ) -> Element msg
@@ -28,8 +29,7 @@ menuItem selected ( item, msg ) =
     let
         ( attrs, highlight ) =
             if selected == item then
-                ( El.spacing 5
-                    :: Common.selectedAttrs
+                ( Common.selectedAttrs
                 , El.el
                     Common.selectedHighlightAttrs
                     El.none
@@ -40,11 +40,8 @@ menuItem selected ( item, msg ) =
                 , El.none
                 )
     in
-    El.row
-        [ El.width El.fill ]
-        [ El.column
-            attrs
-            [ El.text item
-            , highlight
-            ]
+    El.column
+        attrs
+        [ El.text item
+        , highlight
         ]

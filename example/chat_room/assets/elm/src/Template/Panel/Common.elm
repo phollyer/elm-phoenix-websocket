@@ -1,4 +1,4 @@
-module Template.Home.Panel.Common exposing
+module Template.Panel.Common exposing
     ( Config
     , containerAttrs
     , contentAttrs

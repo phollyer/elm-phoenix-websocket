@@ -1,4 +1,4 @@
-module Template.Example.Controls.Common exposing
+module Template.Controls.Common exposing
     ( Config
     , containerAttrs
     , maybeId

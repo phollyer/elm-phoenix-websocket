@@ -1,10 +1,10 @@
-module Template.Example.Feedback.PhonePortrait exposing (view)
+module Template.Feedback.PhonePortrait exposing (view)
 
 import Colors.Opaque as Color
 import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))
 import Element.Border as Border
 import Template.Example.Common exposing (layoutTypeFor, toRows)
-import Template.Example.Feedback.Common as Common
+import Template.Feedback.Common as Common
 
 
 view : Common.Config msg c -> Element msg

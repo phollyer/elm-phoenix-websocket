@@ -8,7 +8,7 @@ module View.Example.Control exposing
     )
 
 import Element as El exposing (Device, Element)
-import Template.Example.Controls.Control.PhonePortrait as PhonePortrait
+import Template.Control.PhonePortrait as PhonePortrait
 
 
 type Config msg

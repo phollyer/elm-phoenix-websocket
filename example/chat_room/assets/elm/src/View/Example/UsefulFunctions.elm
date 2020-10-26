@@ -5,7 +5,7 @@ module View.Example.UsefulFunctions exposing
     )
 
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
-import Template.Example.Feedback.UsefulFunctions.PhonePortrait as PhonePortrait
+import Template.UsefulFunctions.PhonePortrait as PhonePortrait
 
 
 type Config

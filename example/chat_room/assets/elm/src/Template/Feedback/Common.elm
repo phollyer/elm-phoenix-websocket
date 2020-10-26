@@ -1,4 +1,4 @@
-module Template.Example.Feedback.Common exposing
+module Template.Feedback.Common exposing
     ( Config
     , containerAttrs
     )
