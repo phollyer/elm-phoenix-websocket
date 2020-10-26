@@ -1,4 +1,4 @@
-module View.Example.UsefulFunctions exposing
+module View.UsefulFunctions exposing
     ( functions
     , init
     , view

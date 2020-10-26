@@ -1,4 +1,4 @@
-module View.Example.Controls exposing
+module View.Controls exposing
     ( Config
     , elements
     , init

@@ -1,4 +1,4 @@
-module View.Example.ApplicableFunctions exposing
+module View.ApplicableFunctions exposing
     ( functions
     , init
     , view

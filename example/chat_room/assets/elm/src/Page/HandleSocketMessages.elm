@@ -22,15 +22,15 @@ import Phoenix
 import Phoenix.Socket as Socket
 import Route
 import Session exposing (Session)
+import View.ApplicableFunctions as ApplicableFunctions
+import View.Control as Control
+import View.Controls as Controls
 import View.Example as Example
-import View.Example.ApplicableFunctions as ApplicableFunctions
-import View.Example.Control as Control
-import View.Example.Controls as Controls
-import View.Example.Feedback as Feedback
-import View.Example.Menu as Menu
-import View.Example.UsefulFunctions as UsefulFunctions
+import View.Feedback as Feedback
 import View.Layout as Layout
+import View.Menu as Menu
 import View.UI as UI
+import View.UsefulFunctions as UsefulFunctions
 
 
 
