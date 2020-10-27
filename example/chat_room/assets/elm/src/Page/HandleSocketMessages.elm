@@ -649,81 +649,53 @@ view model =
             |> Layout.title "Handle Socket Messages"
             |> Layout.body
                 (Example.init
-                    |> Example.introduction
-                        [ Utils.paragraph
-                            [ El.text "By default, the PhoenixJS "
-                            , Utils.code "onMessage"
-                            , El.text " handler for the Socket is setup to send all Socket messages through the incoming "
-                            , Utils.code "port"
-                            , El.text ". These examples demonstrate controlling the types of messages that are allowed through."
-                            ]
-                        , Utils.paragraph
-                            [ El.text "Clicking on a function will take you to its documentation." ]
-                        ]
-                    |> Example.menu
-                        (Menu.init
-                            |> Menu.options
-                                [ ( Example.toString ManageSocketHeartbeat, GotMenuItem ManageSocketHeartbeat )
-                                , ( Example.toString ManageChannelMessages, GotMenuItem ManageChannelMessages )
-                                , ( Example.toString ManagePresenceMessages, GotMenuItem ManagePresenceMessages )
-                                ]
-                            |> Menu.selected
-                                (Example.toString <| Example.toFunc model.example)
-                            |> Menu.view device
-                        )
+                    |> Example.introduction introduction
+                    |> Example.menu (menu device model)
+                    |> Example.description (description model)
                     |> Example.id model.exampleId
-                    |> Example.description
-                        (description model.example model.exampleId)
-                    |> Example.controls
-                        (Controls.init
-                            |> Controls.userId model.userId
-                            |> Controls.elements (controls model device phoenix)
-                            |> Controls.group
-                                (Group.init
-                                    |> Group.layouts (layouts model)
-                                    |> Group.order (order model)
-                                )
-                            |> Controls.view device
-                        )
-                    |> Example.remoteControls
-                        (remoteControls model device phoenix)
-                    |> Example.feedback
-                        (Feedback.init
-                            |> Feedback.elements
-                                [ StatusReports.init
-                                    |> StatusReports.title "Info"
-                                    |> StatusReports.static (staticReports device model)
-                                    |> StatusReports.scrollable (scrollableReports device model)
-                                    |> StatusReports.view device
-                                , ApplicableFunctions.init
-                                    |> ApplicableFunctions.functions (applicableFunctions model.example)
-                                    |> ApplicableFunctions.view device
-                                , UsefulFunctions.init
-                                    |> UsefulFunctions.functions (usefulFunctions model.example phoenix)
-                                    |> UsefulFunctions.view device
-                                ]
-                            |> Feedback.group
-                                (Group.init
-                                    |> Group.layouts
-                                        [ ( Phone, Landscape, [ 1, 2 ] )
-                                        , ( Tablet, Portrait, [ 1, 2 ] )
-                                        , ( Tablet, Landscape, [ 3 ] )
-                                        , ( Desktop, Portrait, [ 3 ] )
-                                        , ( Desktop, Landscape, [ 3 ] )
-                                        , ( BigDesktop, Portrait, [ 3 ] )
-                                        , ( BigDesktop, Landscape, [ 3 ] )
-                                        ]
-                                )
-                            |> Feedback.view device
-                        )
+                    |> Example.controls (controls device phoenix model)
+                    |> Example.remoteControls (remoteControls device phoenix model)
+                    |> Example.feedback (feedback device phoenix model)
                     |> Example.view device
                 )
             |> Layout.view device
     }
 
 
-description : Example -> Maybe ID -> List (Element msg)
-description example maybeId =
+{-| Introudction
+-}
+introduction : List (Element msg)
+introduction =
+    [ Utils.paragraph
+        [ El.text "By default, the PhoenixJS "
+        , Utils.code "onMessage"
+        , El.text " handler for the Socket is setup to send all Socket messages through the incoming "
+        , Utils.code "port"
+        , El.text ". These examples demonstrate controlling the types of messages that are allowed through."
+        ]
+    , Utils.paragraph
+        [ El.text "Clicking on a function will take you to its documentation." ]
+    ]
+
+
+{-| Page Menu
+-}
+menu : Device -> Model -> Element Msg
+menu device { example } =
+    Menu.init
+        |> Menu.options
+            [ ( Example.toString ManageSocketHeartbeat, GotMenuItem ManageSocketHeartbeat )
+            , ( Example.toString ManageChannelMessages, GotMenuItem ManageChannelMessages )
+            , ( Example.toString ManagePresenceMessages, GotMenuItem ManagePresenceMessages )
+            ]
+        |> Menu.selected (Example.toString <| Example.toFunc example)
+        |> Menu.view device
+
+
+{-| Example Description
+-}
+description : Model -> List (Element msg)
+description { example, exampleId } =
     case example of
         ManageSocketHeartbeat _ ->
             [ Utils.paragraph
@@ -747,7 +719,7 @@ description example maybeId =
                         [ Font.color Color.lavender ]
                     ]
                     { url =
-                        case maybeId of
+                        case exampleId of
                             Just id ->
                                 "/HandleSocketMessages?example=ManagePresenceMessages&id=" ++ id
 
@@ -763,8 +735,23 @@ description example maybeId =
             []
 
 
-controls : Model -> Device -> Phoenix.Model -> List (Element Msg)
-controls { example, heartbeat, channelMessages, presenceMessages } device phoenix =
+{-| Example Controls
+-}
+controls : Device -> Phoenix.Model -> Model -> Element Msg
+controls device phoenix model =
+    Controls.init
+        |> Controls.userId model.userId
+        |> Controls.elements (buttons device phoenix model)
+        |> Controls.group
+            (Group.init
+                |> Group.layouts (layouts model)
+                |> Group.order (order model)
+            )
+        |> Controls.view device
+
+
+buttons : Device -> Phoenix.Model -> Model -> List (Element Msg)
+buttons device phoenix { example, heartbeat, channelMessages, presenceMessages } =
     case example of
         ManageSocketHeartbeat _ ->
             [ connectControl ManageSocketHeartbeat device phoenix
@@ -816,8 +803,10 @@ layouts { example } =
             []
 
 
-remoteControls : Model -> Device -> Phoenix.Model -> List (Element Msg)
-remoteControls { example, userId, presenceState } device phoenix =
+{-| Remote Controls
+-}
+remoteControls : Device -> Phoenix.Model -> Model -> List (Element Msg)
+remoteControls device phoenix { example, userId, presenceState } =
     case example of
         ManagePresenceMessages _ ->
             List.filterMap (maybeRemoteControl userId device) presenceState
@@ -951,6 +940,39 @@ channelMessagesOff example device channelMessages =
         |> Control.onPress (Just (GotControlClick (example Off)))
         |> Control.enabled channelMessages
         |> Control.view device
+
+
+{-| Example Feedback and Info
+-}
+feedback : Device -> Phoenix.Model -> Model -> Element Msg
+feedback device phoenix ({ example } as model) =
+    Feedback.init
+        |> Feedback.elements
+            [ StatusReports.init
+                |> StatusReports.title "Info"
+                |> StatusReports.static (staticReports device model)
+                |> StatusReports.scrollable (scrollableReports device model)
+                |> StatusReports.view device
+            , ApplicableFunctions.init
+                |> ApplicableFunctions.functions (applicableFunctions example)
+                |> ApplicableFunctions.view device
+            , UsefulFunctions.init
+                |> UsefulFunctions.functions (usefulFunctions example phoenix)
+                |> UsefulFunctions.view device
+            ]
+        |> Feedback.group
+            (Group.init
+                |> Group.layouts
+                    [ ( Phone, Landscape, [ 1, 2 ] )
+                    , ( Tablet, Portrait, [ 1, 2 ] )
+                    , ( Tablet, Landscape, [ 3 ] )
+                    , ( Desktop, Portrait, [ 3 ] )
+                    , ( Desktop, Landscape, [ 3 ] )
+                    , ( BigDesktop, Portrait, [ 3 ] )
+                    , ( BigDesktop, Landscape, [ 3 ] )
+                    ]
+            )
+        |> Feedback.view device
 
 
 staticReports : Device -> Model -> List (Element Msg)
