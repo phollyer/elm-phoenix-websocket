@@ -1,7 +1,8 @@
 module View.StatusReports exposing
     ( Config
     , init
-    , reports
+    , scrollable
+    , static
     , title
     , view
     )
@@ -13,7 +14,8 @@ import Template.StatusReports.PhonePortrait as PhonePortrait
 type Config msg
     = Config
         { title : String
-        , reports : List (Element msg)
+        , static : List (Element msg)
+        , scrollable : List (Element msg)
         }
 
 
@@ -21,7 +23,8 @@ init : Config msg
 init =
     Config
         { title = ""
-        , reports = []
+        , static = []
+        , scrollable = []
         }
 
 
@@ -35,6 +38,11 @@ title title_ (Config config) =
     Config { config | title = title_ }
 
 
-reports : List (Element msg) -> Config msg -> Config msg
-reports reports_ (Config config) =
-    Config { config | reports = reports_ }
+scrollable : List (Element msg) -> Config msg -> Config msg
+scrollable scrollable_ (Config config) =
+    Config { config | scrollable = scrollable_ }
+
+
+static : List (Element msg) -> Config msg -> Config msg
+static static_ (Config config) =
+    Config { config | static = static_ }

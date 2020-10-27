@@ -23,6 +23,7 @@ import Phoenix.Socket as Socket
 import Route
 import Session exposing (Session)
 import View.ApplicableFunctions as ApplicableFunctions
+import View.ChannelMessage as ChannelMessage
 import View.Control as Control
 import View.Controls as Controls
 import View.Example as Example
@@ -693,9 +694,11 @@ view model =
                                     |> UsefulFunctions.view device
                                 , StatusReports.init
                                     |> StatusReports.title "Info"
-                                    |> StatusReports.reports (statusReports device model)
+                                    |> StatusReports.static (staticReports device model)
+                                    |> StatusReports.scrollable (scrollableReports device model)
                                     |> StatusReports.view device
                                 ]
+                            |> Feedback.order [ ( Phone, Portrait, [ 2, 3, 1 ] ) ]
                             |> Feedback.view device
                         )
                     |> Example.view device
@@ -933,32 +936,27 @@ channelMessagesOff example device channelMessages =
         |> Control.view device
 
 
-statusReports : Device -> Model -> List (Element Msg)
-statusReports device model =
+staticReports : Device -> Model -> List (Element Msg)
+staticReports device model =
     case model.example of
         ManageSocketHeartbeat _ ->
             [ StatusReport.init
-                |> StatusReport.title "Heartbeat Count"
-                |> StatusReport.report
-                    (El.text (String.fromInt model.heartbeatCount))
+                |> StatusReport.label "Heartbeat Count"
+                |> StatusReport.value (StatusReport.String (String.fromInt model.heartbeatCount))
                 |> StatusReport.view device
             ]
 
         ManageChannelMessages _ ->
-            List.append
-                [ StatusReport.init
-                    |> StatusReport.title "Message Count"
-                    |> StatusReport.report
-                        (El.text (String.fromInt model.channelMessageCount))
-                    |> StatusReport.view device
-                ]
-                (List.map (formatChannelMessage device) model.channelMessageList)
+            [ StatusReport.init
+                |> StatusReport.label "Message Count"
+                |> StatusReport.value (StatusReport.String (String.fromInt model.channelMessageCount))
+                |> StatusReport.view device
+            ]
 
         ManagePresenceMessages _ ->
             [ StatusReport.init
-                |> StatusReport.title "Message Count"
-                |> StatusReport.report
-                    (El.text (String.fromInt model.presenceMessageCount))
+                |> StatusReport.label "Message Count"
+                |> StatusReport.value (StatusReport.String (String.fromInt model.presenceMessageCount))
                 |> StatusReport.view device
             ]
 
@@ -966,28 +964,31 @@ statusReports device model =
             [ El.none ]
 
 
-formatChannelMessage : Device -> ChannelMsg -> Element Msg
-formatChannelMessage device msg =
-    let
-        formatted =
-            List.map
-                (\( label, value ) ->
-                    El.paragraph
-                        []
-                        [ El.el [ Font.color Color.darkslateblue ] (El.text label)
-                        , El.text value
-                        ]
-                )
-                [ ( "Topic: ", msg.topic )
-                , ( "Event: ", msg.event )
-                , ( "Payload: ", JE.encode 2 msg.payload )
-                , ( "Join Ref: ", Maybe.withDefault "Nothing" msg.joinRef )
-                , ( "Ref: ", Maybe.withDefault "Nothing" msg.ref )
-                ]
-    in
+scrollableReports : Device -> Model -> List (Element Msg)
+scrollableReports device model =
+    case model.example of
+        ManageChannelMessages _ ->
+            List.map (channelMessage device) model.channelMessageList
+
+        _ ->
+            [ El.none ]
+
+
+channelMessage : Device -> ChannelMsg -> Element Msg
+channelMessage device msg =
     StatusReport.init
-        |> StatusReport.title "Channel Message"
-        |> StatusReport.report (El.column [] formatted)
+        |> StatusReport.title (Just "Channel Message")
+        |> StatusReport.value
+            (StatusReport.Element
+                (ChannelMessage.init
+                    |> ChannelMessage.topic msg.topic
+                    |> ChannelMessage.event msg.event
+                    |> ChannelMessage.payload msg.payload
+                    |> ChannelMessage.joinRef msg.joinRef
+                    |> ChannelMessage.ref msg.ref
+                    |> ChannelMessage.view device
+                )
+            )
         |> StatusReport.view device
 
 

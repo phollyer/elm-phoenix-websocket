@@ -24,6 +24,8 @@ view { functions } =
         , El.column
             [ Font.size 16
             , El.spacing 5
+            , El.width El.fill
+            , El.clip
             ]
             (List.map UI.functionLink functions)
         ]

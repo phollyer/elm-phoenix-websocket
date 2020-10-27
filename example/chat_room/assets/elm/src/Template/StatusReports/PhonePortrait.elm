@@ -10,7 +10,8 @@ import Element.Font as Font
 type alias Config msg c =
     { c
         | title : String
-        , reports : List (Element msg)
+        , static : List (Element msg)
+        , scrollable : List (Element msg)
     }
 
 
@@ -21,10 +22,14 @@ view config =
         , Border.color Color.black
         , Border.width 1
         , El.padding 10
+        , El.spacing 15
         , El.width El.fill
+        , El.height <|
+            El.maximum 350 El.fill
         ]
         [ title config.title
-        , reports config.reports
+        , static config.static
+        , scrollable config.scrollable
         ]
 
 
@@ -40,8 +45,24 @@ title title_ =
         (El.text title_)
 
 
-reports : List (Element msg) -> Element msg
-reports reports_ =
+scrollable : List (Element msg) -> Element msg
+scrollable reports_ =
     El.column
-        []
+        [ El.width El.fill
+        , El.height El.fill
+        , El.clipY
+        , El.scrollbarY
+        , El.spacing 15
+        , Font.size 16
+        ]
+        reports_
+
+
+static : List (Element msg) -> Element msg
+static reports_ =
+    El.column
+        [ El.width El.fill
+        , El.spacing 15
+        , Font.size 16
+        ]
         reports_
