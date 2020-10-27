@@ -214,112 +214,52 @@ view model =
             |> Layout.title "Control The Socket Connection"
             |> Layout.body
                 (Example.init
-                    |> Example.introduction
-                        [ Utils.paragraph
-                            [ El.text "Connecting to the Socket is taken care of automatically when a request to join a Channel is made, or when a Channel is pushed to, "
-                            , El.text "however, if you want to take manual control, here's a few examples."
-                            ]
-                        , Utils.paragraph
-                            [ El.text "Clicking on a function will take you to its documentation." ]
-                        ]
-                    |> Example.menu
-                        (Menu.init
-                            |> Menu.options
-                                [ ( Example.toString SimpleConnect, GotMenuItem SimpleConnect )
-                                , ( Example.toString ConnectWithGoodParams, GotMenuItem ConnectWithGoodParams )
-                                , ( Example.toString ConnectWithBadParams, GotMenuItem ConnectWithBadParams )
-                                ]
-                            |> Menu.selected (Example.toString <| Example.toFunc model.example)
-                            |> Menu.group
-                                (Group.init
-                                    |> Group.layouts [ ( Phone, Landscape, [ 1, 2 ] ) ]
-                                )
-                            |> Menu.view device
-                        )
-                    |> Example.description
-                        (description model.example)
-                    |> Example.controls
-                        (Controls.init
-                            |> Controls.elements (controls model.example device phoenix)
-                            |> Controls.view device
-                        )
-                    |> Example.feedback
-                        (Feedback.init
-                            |> Feedback.elements
-                                [ ApplicableFunctions.init
-                                    |> ApplicableFunctions.functions (applicableFunctions model.example)
-                                    |> ApplicableFunctions.view device
-                                , UsefulFunctions.init
-                                    |> UsefulFunctions.functions (usefulFunctions model.example phoenix)
-                                    |> UsefulFunctions.view device
-                                ]
-                            |> Feedback.view device
-                        )
+                    |> Example.introduction introduction
+                    |> Example.menu (menu device model)
+                    |> Example.description (description model)
+                    |> Example.controls (controls device phoenix model)
+                    |> Example.feedback (feedback device phoenix model)
                     |> Example.view device
                 )
             |> Layout.view device
     }
 
 
-applicableFunctions : Example -> List String
-applicableFunctions example =
-    case example of
-        SimpleConnect _ ->
-            [ "Phoenix.connect"
-            , "Phoenix.disconnect"
+{-| Introduction
+-}
+introduction : List (Element msg)
+introduction =
+    [ Utils.paragraph
+        [ El.text "Connecting to the Socket is taken care of automatically when a request to join a Channel is made, or when a Channel is pushed to, "
+        , El.text "however, if you want to take manual control, here's a few examples."
+        ]
+    , Utils.paragraph
+        [ El.text "Clicking on a function will take you to its documentation." ]
+    ]
+
+
+{-| Examples Menu
+-}
+menu : Device -> Model -> Element Msg
+menu device { example } =
+    Menu.init
+        |> Menu.options
+            [ ( Example.toString SimpleConnect, GotMenuItem SimpleConnect )
+            , ( Example.toString ConnectWithGoodParams, GotMenuItem ConnectWithGoodParams )
+            , ( Example.toString ConnectWithBadParams, GotMenuItem ConnectWithBadParams )
             ]
-
-        ConnectWithGoodParams _ ->
-            [ "Phoenix.setConnectParams"
-            , "Phoenix.connect"
-            , "Phoenix.disconnect"
-            ]
-
-        ConnectWithBadParams _ ->
-            [ "Phoenix.setConnectParams"
-            , "Phoenix.connect"
-            , "Phoenix.disconnect"
-            ]
-
-        _ ->
-            []
+        |> Menu.selected (Example.toString <| Example.toFunc example)
+        |> Menu.group
+            (Group.init
+                |> Group.layouts [ ( Phone, Landscape, [ 1, 2 ] ) ]
+            )
+        |> Menu.view device
 
 
-usefulFunctions : Example -> Phoenix.Model -> List ( String, String )
-usefulFunctions example phoenix =
-    case example of
-        SimpleConnect _ ->
-            [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
-            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
-            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
-            ]
-
-        ConnectWithGoodParams _ ->
-            [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
-            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
-            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
-            ]
-
-        ConnectWithBadParams _ ->
-            [ ( "Phoenix.disconnectReason"
-              , case Phoenix.disconnectReason phoenix of
-                    Nothing ->
-                        "Nothing"
-
-                    Just reason ->
-                        "Just " ++ String.printQuoted reason
-              )
-            , ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
-            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
-            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
-            ]
-
-        _ ->
-            []
-
-
-description : Example -> List (Element msg)
-description example =
+{-| Example Description
+-}
+description : Model -> List (Element msg)
+description { example } =
     case example of
         SimpleConnect _ ->
             [ Utils.paragraph
@@ -340,8 +280,17 @@ description example =
             []
 
 
-controls : Example -> Device -> Phoenix.Model -> List (Element Msg)
-controls example device phoenix =
+{-| Example Controls
+-}
+controls : Device -> Phoenix.Model -> Model -> Element Msg
+controls device phoenix model =
+    Controls.init
+        |> Controls.elements (buttons device phoenix model)
+        |> Controls.view device
+
+
+buttons : Device -> Phoenix.Model -> Model -> List (Element Msg)
+buttons device phoenix { example } =
     case example of
         SimpleConnect _ ->
             [ connect SimpleConnect device phoenix
@@ -385,3 +334,76 @@ disconnect example device phoenix =
         |> Control.onPress (Just (GotControlClick (example Disconnect)))
         |> Control.enabled (Phoenix.socketState phoenix == Phoenix.Connected)
         |> Control.view device
+
+
+{-| Example Feedback and Info
+-}
+feedback : Device -> Phoenix.Model -> Model -> Element Msg
+feedback device phoenix { example } =
+    Feedback.init
+        |> Feedback.elements
+            [ ApplicableFunctions.init
+                |> ApplicableFunctions.functions (applicableFunctions example)
+                |> ApplicableFunctions.view device
+            , UsefulFunctions.init
+                |> UsefulFunctions.functions (usefulFunctions phoenix example)
+                |> UsefulFunctions.view device
+            ]
+        |> Feedback.view device
+
+
+applicableFunctions : Example -> List String
+applicableFunctions example =
+    case example of
+        SimpleConnect _ ->
+            [ "Phoenix.connect"
+            , "Phoenix.disconnect"
+            ]
+
+        ConnectWithGoodParams _ ->
+            [ "Phoenix.setConnectParams"
+            , "Phoenix.connect"
+            , "Phoenix.disconnect"
+            ]
+
+        ConnectWithBadParams _ ->
+            [ "Phoenix.setConnectParams"
+            , "Phoenix.connect"
+            , "Phoenix.disconnect"
+            ]
+
+        _ ->
+            []
+
+
+usefulFunctions : Phoenix.Model -> Example -> List ( String, String )
+usefulFunctions phoenix example =
+    case example of
+        SimpleConnect _ ->
+            [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
+            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
+            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
+            ]
+
+        ConnectWithGoodParams _ ->
+            [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
+            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
+            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
+            ]
+
+        ConnectWithBadParams _ ->
+            [ ( "Phoenix.disconnectReason"
+              , case Phoenix.disconnectReason phoenix of
+                    Nothing ->
+                        "Nothing"
+
+                    Just reason ->
+                        "Just " ++ String.printQuoted reason
+              )
+            , ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
+            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
+            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
+            ]
+
+        _ ->
+            []
