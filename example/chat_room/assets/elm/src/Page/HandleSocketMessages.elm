@@ -652,9 +652,9 @@ view model =
                     |> Example.introduction
                         [ Utils.paragraph
                             [ El.text "By default, the PhoenixJS "
-                            , Utils.code device "onMessage"
+                            , Utils.code "onMessage"
                             , El.text " handler for the Socket is setup to send all Socket messages through the incoming "
-                            , Utils.code device "port"
+                            , Utils.code "port"
                             , El.text ". These examples demonstrate controlling the types of messages that are allowed through."
                             ]
                         , Utils.paragraph

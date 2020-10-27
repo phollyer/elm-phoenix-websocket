@@ -4,14 +4,14 @@ module View.Utils exposing
     )
 
 import Colors.Opaque as Color
-import Element as El exposing (Device, DeviceClass, Element, Orientation)
+import Element as El exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 
 
-code : Device -> String -> Element msg
-code device text =
+code : String -> Element msg
+code text =
     El.el
         [ Font.family [ Font.typeface "Roboto Mono" ]
         , Background.color Color.lightgrey
