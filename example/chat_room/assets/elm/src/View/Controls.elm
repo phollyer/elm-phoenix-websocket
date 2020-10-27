@@ -1,9 +1,8 @@
 module View.Controls exposing
     ( Config
     , elements
+    , group
     , init
-    , layouts
-    , order
     , userId
     , view
     )
@@ -11,7 +10,7 @@ module View.Controls exposing
 import Element exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Template.Controls.PhoneLandscape as PhoneLandscape
 import Template.Controls.PhonePortrait as PhonePortrait
-import View.Utils as Utils
+import View.Group as Group
 
 
 type Config msg
@@ -19,8 +18,7 @@ type Config msg
         { userId : Maybe String
         , elements : List (Element msg)
         , layout : Maybe (List Int)
-        , layouts : List ( DeviceClass, Orientation, List Int )
-        , order : List ( DeviceClass, Orientation, List Int )
+        , group : Group.Config
         }
 
 
@@ -30,8 +28,7 @@ init =
         { userId = Nothing
         , elements = []
         , layout = Nothing
-        , layouts = []
-        , order = []
+        , group = Group.init
         }
 
 
@@ -39,13 +36,13 @@ view : Device -> Config msg -> Element msg
 view ({ class, orientation } as device) (Config config) =
     case ( class, orientation ) of
         ( Phone, Portrait ) ->
-            Utils.orderElementsForDevice device config
-                |> Utils.layoutForDevice device
+            Group.orderElementsForDevice device config.group config
+                |> Group.layoutForDevice device config.group
                 |> PhonePortrait.view
 
         _ ->
-            Utils.orderElementsForDevice device config
-                |> Utils.layoutForDevice device
+            Group.orderElementsForDevice device config.group config
+                |> Group.layoutForDevice device config.group
                 |> PhoneLandscape.view
 
 
@@ -60,11 +57,6 @@ elements list (Config config) =
     Config { config | elements = list }
 
 
-layouts : List ( DeviceClass, Orientation, List Int ) -> Config msg -> Config msg
-layouts list (Config config) =
-    Config { config | layouts = list }
-
-
-order : List ( DeviceClass, Orientation, List Int ) -> Config msg -> Config msg
-order list (Config config) =
-    Config { config | order = list }
+group : Group.Config -> Config msg -> Config msg
+group group_ (Config config) =
+    Config { config | group = group_ }

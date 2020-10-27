@@ -27,6 +27,7 @@ import View.ChannelMessage as ChannelMessage
 import View.Control as Control
 import View.Controls as Controls
 import View.Example as Example
+import View.Feedback as Feedback
 import View.Group as Group
 import View.Layout as Layout
 import View.Menu as Menu
@@ -677,15 +678,18 @@ view model =
                         (Controls.init
                             |> Controls.userId model.userId
                             |> Controls.elements (controls model device phoenix)
-                            |> Controls.order (order model)
-                            |> Controls.layouts (layouts model)
+                            |> Controls.group
+                                (Group.init
+                                    |> Group.layouts (layouts model)
+                                    |> Group.order (order model)
+                                )
                             |> Controls.view device
                         )
                     |> Example.remoteControls
                         (remoteControls model device phoenix)
                     |> Example.feedback
-                        (Group.init
-                            |> Group.elements
+                        (Feedback.init
+                            |> Feedback.elements
                                 [ StatusReports.init
                                     |> StatusReports.title "Info"
                                     |> StatusReports.static (staticReports device model)
@@ -698,16 +702,19 @@ view model =
                                     |> UsefulFunctions.functions (usefulFunctions model.example phoenix)
                                     |> UsefulFunctions.view device
                                 ]
-                            |> Group.layouts
-                                [ ( Phone, Landscape, [ 1, 2 ] )
-                                , ( Tablet, Portrait, [ 1, 2 ] )
-                                , ( Tablet, Landscape, [ 3 ] )
-                                , ( Desktop, Portrait, [ 3 ] )
-                                , ( Desktop, Landscape, [ 3 ] )
-                                , ( BigDesktop, Portrait, [ 3 ] )
-                                , ( BigDesktop, Landscape, [ 3 ] )
-                                ]
-                            |> Group.view device
+                            |> Feedback.group
+                                (Group.init
+                                    |> Group.layouts
+                                        [ ( Phone, Landscape, [ 1, 2 ] )
+                                        , ( Tablet, Portrait, [ 1, 2 ] )
+                                        , ( Tablet, Landscape, [ 3 ] )
+                                        , ( Desktop, Portrait, [ 3 ] )
+                                        , ( Desktop, Landscape, [ 3 ] )
+                                        , ( BigDesktop, Portrait, [ 3 ] )
+                                        , ( BigDesktop, Landscape, [ 3 ] )
+                                        ]
+                                )
+                            |> Feedback.view device
                         )
                     |> Example.view device
                 )
@@ -832,8 +839,10 @@ maybeRemoteControl userId device presence =
                     [ joinControl ManagePresenceMessages device (GotRemoteControlClick presence.id) (presence.meta.exampleState == NotJoined)
                     , leaveControl ManagePresenceMessages device (GotRemoteControlClick presence.id) (presence.meta.exampleState == Joined)
                     ]
-                |> Controls.layouts
-                    [ ( Phone, Portrait, [ 2 ] ) ]
+                |> Controls.group
+                    (Group.init
+                        |> Group.layouts [ ( Phone, Portrait, [ 2 ] ) ]
+                    )
                 |> Controls.view device
             )
 

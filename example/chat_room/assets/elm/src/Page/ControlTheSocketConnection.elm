@@ -20,6 +20,7 @@ import View.ApplicableFunctions as ApplicableFunctions
 import View.Control as Control
 import View.Controls as Controls
 import View.Example as Example
+import View.Feedback as Feedback
 import View.Group as Group
 import View.Layout as Layout
 import View.Menu as Menu
@@ -228,24 +229,23 @@ view model =
                                 , ( Example.toString ConnectWithGoodParams, GotMenuItem ConnectWithGoodParams )
                                 , ( Example.toString ConnectWithBadParams, GotMenuItem ConnectWithBadParams )
                                 ]
-                            |> Menu.selected
-                                (Example.toString <| Example.toFunc model.example)
-                            |> Menu.layouts
-                                [ ( Phone, Landscape, [ 1, 2 ] ) ]
+                            |> Menu.selected (Example.toString <| Example.toFunc model.example)
+                            |> Menu.group
+                                (Group.init
+                                    |> Group.layouts [ ( Phone, Landscape, [ 1, 2 ] ) ]
+                                )
                             |> Menu.view device
                         )
                     |> Example.description
                         (description model.example)
                     |> Example.controls
                         (Controls.init
-                            |> Controls.elements
-                                (controls model.example device phoenix)
-                            |> Controls.layouts []
+                            |> Controls.elements (controls model.example device phoenix)
                             |> Controls.view device
                         )
                     |> Example.feedback
-                        (Group.init
-                            |> Group.elements
+                        (Feedback.init
+                            |> Feedback.elements
                                 [ ApplicableFunctions.init
                                     |> ApplicableFunctions.functions (applicableFunctions model.example)
                                     |> ApplicableFunctions.view device
@@ -253,7 +253,7 @@ view model =
                                     |> UsefulFunctions.functions (usefulFunctions model.example phoenix)
                                     |> UsefulFunctions.view device
                                 ]
-                            |> Group.view device
+                            |> Feedback.view device
                         )
                     |> Example.view device
                 )

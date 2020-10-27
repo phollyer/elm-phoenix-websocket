@@ -1,7 +1,5 @@
 module View.Utils exposing
     ( code
-    , layoutForDevice
-    , orderElementsForDevice
     , paragraph
     )
 
@@ -10,49 +8,6 @@ import Element as El exposing (Device, DeviceClass, Element, Orientation)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Extra.List as List
-
-
-layoutForDevice :
-    Device
-    ->
-        { c
-            | layout : Maybe (List Int)
-            , layouts : List ( DeviceClass, Orientation, List Int )
-        }
-    ->
-        { c
-            | layout : Maybe (List Int)
-            , layouts : List ( DeviceClass, Orientation, List Int )
-        }
-layoutForDevice { class, orientation } config =
-    { config
-        | layout = List.findByClassAndOrientation class orientation config.layouts
-    }
-
-
-orderElementsForDevice :
-    Device
-    ->
-        { c
-            | elements : List (Element msg)
-            , order : List ( DeviceClass, Orientation, List Int )
-        }
-    ->
-        { c
-            | elements : List (Element msg)
-            , order : List ( DeviceClass, Orientation, List Int )
-        }
-orderElementsForDevice { class, orientation } config =
-    { config
-        | elements =
-            case List.findByClassAndOrientation class orientation config.order of
-                Nothing ->
-                    config.elements
-
-                Just newIndices ->
-                    List.reIndex newIndices config.elements
-    }
 
 
 code : Device -> String -> Element msg

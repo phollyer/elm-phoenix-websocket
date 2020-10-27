@@ -1,4 +1,4 @@
-module Template.Group.Common exposing
+module Template.Feedback.Common exposing
     ( Config
     , containerAttrs
     )
@@ -12,7 +12,6 @@ type alias Config msg c =
     { c
         | elements : List (Element msg)
         , layout : Maybe (List Int)
-        , layouts : List ( DeviceClass, Orientation, List Int )
     }
 
 

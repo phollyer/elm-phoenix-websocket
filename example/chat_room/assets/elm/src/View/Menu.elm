@@ -1,8 +1,7 @@
 module View.Menu exposing
     ( Config, init
     , view
-    , options, selected
-    , layouts
+    , options, selected, group
     )
 
 {-| This module is intended to enable building up a menu with pipelines and
@@ -12,7 +11,7 @@ then passing off the menu config to the relevant template.
 
 @docs Template, view
 
-@docs options, selected
+@docs options, selected, group
 
 -}
 
@@ -21,7 +20,7 @@ import Template.Menu.Desktop as Desktop
 import Template.Menu.PhoneLandscape as PhoneLandscape
 import Template.Menu.PhonePortrait as PhonePortrait
 import Template.Menu.TabletLandscape as TabletLandscape
-import View.Utils as Utils
+import View.Group as Group
 
 
 {-| -}
@@ -30,7 +29,7 @@ type Config msg
         { options : List ( String, msg )
         , selected : String
         , layout : Maybe (List Int)
-        , layouts : List ( DeviceClass, Orientation, List Int )
+        , group : Group.Config
         }
 
 
@@ -41,7 +40,7 @@ init =
         { options = []
         , selected = ""
         , layout = Nothing
-        , layouts = []
+        , group = Group.init
         }
 
 
@@ -53,7 +52,7 @@ view ({ class, orientation } as device) (Config config) =
             PhonePortrait.view config
 
         ( Phone, Landscape ) ->
-            Utils.layoutForDevice device config
+            Group.layoutForDevice device config.group config
                 |> PhoneLandscape.view
 
         ( Tablet, Portrait ) ->
@@ -79,6 +78,6 @@ selected selected_ (Config config) =
 
 
 {-| -}
-layouts : List ( DeviceClass, Orientation, List Int ) -> Config msg -> Config msg
-layouts layouts_ (Config config) =
-    Config { config | layouts = layouts_ }
+group : Group.Config -> Config msg -> Config msg
+group group_ (Config config) =
+    Config { config | group = group_ }

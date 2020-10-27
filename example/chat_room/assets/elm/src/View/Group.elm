@@ -1,53 +1,65 @@
 module View.Group exposing
     ( Config
-    , elements
     , init
+    , layoutForDevice
     , layouts
     , order
-    , view
+    , orderElementsForDevice
     )
 
 import Element exposing (Device, DeviceClass, Element, Orientation)
-import Template.Group.PhonePortrait as PhonePortrait
+import Extra.List as List
 import View.Utils as Utils
 
 
-type Config msg
+type Config
     = Config
-        { elements : List (Element msg)
-        , layouts : List ( DeviceClass, Orientation, List Int )
+        { layouts : List ( DeviceClass, Orientation, List Int )
         , order : List ( DeviceClass, Orientation, List Int )
-        , layout : Maybe (List Int)
         }
 
 
-init : Config msg
+init : Config
 init =
     Config
-        { elements = []
-        , layouts = []
-        , layout = Nothing
+        { layouts = []
         , order = []
         }
 
 
-view : Device -> Config msg -> Element msg
-view device (Config config) =
-    Utils.orderElementsForDevice device config
-        |> Utils.layoutForDevice device
-        |> PhonePortrait.view
-
-
-elements : List (Element msg) -> Config msg -> Config msg
-elements list (Config config) =
-    Config { config | elements = list }
-
-
-layouts : List ( DeviceClass, Orientation, List Int ) -> Config msg -> Config msg
+layouts : List ( DeviceClass, Orientation, List Int ) -> Config -> Config
 layouts list (Config config) =
     Config { config | layouts = list }
 
 
-order : List ( DeviceClass, Orientation, List Int ) -> Config msg -> Config msg
+order : List ( DeviceClass, Orientation, List Int ) -> Config -> Config
 order list (Config config) =
     Config { config | order = list }
+
+
+layoutForDevice :
+    Device
+    -> Config
+    -> { c | layout : Maybe (List Int) }
+    -> { c | layout : Maybe (List Int) }
+layoutForDevice { class, orientation } (Config config) c =
+    { c
+        | layout = List.findByClassAndOrientation class orientation config.layouts
+    }
+
+
+orderElementsForDevice :
+    Device
+    -> Config
+    -> { c | elements : List (Element msg) }
+    -> { c | elements : List (Element msg) }
+orderElementsForDevice { class, orientation } (Config config) c =
+    { c
+        | elements =
+            case List.findByClassAndOrientation class orientation config.order of
+                Nothing ->
+                    c.elements
+
+                Just newIndices ->
+                    List.reIndex newIndices c.elements
+    }
