@@ -20,7 +20,7 @@ import View.ApplicableFunctions as ApplicableFunctions
 import View.Control as Control
 import View.Controls as Controls
 import View.Example as Example
-import View.Feedback as Feedback
+import View.Group as Group
 import View.Layout as Layout
 import View.Menu as Menu
 import View.UsefulFunctions as UsefulFunctions
@@ -244,8 +244,8 @@ view model =
                             |> Controls.view device
                         )
                     |> Example.feedback
-                        (Feedback.init
-                            |> Feedback.elements
+                        (Group.init
+                            |> Group.elements
                                 [ ApplicableFunctions.init
                                     |> ApplicableFunctions.functions (applicableFunctions model.example)
                                     |> ApplicableFunctions.view device
@@ -253,7 +253,7 @@ view model =
                                     |> UsefulFunctions.functions (usefulFunctions model.example phoenix)
                                     |> UsefulFunctions.view device
                                 ]
-                            |> Feedback.view device
+                            |> Group.view device
                         )
                     |> Example.view device
                 )

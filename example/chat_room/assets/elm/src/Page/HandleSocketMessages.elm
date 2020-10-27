@@ -27,7 +27,7 @@ import View.ChannelMessage as ChannelMessage
 import View.Control as Control
 import View.Controls as Controls
 import View.Example as Example
-import View.Feedback as Feedback
+import View.Group as Group
 import View.Layout as Layout
 import View.Menu as Menu
 import View.StatusReport as StatusReport
@@ -684,8 +684,8 @@ view model =
                     |> Example.remoteControls
                         (remoteControls model device phoenix)
                     |> Example.feedback
-                        (Feedback.init
-                            |> Feedback.elements
+                        (Group.init
+                            |> Group.elements
                                 [ StatusReports.init
                                     |> StatusReports.title "Info"
                                     |> StatusReports.static (staticReports device model)
@@ -698,7 +698,7 @@ view model =
                                     |> UsefulFunctions.functions (usefulFunctions model.example phoenix)
                                     |> UsefulFunctions.view device
                                 ]
-                            |> Feedback.layouts
+                            |> Group.layouts
                                 [ ( Phone, Landscape, [ 1, 2 ] )
                                 , ( Tablet, Portrait, [ 1, 2 ] )
                                 , ( Tablet, Landscape, [ 3 ] )
@@ -707,7 +707,7 @@ view model =
                                 , ( BigDesktop, Portrait, [ 3 ] )
                                 , ( BigDesktop, Landscape, [ 3 ] )
                                 ]
-                            |> Feedback.view device
+                            |> Group.view device
                         )
                     |> Example.view device
                 )

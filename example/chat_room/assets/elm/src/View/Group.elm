@@ -1,4 +1,4 @@
-module View.Feedback exposing
+module View.Group exposing
     ( Config
     , elements
     , init
@@ -8,7 +8,7 @@ module View.Feedback exposing
     )
 
 import Element exposing (Device, DeviceClass, Element, Orientation)
-import Template.Feedback.PhonePortrait as PhonePortrait
+import Template.Group.PhonePortrait as PhonePortrait
 import View.Utils as Utils
 
 
