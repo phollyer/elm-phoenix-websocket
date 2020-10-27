@@ -21,7 +21,9 @@ view config =
                     |> List.map
                         (\elements ->
                             El.row
-                                [ El.width El.fill ]
+                                [ El.spacing 10
+                                , El.width El.fill
+                                ]
                             <|
                                 controls elements
                         )
@@ -44,5 +46,8 @@ controls elements =
 
 control : Element msg -> Element msg
 control item =
-    El.el [ El.width El.fill ]
+    El.el
+        [ El.alignTop
+        , El.width El.fill
+        ]
         item

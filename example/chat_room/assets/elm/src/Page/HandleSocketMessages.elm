@@ -686,19 +686,27 @@ view model =
                     |> Example.feedback
                         (Feedback.init
                             |> Feedback.elements
-                                [ ApplicableFunctions.init
+                                [ StatusReports.init
+                                    |> StatusReports.title "Info"
+                                    |> StatusReports.static (staticReports device model)
+                                    |> StatusReports.scrollable (scrollableReports device model)
+                                    |> StatusReports.view device
+                                , ApplicableFunctions.init
                                     |> ApplicableFunctions.functions (applicableFunctions model.example)
                                     |> ApplicableFunctions.view device
                                 , UsefulFunctions.init
                                     |> UsefulFunctions.functions (usefulFunctions model.example phoenix)
                                     |> UsefulFunctions.view device
-                                , StatusReports.init
-                                    |> StatusReports.title "Info"
-                                    |> StatusReports.static (staticReports device model)
-                                    |> StatusReports.scrollable (scrollableReports device model)
-                                    |> StatusReports.view device
                                 ]
-                            |> Feedback.order [ ( Phone, Portrait, [ 2, 3, 1 ] ) ]
+                            |> Feedback.layouts
+                                [ ( Phone, Landscape, [ 1, 2 ] )
+                                , ( Tablet, Portrait, [ 1, 2 ] )
+                                , ( Tablet, Landscape, [ 3 ] )
+                                , ( Desktop, Portrait, [ 3 ] )
+                                , ( Desktop, Landscape, [ 3 ] )
+                                , ( BigDesktop, Portrait, [ 3 ] )
+                                , ( BigDesktop, Landscape, [ 3 ] )
+                                ]
                             |> Feedback.view device
                         )
                     |> Example.view device
