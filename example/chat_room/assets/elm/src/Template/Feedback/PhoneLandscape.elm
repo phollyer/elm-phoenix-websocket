@@ -1,4 +1,4 @@
-module Template.Feedback.PhonePortrait exposing (view)
+module Template.Feedback.PhoneLandscape exposing (view)
 
 import Colors.Opaque as Color
 import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))
@@ -10,9 +10,13 @@ import Template.Feedback.Common as Common
 
 view : Common.Config msg c -> Element msg
 view config =
+    let
+        _ =
+            Debug.log "" config.layout
+    in
     case config.layout of
         Nothing ->
-            El.column attrs
+            El.wrappedRow attrs
                 (controls config.elements)
 
         Just layout ->
@@ -22,7 +26,7 @@ view config =
                         (\elements ->
                             El.row
                                 [ El.spacing 10
-                                , El.width El.fill
+                                , El.centerX
                                 ]
                             <|
                                 controls elements
@@ -34,7 +38,7 @@ attrs : List (Attribute msg)
 attrs =
     [ El.spacing 10
     , El.paddingXY 0 10
-    , El.width El.fill
+    , El.centerX
     ]
 
 
@@ -45,8 +49,11 @@ controls elements =
 
 control : Element msg -> Element msg
 control item =
-    El.el
-        [ El.alignTop
-        , El.width El.fill
+    El.row
+        [ El.width El.fill ]
+        [ El.el
+            [ El.alignTop
+            , El.centerX
+            ]
+            item
         ]
-        item

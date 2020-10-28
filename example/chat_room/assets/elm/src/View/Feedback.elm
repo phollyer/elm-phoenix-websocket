@@ -6,7 +6,8 @@ module View.Feedback exposing
     , view
     )
 
-import Element exposing (Device, DeviceClass, Element, Orientation)
+import Element exposing (Device, DeviceClass(..), Element, Orientation(..))
+import Template.Feedback.PhoneLandscape as PhoneLandscape
 import Template.Feedback.PhonePortrait as PhonePortrait
 import View.Group as Group
 
@@ -29,10 +30,16 @@ init =
 
 
 view : Device -> Config msg -> Element msg
-view device (Config config) =
+view ({ class, orientation } as device) (Config config) =
     Group.orderElementsForDevice device config.group config
         |> Group.layoutForDevice device config.group
-        |> PhonePortrait.view
+        |> (case ( class, orientation ) of
+                ( Phone, Portrait ) ->
+                    PhonePortrait.view
+
+                _ ->
+                    PhoneLandscape.view
+           )
 
 
 elements : List (Element msg) -> Config msg -> Config msg

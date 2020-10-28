@@ -17,6 +17,4 @@ type alias Config msg c =
 
 containerAttrs : List (Attribute msg)
 containerAttrs =
-    [ El.width El.fill
-    , El.scrollbarY
-    ]
+    [ El.width El.fill ]
