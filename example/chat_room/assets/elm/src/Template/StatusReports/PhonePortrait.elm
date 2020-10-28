@@ -1,32 +1,16 @@
 module Template.StatusReports.PhonePortrait exposing (view)
 
-import Colors.Opaque as Color
 import Element as El exposing (Element)
-import Element.Background as Background
-import Element.Border as Border
 import Element.Font as Font
-
-
-type alias Config msg c =
-    { c
-        | title : String
-        , static : List (Element msg)
-        , scrollable : List (Element msg)
-    }
+import Template.StatusReports.Common as Common exposing (Config)
 
 
 view : Config msg c -> Element msg
 view config =
     El.column
-        [ Background.color Color.white
-        , Border.color Color.black
-        , Border.width 1
-        , El.padding 10
-        , El.spacing 15
-        , El.width El.fill
-        , El.height <|
-            El.maximum 350 El.fill
-        ]
+        (El.width El.fill
+            :: Common.containerAttrs
+        )
         [ title config.title
         , static config.static
         , scrollable config.scrollable
@@ -36,43 +20,39 @@ view config =
 title : String -> Element msg
 title title_ =
     El.el
-        [ El.centerX
-        , Font.bold
-        , Font.color Color.darkslateblue
-        , Font.size 18
-        , Font.underline
-        ]
+        (Font.size 18
+            :: Common.titleAttrs
+        )
         (El.text title_)
 
 
 scrollable : List (Element msg) -> Element msg
-scrollable reports =
-    case reports of
+scrollable elements =
+    case elements of
         [] ->
             El.none
 
         _ ->
             El.column
-                [ El.width El.fill
-                , El.height El.fill
-                , El.clipY
-                , El.scrollbarY
-                , El.spacing 15
-                , Font.size 16
-                ]
-                reports
+                (Font.size 16
+                    :: List.append
+                        Common.scrollableAttrs
+                        Common.contentAttrs
+                )
+                elements
 
 
 static : List (Element msg) -> Element msg
-static reports =
-    case reports of
+static elements =
+    case elements of
         [] ->
             El.none
 
         _ ->
             El.column
-                [ El.width El.fill
-                , El.spacing 15
-                , Font.size 16
-                ]
-                reports
+                (Font.size 16
+                    :: List.append
+                        Common.staticAttrs
+                        Common.contentAttrs
+                )
+                elements

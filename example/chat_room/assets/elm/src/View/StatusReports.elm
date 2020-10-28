@@ -10,6 +10,8 @@ module View.StatusReports exposing
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Template.StatusReports.PhoneLandscape as PhoneLandscape
 import Template.StatusReports.PhonePortrait as PhonePortrait
+import Template.StatusReports.TabletLandscape as TabletLandscape
+import Template.StatusReports.TabletPortrait as TabletPortrait
 
 
 type Config msg
@@ -35,8 +37,14 @@ view { class, orientation } (Config config) =
         ( Phone, Portrait ) ->
             PhonePortrait.view config
 
-        _ ->
+        ( Phone, Landscape ) ->
             PhoneLandscape.view config
+
+        ( Tablet, Portrait ) ->
+            TabletPortrait.view config
+
+        _ ->
+            TabletLandscape.view config
 
 
 title : String -> Config msg -> Config msg

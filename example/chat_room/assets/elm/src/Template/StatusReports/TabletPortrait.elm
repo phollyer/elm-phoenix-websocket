@@ -1,4 +1,4 @@
-module Template.StatusReports.PhoneLandscape exposing (view)
+module Template.StatusReports.TabletPortrait exposing (view)
 
 import Element as El exposing (Element)
 import Element.Font as Font
@@ -18,7 +18,7 @@ view config =
 title : String -> Element msg
 title title_ =
     El.el
-        (Font.size 18
+        (Font.size 20
             :: Common.titleAttrs
         )
         (El.text title_)
@@ -32,7 +32,7 @@ scrollable elements =
 
         _ ->
             El.column
-                (Font.size 16
+                (Font.size 18
                     :: List.append
                         Common.scrollableAttrs
                         Common.contentAttrs
@@ -48,7 +48,7 @@ static elements =
 
         _ ->
             El.column
-                (Font.size 16
+                (Font.size 18
                     :: List.append
                         Common.staticAttrs
                         Common.contentAttrs

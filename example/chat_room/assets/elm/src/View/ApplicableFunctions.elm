@@ -4,8 +4,9 @@ module View.ApplicableFunctions exposing
     , view
     )
 
-import Element exposing (Device, DeviceClass, Element, Orientation)
+import Element exposing (Device, DeviceClass(..), Element, Orientation)
 import Template.ApplicableFunctions.PhonePortrait as PhonePortrait
+import Template.ApplicableFunctions.TabletPortrait as TabletPortrait
 
 
 type Config
@@ -19,7 +20,12 @@ init =
 
 view : Device -> Config -> Element msg
 view { class, orientation } (Config config) =
-    PhonePortrait.view config
+    case ( class, orientation ) of
+        ( Phone, _ ) ->
+            PhonePortrait.view config
+
+        _ ->
+            TabletPortrait.view config
 
 
 functions : List String -> Config -> Config

@@ -2,6 +2,7 @@ module Template.ChannelMessage.PhonePortrait exposing (view)
 
 import Colors.Opaque as Color
 import Element as El exposing (Element)
+import Element.Border as Border
 import Element.Font as Font
 import Json.Encode as JE exposing (Value)
 
@@ -22,6 +23,19 @@ view config =
         [ El.spacing 10
         , El.width El.fill
         , El.alignLeft
+        , Border.widthEach
+            { left = 0
+            , top = 0
+            , right = 0
+            , bottom = 1
+            }
+        , Border.color Color.skyblue
+        , El.paddingEach
+            { left = 0
+            , top = 0
+            , right = 0
+            , bottom = 10
+            }
         ]
         [ container "Topic: " config.topic
         , container "Event: " config.event

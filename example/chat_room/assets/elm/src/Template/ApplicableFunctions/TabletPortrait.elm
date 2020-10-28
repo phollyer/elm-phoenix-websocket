@@ -1,4 +1,4 @@
-module Template.ApplicableFunctions.PhonePortrait exposing (..)
+module Template.ApplicableFunctions.TabletPortrait exposing (..)
 
 import Colors.Opaque as Color
 import Element as El exposing (Element)

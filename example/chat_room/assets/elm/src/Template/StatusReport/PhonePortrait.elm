@@ -3,7 +3,9 @@ module Template.StatusReport.PhonePortrait exposing
     , view
     )
 
+import Colors.Opaque as Color
 import Element as El exposing (Element)
+import Element.Font as Font
 
 
 type alias Config msg c =
@@ -38,14 +40,29 @@ title maybeTitle =
             El.none
 
         Just title_ ->
-            El.text title_
+            El.el
+                [ Font.color Color.darkslateblue
+                , Font.bold
+                ]
+                (El.text title_)
 
 
 label : String -> Element msg
 label label_ =
-    El.text label_
+    if label_ == "" then
+        El.none
+
+    else
+        El.el
+            [ Font.color Color.darkslateblue
+            , Font.bold
+            ]
+            (El.text label_)
 
 
 element : Element msg -> Element msg
 element value_ =
-    value_
+    El.el
+        [ El.width El.fill
+        ]
+        value_
