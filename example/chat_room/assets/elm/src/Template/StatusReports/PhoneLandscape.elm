@@ -56,8 +56,8 @@ scrollable reports =
                 [ El.height El.fill
                 , El.spacing 15
                 , Font.size 16
-                , El.clipY
-                , El.scrollbarY
+                , El.clip
+                , El.scrollbars
                 ]
                 reports
 
