@@ -50,10 +50,10 @@ controls elements =
 control : Element msg -> Element msg
 control item =
     El.row
-        [ El.width El.fill ]
+        [ El.alignTop
+        , El.width El.fill
+        ]
         [ El.el
-            [ El.alignTop
-            , El.centerX
-            ]
+            [ El.centerX ]
             item
         ]
