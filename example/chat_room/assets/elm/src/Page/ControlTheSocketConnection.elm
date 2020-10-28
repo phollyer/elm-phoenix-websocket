@@ -17,9 +17,9 @@ import Phoenix
 import Route
 import Session exposing (Session)
 import View.ApplicableFunctions as ApplicableFunctions
-import View.Control as Control
-import View.Controls as Controls
+import View.Button as Button
 import View.Example as Example
+import View.ExampleControls as ExampleControls
 import View.Feedback as Feedback
 import View.FeedbackPanel as FeedbackPanel
 import View.Group as Group
@@ -281,13 +281,13 @@ description { example } =
             []
 
 
-{-| Example Controls
+{-| Example ExampleControls
 -}
 controls : Device -> Phoenix.Model -> Model -> Element Msg
 controls device phoenix model =
-    Controls.init
-        |> Controls.elements (buttons device phoenix model)
-        |> Controls.view device
+    ExampleControls.init
+        |> ExampleControls.elements (buttons device phoenix model)
+        |> ExampleControls.view device
 
 
 buttons : Device -> Phoenix.Model -> Model -> List (Element Msg)
@@ -314,10 +314,10 @@ buttons device phoenix { example } =
 
 connect : (Action -> Example) -> Device -> Phoenix.Model -> Element Msg
 connect example device phoenix =
-    Control.init
-        |> Control.label "Connect"
-        |> Control.onPress (Just (GotControlClick (example Connect)))
-        |> Control.enabled
+    Button.init
+        |> Button.label "Connect"
+        |> Button.onPress (Just (GotControlClick (example Connect)))
+        |> Button.enabled
             (case Phoenix.socketState phoenix of
                 Phoenix.Disconnected _ ->
                     True
@@ -325,16 +325,16 @@ connect example device phoenix =
                 _ ->
                     False
             )
-        |> Control.view device
+        |> Button.view device
 
 
 disconnect : (Action -> Example) -> Device -> Phoenix.Model -> Element Msg
 disconnect example device phoenix =
-    Control.init
-        |> Control.label "Disconnect"
-        |> Control.onPress (Just (GotControlClick (example Disconnect)))
-        |> Control.enabled (Phoenix.socketState phoenix == Phoenix.Connected)
-        |> Control.view device
+    Button.init
+        |> Button.label "Disconnect"
+        |> Button.onPress (Just (GotControlClick (example Disconnect)))
+        |> Button.enabled (Phoenix.socketState phoenix == Phoenix.Connected)
+        |> Button.view device
 
 
 {-| Example Feedback and Info

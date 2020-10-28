@@ -1,9 +1,9 @@
-module Template.Controls.PhoneLandscape exposing (..)
+module Template.ExampleControls.PhoneLandscape exposing (..)
 
 import Colors.Opaque as Color
 import Element as El exposing (DeviceClass, Element, Orientation)
 import Element.Border as Border
-import Template.Controls.Common as Common
+import Template.ExampleControls.Common as Common
 
 
 view : Common.Config msg c -> Element msg

@@ -1,14 +1,13 @@
-module Template.Controls.Common exposing
+module Template.ExampleControls.Common exposing
     ( Config
     , containerAttrs
     , maybeId
     )
 
 import Colors.Opaque as Color
-import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))
+import Element as El exposing (Attribute, Element)
 import Element.Border as Border
 import Element.Font as Font
-import Template.Example.Common as Common
 
 
 type alias Config msg c =
@@ -39,9 +38,15 @@ maybeId type_ maybeId_ =
 
         Just id ->
             El.paragraph
-                (Font.size 20
-                    :: Common.idAttrs
-                )
-                [ El.el Common.idLabelAttrs (El.text (type_ ++ " ID: "))
-                , El.el Common.idValueAttrs (El.text id)
+                [ Font.size 20
+                , Font.center
+                , Font.family
+                    [ Font.typeface "Varela Round" ]
+                ]
+                [ El.el
+                    [ Font.color Color.lavender ]
+                    (El.text (type_ ++ " ID: "))
+                , El.el
+                    [ Font.color Color.powderblue ]
+                    (El.text id)
                 ]

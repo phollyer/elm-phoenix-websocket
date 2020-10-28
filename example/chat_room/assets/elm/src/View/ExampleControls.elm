@@ -1,4 +1,4 @@
-module View.Controls exposing
+module View.ExampleControls exposing
     ( Config
     , elements
     , group
@@ -8,8 +8,8 @@ module View.Controls exposing
     )
 
 import Element exposing (Device, DeviceClass(..), Element, Orientation(..))
-import Template.Controls.PhoneLandscape as PhoneLandscape
-import Template.Controls.PhonePortrait as PhonePortrait
+import Template.ExampleControls.PhoneLandscape as PhoneLandscape
+import Template.ExampleControls.PhonePortrait as PhonePortrait
 import View.Group as Group
 
 

@@ -1,4 +1,4 @@
-module View.Control exposing
+module View.Button exposing
     ( Config
     , enabled
     , init
@@ -8,7 +8,7 @@ module View.Control exposing
     )
 
 import Element exposing (Device, Element)
-import Template.Control.PhonePortrait as PhonePortrait
+import Template.Button.PhonePortrait as PhonePortrait
 
 
 type Config msg
