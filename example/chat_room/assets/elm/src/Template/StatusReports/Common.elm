@@ -75,5 +75,4 @@ titleAttrs =
     [ El.centerX
     , Font.bold
     , Font.color Color.darkslateblue
-    , Font.underline
     ]
