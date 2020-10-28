@@ -967,7 +967,7 @@ feedback device phoenix ({ example } as model) =
                 |> Group.layouts
                     [ ( Phone, Landscape, [ 1, 2 ] )
                     , ( Tablet, Portrait, [ 1, 2 ] )
-                    , ( Tablet, Landscape, [ 3 ] )
+                    , ( Tablet, Landscape, [ 1, 2 ] )
                     , ( Desktop, Portrait, [ 3 ] )
                     , ( Desktop, Landscape, [ 3 ] )
                     , ( BigDesktop, Portrait, [ 3 ] )
