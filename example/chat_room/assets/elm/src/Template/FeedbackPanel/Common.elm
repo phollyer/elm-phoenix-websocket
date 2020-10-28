@@ -1,4 +1,4 @@
-module Template.StatusReports.Common exposing
+module Template.FeedbackPanel.Common exposing
     ( Config
     , containerAttrs
     , contentAttrs

@@ -21,10 +21,10 @@ import View.Control as Control
 import View.Controls as Controls
 import View.Example as Example
 import View.Feedback as Feedback
+import View.FeedbackPanel as FeedbackPanel
 import View.Group as Group
 import View.Layout as Layout
 import View.Menu as Menu
-import View.StatusReports as StatusReports
 import View.UsefulFunctions as UsefulFunctions
 import View.Utils as Utils
 
@@ -343,14 +343,14 @@ feedback : Device -> Phoenix.Model -> Model -> Element Msg
 feedback device phoenix { example } =
     Feedback.init
         |> Feedback.elements
-            [ StatusReports.init
-                |> StatusReports.title "Applicable Functions"
-                |> StatusReports.scrollable [ applicableFunctions device example ]
-                |> StatusReports.view device
-            , StatusReports.init
-                |> StatusReports.title "Useful Functions"
-                |> StatusReports.scrollable [ usefulFunctions device phoenix example ]
-                |> StatusReports.view device
+            [ FeedbackPanel.init
+                |> FeedbackPanel.title "Applicable Functions"
+                |> FeedbackPanel.scrollable [ applicableFunctions device example ]
+                |> FeedbackPanel.view device
+            , FeedbackPanel.init
+                |> FeedbackPanel.title "Useful Functions"
+                |> FeedbackPanel.scrollable [ usefulFunctions device phoenix example ]
+                |> FeedbackPanel.view device
             ]
         |> Feedback.view device
 

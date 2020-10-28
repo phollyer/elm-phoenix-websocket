@@ -1,4 +1,4 @@
-module Template.StatusReport.PhonePortrait exposing
+module Template.FeedbackContent.PhonePortrait exposing
     ( Config
     , view
     )
@@ -63,6 +63,5 @@ label label_ =
 element : Element msg -> Element msg
 element value_ =
     El.el
-        [ El.width El.fill
-        ]
+        [ El.width El.fill ]
         value_

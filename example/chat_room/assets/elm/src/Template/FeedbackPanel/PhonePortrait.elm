@@ -1,14 +1,16 @@
-module Template.StatusReports.PhoneLandscape exposing (view)
+module Template.FeedbackPanel.PhonePortrait exposing (view)
 
 import Element as El exposing (Element)
 import Element.Font as Font
-import Template.StatusReports.Common as Common exposing (Config)
+import Template.FeedbackPanel.Common as Common exposing (Config)
 
 
 view : Config msg c -> Element msg
 view config =
     El.column
-        Common.containerAttrs
+        (El.width El.fill
+            :: Common.containerAttrs
+        )
         [ title config.title
         , static config.static
         , scrollable config.scrollable

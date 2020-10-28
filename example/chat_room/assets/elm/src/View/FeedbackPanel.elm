@@ -1,4 +1,4 @@
-module View.StatusReports exposing
+module View.FeedbackPanel exposing
     ( Config
     , init
     , scrollable
@@ -8,10 +8,10 @@ module View.StatusReports exposing
     )
 
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
-import Template.StatusReports.PhoneLandscape as PhoneLandscape
-import Template.StatusReports.PhonePortrait as PhonePortrait
-import Template.StatusReports.TabletLandscape as TabletLandscape
-import Template.StatusReports.TabletPortrait as TabletPortrait
+import Template.FeedbackPanel.PhoneLandscape as PhoneLandscape
+import Template.FeedbackPanel.PhonePortrait as PhonePortrait
+import Template.FeedbackPanel.TabletLandscape as TabletLandscape
+import Template.FeedbackPanel.TabletPortrait as TabletPortrait
 
 
 type Config msg

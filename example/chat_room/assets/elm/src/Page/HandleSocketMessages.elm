@@ -28,11 +28,11 @@ import View.Control as Control
 import View.Controls as Controls
 import View.Example as Example
 import View.Feedback as Feedback
+import View.FeedbackContent as FeedbackContent
+import View.FeedbackPanel as FeedbackPanel
 import View.Group as Group
 import View.Layout as Layout
 import View.Menu as Menu
-import View.StatusReport as StatusReport
-import View.StatusReports as StatusReports
 import View.UsefulFunctions as UsefulFunctions
 import View.Utils as Utils
 
@@ -948,19 +948,19 @@ feedback : Device -> Phoenix.Model -> Model -> Element Msg
 feedback device phoenix ({ example } as model) =
     Feedback.init
         |> Feedback.elements
-            [ StatusReports.init
-                |> StatusReports.title "Info"
-                |> StatusReports.static (staticReports device model)
-                |> StatusReports.scrollable (channelMsgs device model)
-                |> StatusReports.view device
-            , StatusReports.init
-                |> StatusReports.title "Applicable Functions"
-                |> StatusReports.scrollable [ applicableFunctions device example ]
-                |> StatusReports.view device
-            , StatusReports.init
-                |> StatusReports.title "Useful Functions"
-                |> StatusReports.scrollable [ usefulFunctions device phoenix example ]
-                |> StatusReports.view device
+            [ FeedbackPanel.init
+                |> FeedbackPanel.title "Info"
+                |> FeedbackPanel.static (staticReports device model)
+                |> FeedbackPanel.scrollable (channelMsgs device model)
+                |> FeedbackPanel.view device
+            , FeedbackPanel.init
+                |> FeedbackPanel.title "Applicable Functions"
+                |> FeedbackPanel.scrollable [ applicableFunctions device example ]
+                |> FeedbackPanel.view device
+            , FeedbackPanel.init
+                |> FeedbackPanel.title "Useful Functions"
+                |> FeedbackPanel.scrollable [ usefulFunctions device phoenix example ]
+                |> FeedbackPanel.view device
             ]
         |> Feedback.group
             (Group.init
@@ -981,24 +981,24 @@ staticReports : Device -> Model -> List (Element Msg)
 staticReports device model =
     case model.example of
         ManageSocketHeartbeat _ ->
-            [ StatusReport.init
-                |> StatusReport.label "Heartbeat Count"
-                |> StatusReport.value (StatusReport.String (String.fromInt model.heartbeatCount))
-                |> StatusReport.view device
+            [ FeedbackContent.init
+                |> FeedbackContent.label "Heartbeat Count"
+                |> FeedbackContent.element (El.text (String.fromInt model.heartbeatCount))
+                |> FeedbackContent.view device
             ]
 
         ManageChannelMessages _ ->
-            [ StatusReport.init
-                |> StatusReport.label "Message Count"
-                |> StatusReport.value (StatusReport.String (String.fromInt model.channelMessageCount))
-                |> StatusReport.view device
+            [ FeedbackContent.init
+                |> FeedbackContent.label "Message Count"
+                |> FeedbackContent.element (El.text (String.fromInt model.channelMessageCount))
+                |> FeedbackContent.view device
             ]
 
         ManagePresenceMessages _ ->
-            [ StatusReport.init
-                |> StatusReport.label "Message Count"
-                |> StatusReport.value (StatusReport.String (String.fromInt model.presenceMessageCount))
-                |> StatusReport.view device
+            [ FeedbackContent.init
+                |> FeedbackContent.label "Message Count"
+                |> FeedbackContent.element (El.text (String.fromInt model.presenceMessageCount))
+                |> FeedbackContent.view device
             ]
 
         _ ->
@@ -1009,11 +1009,10 @@ channelMsgs : Device -> Model -> List (Element Msg)
 channelMsgs device model =
     List.map
         (\msg ->
-            StatusReport.init
-                |> StatusReport.title (Just "Channel Message")
-                |> StatusReport.value
-                    (StatusReport.Element (channelMessage device msg))
-                |> StatusReport.view device
+            FeedbackContent.init
+                |> FeedbackContent.title (Just "Channel Message")
+                |> FeedbackContent.element (channelMessage device msg)
+                |> FeedbackContent.view device
         )
         model.channelMessageList
 
