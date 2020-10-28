@@ -968,7 +968,7 @@ feedback device phoenix ({ example } as model) =
                     [ ( Phone, Landscape, [ 1, 2 ] )
                     , ( Tablet, Portrait, [ 1, 2 ] )
                     , ( Tablet, Landscape, [ 1, 2 ] )
-                    , ( Desktop, Portrait, [ 3 ] )
+                    , ( Desktop, Portrait, [ 1, 2 ] )
                     , ( Desktop, Landscape, [ 3 ] )
                     , ( BigDesktop, Portrait, [ 3 ] )
                     , ( BigDesktop, Landscape, [ 3 ] )
