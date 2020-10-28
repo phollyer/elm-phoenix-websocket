@@ -32,7 +32,7 @@ toRows rows =
 
 toRow : List (Element msg) -> Element msg
 toRow elements =
-    El.row
+    El.wrappedRow
         [ El.spacing 10
         , El.width El.fill
         ]
@@ -43,11 +43,7 @@ toRow elements =
                     [ El.alignTop
                     , El.width El.fill
                     ]
-                    (El.el
-                        [ El.centerX
-                        ]
-                        element
-                    )
+                    element
             )
             elements
 

@@ -26,8 +26,6 @@ view config =
         , El.spacing 15
         , El.height <|
             El.maximum 350 El.fill
-        , El.width El.fill
-        , El.clip
         ]
         [ title config.title
         , static config.static
@@ -58,8 +56,8 @@ scrollable reports =
                 [ El.height El.fill
                 , El.spacing 15
                 , Font.size 16
-                , El.width El.fill
-                , El.explain Debug.todo
+                , El.clipY
+                , El.scrollbarY
                 ]
                 reports
 
