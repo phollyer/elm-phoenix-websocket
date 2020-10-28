@@ -46,23 +46,33 @@ title title_ =
 
 
 scrollable : List (Element msg) -> Element msg
-scrollable reports_ =
-    El.column
-        [ El.width El.fill
-        , El.height El.fill
-        , El.clipY
-        , El.scrollbarY
-        , El.spacing 15
-        , Font.size 16
-        ]
-        reports_
+scrollable reports =
+    case reports of
+        [] ->
+            El.none
+
+        _ ->
+            El.column
+                [ El.width El.fill
+                , El.height El.fill
+                , El.clipY
+                , El.scrollbarY
+                , El.spacing 15
+                , Font.size 16
+                ]
+                reports
 
 
 static : List (Element msg) -> Element msg
-static reports_ =
-    El.column
-        [ El.width El.fill
-        , El.spacing 15
-        , Font.size 16
-        ]
-        reports_
+static reports =
+    case reports of
+        [] ->
+            El.none
+
+        _ ->
+            El.column
+                [ El.width El.fill
+                , El.spacing 15
+                , Font.size 16
+                ]
+                reports

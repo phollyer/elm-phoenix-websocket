@@ -951,14 +951,16 @@ feedback device phoenix ({ example } as model) =
             [ StatusReports.init
                 |> StatusReports.title "Info"
                 |> StatusReports.static (staticReports device model)
-                |> StatusReports.scrollable (scrollableReports device model)
+                |> StatusReports.scrollable (channelMsgs device model)
                 |> StatusReports.view device
-            , ApplicableFunctions.init
-                |> ApplicableFunctions.functions (applicableFunctions example)
-                |> ApplicableFunctions.view device
-            , UsefulFunctions.init
-                |> UsefulFunctions.functions (usefulFunctions example phoenix)
-                |> UsefulFunctions.view device
+            , StatusReports.init
+                |> StatusReports.title "Applicable Functions"
+                |> StatusReports.scrollable [ applicableFunctions device example ]
+                |> StatusReports.view device
+            , StatusReports.init
+                |> StatusReports.title "Useful Functions"
+                |> StatusReports.scrollable [ usefulFunctions device phoenix example ]
+                |> StatusReports.view device
             ]
         |> Feedback.group
             (Group.init
@@ -1003,90 +1005,94 @@ staticReports device model =
             [ El.none ]
 
 
-scrollableReports : Device -> Model -> List (Element Msg)
-scrollableReports device model =
-    case model.example of
-        ManageChannelMessages _ ->
-            List.map (channelMessage device) model.channelMessageList
-
-        _ ->
-            [ El.none ]
+channelMsgs : Device -> Model -> List (Element Msg)
+channelMsgs device model =
+    List.map
+        (\msg ->
+            StatusReport.init
+                |> StatusReport.title (Just "Channel Message")
+                |> StatusReport.value
+                    (StatusReport.Element (channelMessage device msg))
+                |> StatusReport.view device
+        )
+        model.channelMessageList
 
 
 channelMessage : Device -> ChannelMsg -> Element Msg
 channelMessage device msg =
-    StatusReport.init
-        |> StatusReport.title (Just "Channel Message")
-        |> StatusReport.value
-            (StatusReport.Element
-                (ChannelMessage.init
-                    |> ChannelMessage.topic msg.topic
-                    |> ChannelMessage.event msg.event
-                    |> ChannelMessage.payload msg.payload
-                    |> ChannelMessage.joinRef msg.joinRef
-                    |> ChannelMessage.ref msg.ref
-                    |> ChannelMessage.view device
-                )
+    ChannelMessage.init
+        |> ChannelMessage.topic msg.topic
+        |> ChannelMessage.event msg.event
+        |> ChannelMessage.payload msg.payload
+        |> ChannelMessage.joinRef msg.joinRef
+        |> ChannelMessage.ref msg.ref
+        |> ChannelMessage.view device
+
+
+applicableFunctions : Device -> Example -> Element Msg
+applicableFunctions device example =
+    ApplicableFunctions.init
+        |> ApplicableFunctions.functions
+            (case example of
+                ManageSocketHeartbeat _ ->
+                    [ "Phoenix.setConnectOptions"
+                    , "Phoenix.heartbeatMessagesOn"
+                    , "Phoenix.heartbeatMessagesOff"
+                    ]
+
+                ManageChannelMessages _ ->
+                    [ "Phoenix.push"
+                    , "Phoenix.socketChannelMessagesOn"
+                    , "Phoenix.socketChannelMessagesOff"
+                    ]
+
+                ManagePresenceMessages _ ->
+                    [ "Phoenix.join"
+                    , "Phoenix.socketPresenceMessagesOn"
+                    , "Phoenix.socketPresenceMessagesOff"
+                    , "Phoeinx.leave"
+                    ]
+
+                _ ->
+                    []
             )
-        |> StatusReport.view device
+        |> ApplicableFunctions.view device
 
 
-applicableFunctions : Example -> List String
-applicableFunctions example =
-    case example of
-        ManageSocketHeartbeat _ ->
-            [ "Phoenix.setConnectOptions"
-            , "Phoenix.heartbeatMessagesOn"
-            , "Phoenix.heartbeatMessagesOff"
-            ]
+usefulFunctions : Device -> Phoenix.Model -> Example -> Element Msg
+usefulFunctions device phoenix example =
+    UsefulFunctions.init
+        |> UsefulFunctions.functions
+            (case example of
+                ManageSocketHeartbeat _ ->
+                    [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
+                    , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
+                    , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
+                    ]
 
-        ManageChannelMessages _ ->
-            [ "Phoenix.push"
-            , "Phoenix.socketChannelMessagesOn"
-            , "Phoenix.socketChannelMessagesOff"
-            ]
+                ManageChannelMessages _ ->
+                    [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
+                    , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
+                    , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
+                    , ( "Phoenix.channelJoined", Phoenix.channelJoined "example:manage_channel_messages" phoenix |> String.printBool )
+                    , ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList )
+                    ]
 
-        ManagePresenceMessages _ ->
-            [ "Phoenix.join"
-            , "Phoenix.socketPresenceMessagesOn"
-            , "Phoenix.socketPresenceMessagesOff"
-            , "Phoeinx.leave"
-            ]
+                ManagePresenceMessages _ ->
+                    [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
+                    , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
+                    , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
+                    , ( "Phoenix.channelJoined", Phoenix.channelJoined "example:manage_presence_messages" phoenix |> String.printBool )
+                    , ( "Phoenix.joinedChannels"
+                      , Phoenix.joinedChannels phoenix
+                            |> List.filter (String.startsWith "example:")
+                            |> String.printList
+                      )
+                    , ( "Phoenix.lastPresenceJoin", Phoenix.lastPresenceJoin "example:manage_presence_messages" phoenix |> String.printMaybe "Presence" )
+                    , ( "Phoenix.lastPresenceLeave", Phoenix.lastPresenceLeave "example:manage_presence_messages" phoenix |> String.printMaybe "Presence" )
+                    ]
 
-        _ ->
-            []
-
-
-usefulFunctions : Example -> Phoenix.Model -> List ( String, String )
-usefulFunctions example phoenix =
-    case example of
-        ManageSocketHeartbeat _ ->
-            [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
-            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
-            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
-            ]
-
-        ManageChannelMessages _ ->
-            [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
-            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
-            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
-            , ( "Phoenix.channelJoined", Phoenix.channelJoined "example:manage_channel_messages" phoenix |> String.printBool )
-            , ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList )
-            ]
-
-        ManagePresenceMessages _ ->
-            [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
-            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
-            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
-            , ( "Phoenix.channelJoined", Phoenix.channelJoined "example:manage_presence_messages" phoenix |> String.printBool )
-            , ( "Phoenix.joinedChannels"
-              , Phoenix.joinedChannels phoenix
-                    |> List.filter (String.startsWith "example:")
-                    |> String.printList
-              )
-            , ( "Phoenix.lastPresenceJoin", Phoenix.lastPresenceJoin "example:manage_presence_messages" phoenix |> String.printMaybe "Presence" )
-            , ( "Phoenix.lastPresenceLeave", Phoenix.lastPresenceLeave "example:manage_presence_messages" phoenix |> String.printMaybe "Presence" )
-            ]
-
-        _ ->
-            []
+                _ ->
+                    []
+            )
+        |> UsefulFunctions.view device

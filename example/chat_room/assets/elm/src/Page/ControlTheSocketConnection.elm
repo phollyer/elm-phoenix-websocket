@@ -24,6 +24,7 @@ import View.Feedback as Feedback
 import View.Group as Group
 import View.Layout as Layout
 import View.Menu as Menu
+import View.StatusReports as StatusReports
 import View.UsefulFunctions as UsefulFunctions
 import View.Utils as Utils
 
@@ -342,68 +343,78 @@ feedback : Device -> Phoenix.Model -> Model -> Element Msg
 feedback device phoenix { example } =
     Feedback.init
         |> Feedback.elements
-            [ ApplicableFunctions.init
-                |> ApplicableFunctions.functions (applicableFunctions example)
-                |> ApplicableFunctions.view device
-            , UsefulFunctions.init
-                |> UsefulFunctions.functions (usefulFunctions phoenix example)
-                |> UsefulFunctions.view device
+            [ StatusReports.init
+                |> StatusReports.title "Applicable Functions"
+                |> StatusReports.scrollable [ applicableFunctions device example ]
+                |> StatusReports.view device
+            , StatusReports.init
+                |> StatusReports.title "Useful Functions"
+                |> StatusReports.scrollable [ usefulFunctions device phoenix example ]
+                |> StatusReports.view device
             ]
         |> Feedback.view device
 
 
-applicableFunctions : Example -> List String
-applicableFunctions example =
-    case example of
-        SimpleConnect _ ->
-            [ "Phoenix.connect"
-            , "Phoenix.disconnect"
-            ]
+applicableFunctions : Device -> Example -> Element Msg
+applicableFunctions device example =
+    ApplicableFunctions.init
+        |> ApplicableFunctions.functions
+            (case example of
+                SimpleConnect _ ->
+                    [ "Phoenix.connect"
+                    , "Phoenix.disconnect"
+                    ]
 
-        ConnectWithGoodParams _ ->
-            [ "Phoenix.setConnectParams"
-            , "Phoenix.connect"
-            , "Phoenix.disconnect"
-            ]
+                ConnectWithGoodParams _ ->
+                    [ "Phoenix.setConnectParams"
+                    , "Phoenix.connect"
+                    , "Phoenix.disconnect"
+                    ]
 
-        ConnectWithBadParams _ ->
-            [ "Phoenix.setConnectParams"
-            , "Phoenix.connect"
-            , "Phoenix.disconnect"
-            ]
+                ConnectWithBadParams _ ->
+                    [ "Phoenix.setConnectParams"
+                    , "Phoenix.connect"
+                    , "Phoenix.disconnect"
+                    ]
 
-        _ ->
-            []
+                _ ->
+                    []
+            )
+        |> ApplicableFunctions.view device
 
 
-usefulFunctions : Phoenix.Model -> Example -> List ( String, String )
-usefulFunctions phoenix example =
-    case example of
-        SimpleConnect _ ->
-            [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
-            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
-            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
-            ]
+usefulFunctions : Device -> Phoenix.Model -> Example -> Element Msg
+usefulFunctions device phoenix example =
+    UsefulFunctions.init
+        |> UsefulFunctions.functions
+            (case example of
+                SimpleConnect _ ->
+                    [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
+                    , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
+                    , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
+                    ]
 
-        ConnectWithGoodParams _ ->
-            [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
-            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
-            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
-            ]
+                ConnectWithGoodParams _ ->
+                    [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
+                    , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
+                    , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
+                    ]
 
-        ConnectWithBadParams _ ->
-            [ ( "Phoenix.disconnectReason"
-              , case Phoenix.disconnectReason phoenix of
-                    Nothing ->
-                        "Nothing"
+                ConnectWithBadParams _ ->
+                    [ ( "Phoenix.disconnectReason"
+                      , case Phoenix.disconnectReason phoenix of
+                            Nothing ->
+                                "Nothing"
 
-                    Just reason ->
-                        "Just " ++ String.printQuoted reason
-              )
-            , ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
-            , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
-            , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
-            ]
+                            Just reason ->
+                                "Just " ++ String.printQuoted reason
+                      )
+                    , ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
+                    , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
+                    , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
+                    ]
 
-        _ ->
-            []
+                _ ->
+                    []
+            )
+        |> UsefulFunctions.view device
