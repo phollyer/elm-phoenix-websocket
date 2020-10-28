@@ -15,7 +15,12 @@ view config =
             toRow config.elements
 
         Just layout ->
-            El.column attrs <|
+            El.column
+                [ El.spacing 10
+                , El.paddingXY 0 10
+                , El.width El.fill
+                ]
+            <|
                 (List.groupsOfVarying layout config.elements
                     |> toRows
                 )
@@ -42,11 +47,3 @@ toRow elements =
                     element
             )
             elements
-
-
-attrs : List (Attribute msg)
-attrs =
-    [ El.spacing 10
-    , El.paddingXY 0 10
-    , El.width El.fill
-    ]
