@@ -10,10 +10,6 @@ import Template.Feedback.Common as Common
 
 view : Common.Config msg c -> Element msg
 view config =
-    let
-        _ =
-            Debug.log "" config.layout
-    in
     case config.layout of
         Nothing ->
             toRow config.elements
@@ -54,19 +50,3 @@ attrs =
     , El.paddingXY 0 10
     , El.width El.fill
     ]
-
-
-controls : List (Element msg) -> List (Element msg)
-controls elements =
-    List.map control elements
-
-
-control : Element msg -> Element msg
-control item =
-    El.row
-        [ El.alignTop
-        ]
-        [ El.el
-            [ El.centerX ]
-            item
-        ]
