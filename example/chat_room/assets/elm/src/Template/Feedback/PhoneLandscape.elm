@@ -16,29 +16,47 @@ view config =
     in
     case config.layout of
         Nothing ->
-            El.wrappedRow attrs
-                (controls config.elements)
+            toRow config.elements
 
         Just layout ->
             El.column attrs <|
                 (List.groupsOfVarying layout config.elements
-                    |> List.map
-                        (\elements ->
-                            El.row
-                                [ El.spacing 10
-                                , El.centerX
-                                ]
-                            <|
-                                controls elements
-                        )
+                    |> toRows
                 )
+
+
+toRows : List (List (Element msg)) -> List (Element msg)
+toRows rows =
+    List.map toRow rows
+
+
+toRow : List (Element msg) -> Element msg
+toRow elements =
+    El.row
+        [ El.spacing 10
+        , El.width El.fill
+        ]
+    <|
+        List.map
+            (\element ->
+                El.el
+                    [ El.alignTop
+                    , El.width El.fill
+                    ]
+                    (El.el
+                        [ El.centerX
+                        ]
+                        element
+                    )
+            )
+            elements
 
 
 attrs : List (Attribute msg)
 attrs =
     [ El.spacing 10
     , El.paddingXY 0 10
-    , El.centerX
+    , El.width El.fill
     ]
 
 
@@ -51,7 +69,6 @@ control : Element msg -> Element msg
 control item =
     El.row
         [ El.alignTop
-        , El.width El.fill
         ]
         [ El.el
             [ El.centerX ]

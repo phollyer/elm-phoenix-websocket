@@ -27,6 +27,7 @@ view config =
         , El.height <|
             El.maximum 350 El.fill
         , El.width El.fill
+        , El.clip
         ]
         [ title config.title
         , static config.static
@@ -54,12 +55,11 @@ scrollable reports =
 
         _ ->
             El.column
-                [ El.width El.fill
-                , El.height El.fill
-                , El.clipY
-                , El.scrollbarY
+                [ El.height El.fill
                 , El.spacing 15
                 , Font.size 16
+                , El.width El.fill
+                , El.explain Debug.todo
                 ]
                 reports
 
@@ -72,8 +72,7 @@ static reports =
 
         _ ->
             El.column
-                [ El.width El.fill
-                , El.spacing 15
+                [ El.spacing 15
                 , Font.size 16
                 ]
                 reports
