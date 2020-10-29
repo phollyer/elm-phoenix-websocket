@@ -39,6 +39,7 @@ type Example
     | ManageSocketHeartbeat Action
     | ManageChannelMessages Action
     | ManagePresenceMessages Action
+    | SimpleJoinAndLeave Action
 
 
 
@@ -67,6 +68,9 @@ fromString example =
         "ManagePresenceMessages" ->
             ManagePresenceMessages Anything
 
+        "SimpleJoinAndLeave" ->
+            SimpleJoinAndLeave Anything
+
         _ ->
             SimpleConnect Anything
 
@@ -93,6 +97,9 @@ toString example =
         ManagePresenceMessages _ ->
             "Manage Presence Messages"
 
+        SimpleJoinAndLeave _ ->
+            "Simple Join And Leave"
+
 
 {-| -}
 toAction : Example -> Action
@@ -114,6 +121,9 @@ toAction example =
             action
 
         ManagePresenceMessages action ->
+            action
+
+        SimpleJoinAndLeave action ->
             action
 
 
@@ -138,3 +148,6 @@ toFunc example =
 
         ManagePresenceMessages _ ->
             ManagePresenceMessages
+
+        SimpleJoinAndLeave _ ->
+            SimpleJoinAndLeave

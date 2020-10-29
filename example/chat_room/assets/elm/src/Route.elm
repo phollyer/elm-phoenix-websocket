@@ -16,6 +16,7 @@ type Route
     | Root
     | ControlTheSocketConnection
     | HandleSocketMessages (Maybe String) (Maybe String)
+    | JoinAndLeaveChannels
 
 
 parser : Parser (Route -> a) a
@@ -24,6 +25,7 @@ parser =
         [ Parser.map Home Parser.top
         , Parser.map ControlTheSocketConnection (s "ControlTheSocketConnection")
         , Parser.map HandleSocketMessages (s "HandleSocketMessages" <?> Query.string "example" <?> Query.string "id")
+        , Parser.map JoinAndLeaveChannels (s "JoinAndLeaveChannels")
         ]
 
 
@@ -56,3 +58,6 @@ routeToString route =
 
         HandleSocketMessages _ _ ->
             "/HandleSocketMessages"
+
+        JoinAndLeaveChannels ->
+            "/JoinAndLeaveChannels"

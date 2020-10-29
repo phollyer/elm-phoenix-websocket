@@ -103,13 +103,13 @@ socketExamples device =
     ]
 
 
-channelsExamples : Device -> List (Element msg)
+channelsExamples : Device -> List (Element Msg)
 channelsExamples device =
     [ Panel.init
         |> Panel.title "Joining and Leaving"
         |> Panel.description
             [ "Manually join and leave one or more Channels." ]
-        |> Panel.onClick Nothing
+        |> Panel.onClick (Just (NavigateTo JoinAndLeaveChannels))
         |> Panel.view device
     ]
 

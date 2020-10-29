@@ -11,6 +11,7 @@ import Page.Blank as Blank
 import Page.ControlTheSocketConnection as ControlTheSocketConnection
 import Page.HandleSocketMessages as HandleSocketMessages
 import Page.Home as Home
+import Page.JoinAndLeaveChannels as JoinAndLeaveChannels
 import Page.NotFound as NotFound
 import Route exposing (Route)
 import Session exposing (Session)
@@ -52,6 +53,10 @@ changeRouteTo maybeRoute model =
             HandleSocketMessages.init session maybeExample maybeId
                 |> updateWith HandleSocketMessages GotHandleSocketMessagesMsg
 
+        Just Route.JoinAndLeaveChannels ->
+            JoinAndLeaveChannels.init session
+                |> updateWith JoinAndLeaveChannels GotJoinAndLeaveChannelsMsg
+
 
 
 {- Session -}
@@ -75,6 +80,9 @@ toSession model =
         HandleSocketMessages subModel ->
             HandleSocketMessages.toSession subModel
 
+        JoinAndLeaveChannels subModel ->
+            JoinAndLeaveChannels.toSession subModel
+
 
 updateSession : Session -> Model -> Model
 updateSession session model =
@@ -97,6 +105,10 @@ updateSession session model =
             HandleSocketMessages <|
                 HandleSocketMessages.updateSession session subModel
 
+        JoinAndLeaveChannels subModel ->
+            JoinAndLeaveChannels <|
+                JoinAndLeaveChannels.updateSession session subModel
+
 
 
 {- Device -}
@@ -117,6 +129,7 @@ type Model
     | Home Home.Model
     | ControlTheSocketConnection ControlTheSocketConnection.Model
     | HandleSocketMessages HandleSocketMessages.Model
+    | JoinAndLeaveChannels JoinAndLeaveChannels.Model
 
 
 
@@ -130,6 +143,7 @@ type Msg
     | GotHomeMsg Home.Msg
     | GotControlTheSocketConnectionMsg ControlTheSocketConnection.Msg
     | GotHandleSocketMessagesMsg HandleSocketMessages.Msg
+    | GotJoinAndLeaveChannelsMsg JoinAndLeaveChannels.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -173,6 +187,10 @@ update msg model =
             HandleSocketMessages.update subMsg subModel
                 |> updateWith HandleSocketMessages GotHandleSocketMessagesMsg
 
+        ( GotJoinAndLeaveChannelsMsg subMsg, JoinAndLeaveChannels subModel ) ->
+            JoinAndLeaveChannels.update subMsg subModel
+                |> updateWith JoinAndLeaveChannels GotJoinAndLeaveChannelsMsg
+
         _ ->
             ( model, Cmd.none )
 
@@ -205,6 +223,13 @@ subscriptions model =
                 , onResize WindowResized
                 ]
 
+        JoinAndLeaveChannels subModel ->
+            Sub.batch
+                [ Sub.map GotJoinAndLeaveChannelsMsg <|
+                    JoinAndLeaveChannels.subscriptions subModel
+                , onResize WindowResized
+                ]
+
         _ ->
             onResize WindowResized
 
@@ -234,6 +259,9 @@ view model =
 
         HandleSocketMessages subModel ->
             viewPage device GotHandleSocketMessagesMsg (HandleSocketMessages.view subModel)
+
+        JoinAndLeaveChannels subModel ->
+            viewPage device GotJoinAndLeaveChannelsMsg (JoinAndLeaveChannels.view subModel)
 
 
 viewPage : Device -> (msg -> Msg) -> { title : String, content : Element msg } -> Document Msg
