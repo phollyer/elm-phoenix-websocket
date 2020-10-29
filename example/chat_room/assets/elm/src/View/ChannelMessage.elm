@@ -9,8 +9,9 @@ module View.ChannelMessage exposing
     , view
     )
 
-import Element exposing (Device, Element)
+import Element exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Json.Encode as JE exposing (Value)
+import Template.ChannelMessage.PhoneLandscape as PhoneLandscape
 import Template.ChannelMessage.PhonePortrait as PhonePortrait
 
 
@@ -37,7 +38,12 @@ init =
 
 view : Device -> Config msg -> Element msg
 view { class, orientation } (Config config) =
-    PhonePortrait.view config
+    case ( class, orientation ) of
+        ( Phone, Portrait ) ->
+            PhonePortrait.view config
+
+        _ ->
+            PhoneLandscape.view config
 
 
 topic : String -> Config msg -> Config msg

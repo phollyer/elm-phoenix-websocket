@@ -1,4 +1,4 @@
-module Template.ChannelMessage.PhonePortrait exposing (view)
+module Template.ChannelMessage.PhoneLandscape exposing (view)
 
 import Element as El exposing (Element)
 import Json.Encode as JE
@@ -22,7 +22,7 @@ view config =
 field : String -> String -> Element msg
 field label topic_ =
     El.wrappedRow
-        (El.spacing 5
+        (El.spacing 10
             :: Common.fieldAttrs
         )
         [ El.el
