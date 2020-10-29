@@ -10,15 +10,12 @@ import UI
 view : Common.Config -> Element msg
 view { functions } =
     El.column
-        [ El.spacing 5
-        , El.width El.fill
-        ]
+        (El.spacing 5
+            :: Common.containerAttrs
+        )
     <|
         El.row
-            [ Font.color Color.darkslateblue
-            , Font.bold
-            , El.width El.fill
-            ]
+            Common.headingAttrs
             [ El.el
                 []
                 (El.text "Function")
@@ -37,9 +34,9 @@ toRows rows =
 toRow : ( String, String ) -> Element msg
 toRow ( function, currentValue ) =
     El.wrappedRow
-        [ El.width El.fill
-        , El.spacing 5
-        ]
-        [ El.el [] (UI.functionLink function)
+        (El.spacing 10
+            :: Common.rowAttrs
+        )
+        [ UI.functionLink function
         , El.el [ El.alignRight ] (El.text currentValue)
         ]

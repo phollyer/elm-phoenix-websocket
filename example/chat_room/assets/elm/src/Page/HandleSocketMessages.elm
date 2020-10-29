@@ -727,7 +727,7 @@ description { example, exampleId } =
                                 "/HandleSocketMessages?example=ManagePresenceMessages"
                     , label = El.text "here"
                     }
-                , El.text " to open a new tab(s). You will then be able to control each tab from the tab you are in."
+                , El.text " to open a new tab(s). You will then be able to control each tab from whichever tab you are in."
                 ]
             ]
 

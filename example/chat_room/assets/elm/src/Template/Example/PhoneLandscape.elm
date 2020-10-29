@@ -13,10 +13,10 @@ view config =
     El.column
         Common.containerAttrs
         [ introduction config.introduction
-        , config.menu
+        , menu config.menu
         , description config.description
-        , maybeId "Example" config.id
-        , config.controls
+        , maybeId config.id
+        , controls config.controls
         , remoteControls config.remoteControls
         , config.feedback
         ]
@@ -30,12 +30,25 @@ introduction : List (Element msg) -> Element msg
 introduction intro =
     El.column
         (List.append
-            [ Font.size 18
-            , El.spacing 20
+            [ Font.size 16
+            , El.spacing 18
             ]
             Common.introductionAttrs
         )
         intro
+
+
+
+{- Menu -}
+
+
+menu : Element msg -> Element msg
+menu menu_ =
+    El.el
+        (Font.size 16
+            :: Common.menuAttrs
+        )
+        menu_
 
 
 
@@ -55,8 +68,8 @@ description content =
 {- Example ID -}
 
 
-maybeId : String -> Maybe String -> Element msg
-maybeId type_ maybeId_ =
+maybeId : Maybe String -> Element msg
+maybeId maybeId_ =
     case maybeId_ of
         Nothing ->
             El.none
@@ -66,9 +79,22 @@ maybeId type_ maybeId_ =
                 (Font.size 16
                     :: Common.idAttrs
                 )
-                [ El.el Common.idLabelAttrs (El.text (type_ ++ " ID: "))
+                [ El.el Common.idLabelAttrs (El.text "Example ID: ")
                 , El.el Common.idValueAttrs (El.text id)
                 ]
+
+
+
+{- Controls -}
+
+
+controls : Element msg -> Element msg
+controls controls_ =
+    El.el
+        (Font.size 16
+            :: Common.controlsAttrs
+        )
+        controls_
 
 
 
@@ -78,7 +104,10 @@ maybeId type_ maybeId_ =
 remoteControls : List (Element msg) -> Element msg
 remoteControls cntrls =
     El.column
-        [ El.width El.fill
-        , El.spacing 10
-        ]
+        (List.append
+            [ El.spacing 10
+            , Font.size 16
+            ]
+            Common.remoteControlAttrs
+        )
         cntrls

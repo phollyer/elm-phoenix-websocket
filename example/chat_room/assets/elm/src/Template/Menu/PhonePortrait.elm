@@ -16,7 +16,6 @@ view config =
                 , bottom = 8
                 }
             , El.spacing 10
-            , Font.size 18
             ]
             Common.containerAttrs
         )

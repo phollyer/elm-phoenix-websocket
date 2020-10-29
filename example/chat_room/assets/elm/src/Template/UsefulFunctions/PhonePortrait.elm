@@ -10,8 +10,9 @@ import UI
 view : Common.Config -> Element msg
 view { functions } =
     El.column
-        [ El.spacing 5
-        ]
+        (El.spacing 5
+            :: Common.containerAttrs
+        )
         (List.map
             (\( func, _ ) -> UI.functionLink func)
             functions

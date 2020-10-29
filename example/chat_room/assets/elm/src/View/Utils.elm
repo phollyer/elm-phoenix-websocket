@@ -18,7 +18,6 @@ code text =
         , El.padding 2
         , Border.width 1
         , Border.color Color.black
-        , Font.size 16
         , Font.color Color.black
         ]
         (El.text text)

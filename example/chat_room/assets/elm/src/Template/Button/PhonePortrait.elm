@@ -53,7 +53,6 @@ buttonAttrs : List (Attribute msg)
 buttonAttrs =
     [ Border.rounded 10
     , El.padding 10
-    , Font.size 18
     , El.centerY
     , El.centerX
     ]

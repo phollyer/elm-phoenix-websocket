@@ -13,13 +13,13 @@ view config =
     case config.layout of
         Nothing ->
             El.column Common.containerAttrs
-                (userId config.userId
+                (Common.maybeId config.userId
                     :: [ toRow config.elements ]
                 )
 
         Just layout ->
             El.column Common.containerAttrs
-                (userId config.userId
+                (Common.maybeId config.userId
                     :: (List.groupsOfVarying layout config.elements
                             |> List.map
                                 (\elements ->
@@ -32,11 +32,6 @@ view config =
                                 )
                        )
                 )
-
-
-userId : Maybe String -> Element msg
-userId maybeId =
-    El.el [] (Common.maybeId "User" maybeId)
 
 
 toRow : List (Element msg) -> Element msg

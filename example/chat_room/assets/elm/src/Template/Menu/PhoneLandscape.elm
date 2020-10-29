@@ -37,7 +37,6 @@ attrs =
             , bottom = 5
             }
         , El.spacing 10
-        , Font.size 18
         ]
         Common.containerAttrs
 

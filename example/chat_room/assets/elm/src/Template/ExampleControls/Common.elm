@@ -38,22 +38,20 @@ containerAttrs =
 {- User ID -}
 
 
-maybeId : String -> Maybe String -> Element msg
-maybeId type_ maybeId_ =
+maybeId : Maybe String -> Element msg
+maybeId maybeId_ =
     case maybeId_ of
         Nothing ->
             El.none
 
         Just id ->
             El.paragraph
-                [ Font.size 20
-                , Font.center
-                , Font.family
+                [ Font.family
                     [ Font.typeface "Varela Round" ]
                 ]
                 [ El.el
                     [ Font.color Color.lavender ]
-                    (El.text (type_ ++ " ID: "))
+                    (El.text "User ID: ")
                 , El.el
                     [ Font.color Color.powderblue ]
                     (El.text id)

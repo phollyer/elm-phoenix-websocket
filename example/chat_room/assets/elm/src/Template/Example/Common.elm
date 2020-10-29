@@ -1,11 +1,14 @@
 module Template.Example.Common exposing
     ( Config
     , containerAttrs
+    , controlsAttrs
     , descriptionAttrs
     , idAttrs
     , idLabelAttrs
     , idValueAttrs
     , introductionAttrs
+    , menuAttrs
+    , remoteControlAttrs
     )
 
 import Colors.Opaque as Color
@@ -49,6 +52,11 @@ introductionAttrs =
     ]
 
 
+menuAttrs : List (Attribute msg)
+menuAttrs =
+    [ El.width El.fill ]
+
+
 descriptionAttrs : List (Attribute msg)
 descriptionAttrs =
     [ El.spacing 12
@@ -57,6 +65,16 @@ descriptionAttrs =
     , Font.family
         [ Font.typeface "Varela Round" ]
     ]
+
+
+controlsAttrs : List (Attribute msg)
+controlsAttrs =
+    [ El.width El.fill ]
+
+
+remoteControlAttrs : List (Attribute msg)
+remoteControlAttrs =
+    [ El.width El.fill ]
 
 
 idAttrs : List (Attribute msg)
