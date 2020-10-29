@@ -21,9 +21,7 @@ view config =
                             |> List.map
                                 (\elements ->
                                     El.wrappedRow
-                                        [ El.spacing 10
-                                        , El.centerX
-                                        ]
+                                        Common.rowAttrs
                                         elements
                                 )
                        )

@@ -34,6 +34,13 @@ containerAttrs =
     ]
 
 
+rowAttrs : List (Attribute msg)
+rowAttrs =
+    [ El.spacing 10
+    , El.centerX
+    ]
+
+
 
 {- User ID -}
 
