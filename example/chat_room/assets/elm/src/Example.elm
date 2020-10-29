@@ -41,6 +41,7 @@ type Example
     | ManagePresenceMessages Action
     | SimpleJoinAndLeave Action
     | JoinWithGoodParams Action
+    | JoinWithBadParams Action
 
 
 
@@ -75,6 +76,9 @@ fromString example =
         "JoinWithGoodParams" ->
             JoinWithGoodParams Anything
 
+        "JoinWithBadParams" ->
+            JoinWithBadParams Anything
+
         _ ->
             SimpleConnect Anything
 
@@ -107,6 +111,9 @@ toString example =
         JoinWithGoodParams _ ->
             "Join With Good Params"
 
+        JoinWithBadParams _ ->
+            "Join With Bad Params"
+
 
 {-| -}
 toAction : Example -> Action
@@ -134,6 +141,9 @@ toAction example =
             action
 
         JoinWithGoodParams action ->
+            action
+
+        JoinWithBadParams action ->
             action
 
 
@@ -164,3 +174,6 @@ toFunc example =
 
         JoinWithGoodParams _ ->
             JoinWithGoodParams
+
+        JoinWithBadParams _ ->
+            JoinWithBadParams

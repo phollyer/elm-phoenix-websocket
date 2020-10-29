@@ -113,6 +113,26 @@ update msg model =
                         _ ->
                             ( model, Cmd.none )
 
+                JoinWithBadParams action ->
+                    case action of
+                        Join ->
+                            Phoenix.setJoinConfig
+                                { topic = "example:join_and_leave_channels"
+                                , payload =
+                                    JE.object
+                                        [ ( "username", JE.string "bad" )
+                                        , ( "password", JE.string "wrong" )
+                                        ]
+                                , events = []
+                                , timeout = Nothing
+                                }
+                                phoenix
+                                |> Phoenix.join "example:join_and_leave_channels"
+                                |> updatePhoenix model
+
+                        _ ->
+                            ( model, Cmd.none )
+
                 _ ->
                     ( model, Cmd.none )
 
@@ -214,6 +234,7 @@ menu device { example } =
         |> Menu.options
             [ ( Example.toString SimpleJoinAndLeave, GotMenuItem SimpleJoinAndLeave )
             , ( Example.toString JoinWithGoodParams, GotMenuItem JoinWithGoodParams )
+            , ( Example.toString JoinWithBadParams, GotMenuItem JoinWithBadParams )
             ]
         |> Menu.selected (Example.toString <| Example.toFunc example)
         |> Menu.view device
@@ -234,6 +255,11 @@ description { example } =
         JoinWithGoodParams _ ->
             [ UI.paragraph
                 [ El.text "Join a Channel, providing auth params that are accepted." ]
+            ]
+
+        JoinWithBadParams _ ->
+            [ UI.paragraph
+                [ El.text "Join a Channel, providing auth params that are not accepted." ]
             ]
 
         _ ->
@@ -268,6 +294,9 @@ buttons device phoenix { example } =
             [ join JoinWithGoodParams device (not <| Phoenix.channelJoined "example:join_and_leave_channels" phoenix)
             , leave JoinWithGoodParams device (Phoenix.channelJoined "example:join_and_leave_channels" phoenix)
             ]
+
+        JoinWithBadParams _ ->
+            [ join JoinWithBadParams device (not <| Phoenix.channelJoined "example:join_and_leave_channels" phoenix) ]
 
         _ ->
             []
@@ -327,6 +356,12 @@ applicableFunctions device example =
                     , "Phoenix.leave"
                     ]
 
+                JoinWithBadParams _ ->
+                    [ "Phoenix.setJoinConfig"
+                    , "Phoenix.join"
+                    , "Phoenix.leave"
+                    ]
+
                 _ ->
                     []
             )
@@ -344,6 +379,11 @@ usefulFunctions device phoenix example =
                     ]
 
                 JoinWithGoodParams _ ->
+                    [ ( "Phoenix.channelJoined", Phoenix.channelJoined "example:join_and_leave_channels" phoenix |> String.printBool )
+                    , ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList )
+                    ]
+
+                JoinWithBadParams _ ->
                     [ ( "Phoenix.channelJoined", Phoenix.channelJoined "example:join_and_leave_channels" phoenix |> String.printBool )
                     , ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList )
                     ]
