@@ -1,8 +1,7 @@
-module Template.Page.Tablet exposing (..)
+module Template.Page.Tablet exposing (view)
 
 import Colors.Opaque as Color
-import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
-import Element.Background as Background
+import Element as El exposing (Element)
 import Element.Border as Border
 import Html exposing (Html)
 import Template.Page.Common as Common
