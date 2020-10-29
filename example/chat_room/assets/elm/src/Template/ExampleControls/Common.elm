@@ -2,6 +2,7 @@ module Template.ExampleControls.Common exposing
     ( Config
     , containerAttrs
     , maybeId
+    , rowAttrs
     )
 
 import Colors.Opaque as Color

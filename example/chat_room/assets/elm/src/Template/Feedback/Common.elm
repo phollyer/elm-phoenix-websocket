@@ -1,6 +1,8 @@
 module Template.Feedback.Common exposing
     ( Config
     , containerAttrs
+    , elementAttrs
+    , rowAttrs
     )
 
 import Colors.Opaque as Color
@@ -17,4 +19,21 @@ type alias Config msg c =
 
 containerAttrs : List (Attribute msg)
 containerAttrs =
-    [ El.width El.fill ]
+    [ El.paddingXY 0 10
+    , El.spacing 10
+    , El.width El.fill
+    ]
+
+
+rowAttrs : List (Attribute msg)
+rowAttrs =
+    [ El.spacing 10
+    , El.width El.fill
+    ]
+
+
+elementAttrs : List (Attribute msg)
+elementAttrs =
+    [ El.alignTop
+    , El.width El.fill
+    ]

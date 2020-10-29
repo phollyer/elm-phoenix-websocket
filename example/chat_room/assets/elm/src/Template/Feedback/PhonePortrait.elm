@@ -1,9 +1,6 @@
 module Template.Feedback.PhonePortrait exposing (view)
 
-import Colors.Opaque as Color
-import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))
-import Element.Border as Border
-import Extra.List as List
+import Element as El exposing (Element)
 import List.Extra as List
 import Template.Feedback.Common as Common
 
@@ -12,41 +9,27 @@ view : Common.Config msg c -> Element msg
 view config =
     case config.layout of
         Nothing ->
-            El.column attrs
-                (controls config.elements)
+            El.column
+                Common.containerAttrs
+                (List.map toElement config.elements)
 
         Just layout ->
-            El.column attrs <|
+            El.column
+                Common.containerAttrs
                 (List.groupsOfVarying layout config.elements
-                    |> List.map
-                        (\elements ->
-                            El.row
-                                [ El.spacing 10
-                                , El.width El.fill
-                                ]
-                            <|
-                                controls elements
-                        )
+                    |> List.map toRow
                 )
 
 
-attrs : List (Attribute msg)
-attrs =
-    [ El.spacing 10
-    , El.paddingXY 0 10
-    , El.width El.fill
-    ]
+toRow : List (Element msg) -> Element msg
+toRow elements =
+    El.row
+        Common.rowAttrs
+        (List.map toElement elements)
 
 
-controls : List (Element msg) -> List (Element msg)
-controls elements =
-    List.map control elements
-
-
-control : Element msg -> Element msg
-control item =
+toElement : Element msg -> Element msg
+toElement element =
     El.el
-        [ El.alignTop
-        , El.width El.fill
-        ]
-        item
+        Common.elementAttrs
+        element

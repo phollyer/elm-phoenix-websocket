@@ -1,9 +1,6 @@
 module Template.Feedback.PhoneLandscape exposing (view)
 
-import Colors.Opaque as Color
-import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))
-import Element.Border as Border
-import Extra.List as List
+import Element as El exposing (Element)
 import List.Extra as List
 import Template.Feedback.Common as Common
 
@@ -16,34 +13,21 @@ view config =
 
         Just layout ->
             El.column
-                [ El.spacing 10
-                , El.paddingXY 0 10
-                , El.width El.fill
-                ]
-            <|
+                Common.containerAttrs
                 (List.groupsOfVarying layout config.elements
-                    |> toRows
+                    |> List.map toRow
                 )
-
-
-toRows : List (List (Element msg)) -> List (Element msg)
-toRows rows =
-    List.map toRow rows
 
 
 toRow : List (Element msg) -> Element msg
 toRow elements =
     El.wrappedRow
-        [ El.spacing 10
-        , El.width El.fill
-        ]
-    <|
-        List.map
-            (\element ->
-                El.el
-                    [ El.alignTop
-                    , El.width El.fill
-                    ]
-                    element
-            )
-            elements
+        Common.rowAttrs
+        (List.map toElement elements)
+
+
+toElement : Element msg -> Element msg
+toElement element =
+    El.el
+        Common.elementAttrs
+        element
