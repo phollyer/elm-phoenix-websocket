@@ -16,6 +16,7 @@ import Json.Encode as JE
 import Phoenix
 import Route
 import Session exposing (Session)
+import UI
 import View.ApplicableFunctions as ApplicableFunctions
 import View.Button as Button
 import View.Example as Example
@@ -26,7 +27,6 @@ import View.Group as Group
 import View.Layout as Layout
 import View.Menu as Menu
 import View.UsefulFunctions as UsefulFunctions
-import View.Utils as Utils
 
 
 
@@ -230,11 +230,11 @@ view model =
 -}
 introduction : List (Element msg)
 introduction =
-    [ Utils.paragraph
+    [ UI.paragraph
         [ El.text "Connecting to the Socket is taken care of automatically when a request to join a Channel is made, or when a Channel is pushed to, "
         , El.text "however, if you want to take manual control, here's a few examples."
         ]
-    , Utils.paragraph
+    , UI.paragraph
         [ El.text "Clicking on a function will take you to its documentation." ]
     ]
 
@@ -266,17 +266,17 @@ description : Model -> List (Element msg)
 description { example } =
     case example of
         SimpleConnect _ ->
-            [ Utils.paragraph
+            [ UI.paragraph
                 [ El.text "A simple connection to the Socket without sending any params or setting any connect options." ]
             ]
 
         ConnectWithGoodParams _ ->
-            [ Utils.paragraph
+            [ UI.paragraph
                 [ El.text "Connect to the Socket with authentication params that are accepted." ]
             ]
 
         ConnectWithBadParams _ ->
-            [ Utils.paragraph
+            [ UI.paragraph
                 [ El.text "Try to connect to the Socket with authentication params that are not accepted, causing the connection to be denied." ]
             ]
 

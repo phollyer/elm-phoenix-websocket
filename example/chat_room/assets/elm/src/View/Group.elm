@@ -9,7 +9,6 @@ module View.Group exposing
 
 import Element exposing (Device, DeviceClass, Element, Orientation)
 import Extra.List as List
-import View.Utils as Utils
 
 
 type Config

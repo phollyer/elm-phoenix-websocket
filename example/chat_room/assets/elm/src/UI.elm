@@ -1,8 +1,36 @@
-module UI exposing (functionLink)
+module UI exposing
+    ( code
+    , functionLink
+    , paragraph
+    )
 
 import Colors.Opaque as Color
 import Element as El exposing (Element)
+import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
+
+
+{-| Formatted [code] snippet.
+-}
+code : String -> Element msg
+code text =
+    El.el
+        [ Font.family [ Font.typeface "Roboto Mono" ]
+        , Background.color Color.lightgrey
+        , El.padding 2
+        , Border.width 1
+        , Border.color Color.black
+        , Font.color Color.black
+        ]
+        (El.text text)
+
+
+paragraph : List (Element msg) -> Element msg
+paragraph content =
+    El.paragraph
+        [ El.spacing 10 ]
+        content
 
 
 {-| A fomratted link to a functions docs.

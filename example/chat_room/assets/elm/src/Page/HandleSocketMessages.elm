@@ -22,6 +22,7 @@ import Phoenix
 import Phoenix.Socket as Socket
 import Route
 import Session exposing (Session)
+import UI
 import View.ApplicableFunctions as ApplicableFunctions
 import View.Button as Button
 import View.ChannelMessage as ChannelMessage
@@ -34,7 +35,6 @@ import View.Group as Group
 import View.Layout as Layout
 import View.Menu as Menu
 import View.UsefulFunctions as UsefulFunctions
-import View.Utils as Utils
 
 
 
@@ -666,14 +666,14 @@ view model =
 -}
 introduction : List (Element msg)
 introduction =
-    [ Utils.paragraph
+    [ UI.paragraph
         [ El.text "By default, the PhoenixJS "
-        , Utils.code "onMessage"
+        , UI.code "onMessage"
         , El.text " handler for the Socket is setup to send all Socket messages through the incoming "
-        , Utils.code "port"
+        , UI.code "port"
         , El.text ". These examples demonstrate controlling the types of messages that are allowed through."
         ]
-    , Utils.paragraph
+    , UI.paragraph
         [ El.text "Clicking on a function will take you to its documentation." ]
     ]
 
@@ -698,19 +698,19 @@ description : Model -> List (Element msg)
 description { example, exampleId } =
     case example of
         ManageSocketHeartbeat _ ->
-            [ Utils.paragraph
+            [ UI.paragraph
                 [ El.text "Choose whether to receive the heartbeat as an incoming Socket message. For this example, the heartbeat interval is set at 1 second." ]
             ]
 
         ManageChannelMessages _ ->
-            [ Utils.paragraph
+            [ UI.paragraph
                 [ El.text "Choose whether to receive Channel messages as an incoming Socket message. "
                 , El.text ""
                 ]
             ]
 
         ManagePresenceMessages _ ->
-            [ Utils.paragraph
+            [ UI.paragraph
                 [ El.text "Choose whether to receive Presence messages as an incoming Socket message. "
                 , El.text "To get the best out of this example, you should open it in mulitple tabs. Click "
                 , El.newTabLink
