@@ -1,7 +1,6 @@
 module Template.Example.Common exposing
     ( Config
     , containerAttrs
-    , contentAttrs
     , descriptionAttrs
     , idAttrs
     , idLabelAttrs
@@ -38,13 +37,6 @@ containerAttrs =
         , right = 0
         , bottom = 10
         }
-    ]
-
-
-contentAttrs : List (Attribute msg)
-contentAttrs =
-    [ El.width El.fill
-    , El.spacing 20
     ]
 
 
