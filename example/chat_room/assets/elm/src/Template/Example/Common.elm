@@ -24,7 +24,6 @@ type alias Config msg c =
         , controls : Element msg
         , remoteControls : List (Element msg)
         , feedback : Element msg
-        , info : List (Element msg)
     }
 
 

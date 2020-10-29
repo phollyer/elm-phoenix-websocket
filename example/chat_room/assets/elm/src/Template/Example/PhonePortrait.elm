@@ -19,7 +19,6 @@ view config =
         , config.controls
         , remoteControls config.remoteControls
         , config.feedback
-        , info config.info
         ]
 
 
@@ -83,45 +82,3 @@ remoteControls cntrls =
         , El.spacing 10
         ]
         cntrls
-
-
-
-{- Info -}
-
-
-info : List (Element msg) -> Element msg
-info content =
-    if content == [] then
-        El.none
-
-    else
-        El.column
-            [ Background.color Color.white
-            , Border.width 1
-            , Border.color Color.black
-            , El.paddingEach
-                { left = 10
-                , top = 10
-                , right = 10
-                , bottom = 0
-                }
-            , El.spacing 10
-            , El.centerX
-            , Font.size 18
-            ]
-            [ El.el
-                [ El.centerX
-                , Font.bold
-                , Font.underline
-                , Font.color Color.darkslateblue
-                ]
-                (El.text "Information")
-            , El.column
-                [ El.height <|
-                    El.maximum 300 El.shrink
-                , El.clip
-                , El.scrollbars
-                , El.spacing 16
-                ]
-                content
-            ]
