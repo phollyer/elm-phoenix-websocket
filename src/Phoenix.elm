@@ -107,8 +107,7 @@ However, if you want to connect before hand, you can use the
 [connect](#connect) function.
 
 If you want to set any [ConnectOption](Phoenix.Socket#ConnectOption)s on the
-socket you can do so when you [init](#init) the [Model](#Model), or use the
-[addConnectOptions](#addConnectOptions) or
+socket you can use the [addConnectOptions](#addConnectOptions) or
 [setConnectOptions](#setConnectOptions) functions.
 
 If you want to send any params to the Socket when it connects at the Elixir
@@ -2109,8 +2108,8 @@ map func ( model, cmd ) =
 
 In order to receive any output in the console, you first need to activate the
 socket's logger. There are two ways to do this. You can use the
-[startLogging](#startLogging) function, or you can pass the `Logger True`
-[ConnectOption](#Phoenix.Socket#ConnectOption) to the [init](#init) function.
+[startLogging](#startLogging) function, or you can set the `Logger True`
+[ConnectOption](#Phoenix.Socket#ConnectOption).
 
     import Phoenix
     import Phoenix.Socket exposing (ConnectOption(..))
@@ -2119,9 +2118,9 @@ socket's logger. There are two ways to do this. You can use the
     init : Model
     init =
         { phoenix =
-            Phoenix.init
-                Ports.config
-                [ Logger True ]
+            Phoenix.init Ports.config
+                |> Phoenix.setConnectOptions
+                    [ Logger True ]
         ...
         }
 
