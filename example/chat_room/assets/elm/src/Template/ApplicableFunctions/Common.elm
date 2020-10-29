@@ -15,9 +15,6 @@ type alias Config =
 
 containerAttrs : List (Attribute msg)
 containerAttrs =
-    [ Background.color Color.white
-    , Border.color Color.black
-    , Border.width 1
-    , El.padding 10
-    , El.spacing 10
+    [ El.spacing 5
+    , El.width El.fill
     ]

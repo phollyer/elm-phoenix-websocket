@@ -20,7 +20,7 @@ view config =
 title : String -> Element msg
 title title_ =
     El.el
-        (Font.size 18
+        (Font.size 16
             :: Common.titleAttrs
         )
         (El.text title_)
@@ -34,7 +34,7 @@ scrollable elements =
 
         _ ->
             El.column
-                (Font.size 16
+                (Font.size 14
                     :: List.append
                         Common.scrollableAttrs
                         Common.contentAttrs
@@ -50,7 +50,7 @@ static elements =
 
         _ ->
             El.column
-                (Font.size 16
+                (Font.size 14
                     :: List.append
                         Common.staticAttrs
                         Common.contentAttrs
