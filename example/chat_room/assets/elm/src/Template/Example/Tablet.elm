@@ -58,16 +58,8 @@ menu menu_ =
 description : List (Element msg) -> Element msg
 description content =
     El.paragraph
-        (List.append
-            [ Font.size 18
-            , El.paddingEach
-                { left = 0
-                , top = 10
-                , right = 0
-                , bottom = 0
-                }
-            ]
-            Common.descriptionAttrs
+        (Font.size 18
+            :: Common.descriptionAttrs
         )
         content
 
