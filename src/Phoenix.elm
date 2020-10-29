@@ -579,40 +579,44 @@ If the Socket is already open, the `join` will be attempted immediately.
 -}
 join : Topic -> Model -> ( Model, Cmd Msg )
 join topic (Model model) =
-    case model.socketState of
-        Connected ->
-            case Dict.get topic model.joinConfigs of
-                Just joinConfig ->
-                    ( addChannelBeingJoined topic (Model model)
-                    , Channel.join
-                        joinConfig
-                        model.portConfig.phoenixSend
-                    )
+    if channelJoined topic (Model model) then
+        ( Model model, Cmd.none )
 
-                Nothing ->
-                    Model model
-                        |> setJoinConfig
-                            { topic = topic
-                            , payload = JE.null
-                            , events = []
-                            , timeout = Nothing
-                            }
-                        |> join topic
+    else
+        case model.socketState of
+            Connected ->
+                case Dict.get topic model.joinConfigs of
+                    Just joinConfig ->
+                        ( addChannelBeingJoined topic (Model model)
+                        , Channel.join
+                            joinConfig
+                            model.portConfig.phoenixSend
+                        )
 
-        Connecting ->
-            ( addChannelBeingJoined topic (Model model)
-            , Cmd.none
-            )
+                    Nothing ->
+                        Model model
+                            |> setJoinConfig
+                                { topic = topic
+                                , payload = JE.null
+                                , events = []
+                                , timeout = Nothing
+                                }
+                            |> join topic
 
-        Disconnecting ->
-            ( addChannelBeingJoined topic (Model model)
-            , Cmd.none
-            )
+            Connecting ->
+                ( addChannelBeingJoined topic (Model model)
+                , Cmd.none
+                )
 
-        Disconnected _ ->
-            Model model
-                |> addChannelBeingJoined topic
-                |> connect
+            Disconnecting ->
+                ( addChannelBeingJoined topic (Model model)
+                , Cmd.none
+                )
+
+            Disconnected _ ->
+                Model model
+                    |> addChannelBeingJoined topic
+                    |> connect
 
 
 {-| -}
