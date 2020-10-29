@@ -1,6 +1,7 @@
 module Template.Home.Common exposing
     ( Config
     , containerAttrs
+    , examplesAttrs
     , headingAttrs
     )
 
@@ -19,9 +20,12 @@ type alias Config msg c =
 
 containerAttrs : List (Attribute msg)
 containerAttrs =
-    [ El.spacing 10
-    , El.width El.fill
-    ]
+    [ El.width El.fill ]
+
+
+examplesAttrs : List (Attribute msg)
+examplesAttrs =
+    [ El.width El.fill ]
 
 
 headingAttrs : List (Attribute msg)

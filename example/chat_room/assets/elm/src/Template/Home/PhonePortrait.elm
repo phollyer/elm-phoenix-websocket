@@ -8,20 +8,67 @@ import Template.Home.Common as Common
 view : Common.Config msg c -> Element msg
 view { channels, presence, socket } =
     El.column
-        Common.containerAttrs
-        [ socketExamples socket ]
+        (El.spacing 20
+            :: Common.containerAttrs
+        )
+        [ socketExamples socket
+        , channelExamples channels
+        , presenceExamples presence
+        ]
 
 
 socketExamples : List (Element msg) -> Element msg
 socketExamples examplePanels =
     El.column
-        Common.containerAttrs
+        (El.spacing 10
+            :: Common.examplesAttrs
+        )
         [ El.el
             (Font.size 18
                 :: Common.headingAttrs
             )
             (El.text "Socket Examples")
         , El.column
-            Common.containerAttrs
+            (El.spacing 10
+                :: Common.examplesAttrs
+            )
+            examplePanels
+        ]
+
+
+channelExamples : List (Element msg) -> Element msg
+channelExamples examplePanels =
+    El.column
+        (El.spacing 10
+            :: Common.examplesAttrs
+        )
+        [ El.el
+            (Font.size 18
+                :: Common.headingAttrs
+            )
+            (El.text "Channel Examples")
+        , El.column
+            (El.spacing 10
+                :: Common.examplesAttrs
+            )
+            examplePanels
+        ]
+
+
+presenceExamples : List (Element msg) -> Element msg
+presenceExamples examplePanels =
+    El.column
+        (El.spacing 10
+            :: Common.examplesAttrs
+        )
+        [ El.el
+            (Font.size 18
+                :: Common.headingAttrs
+            )
+            (El.text "Presence Examples")
+        , El.column
+            (El.spacing 10
+                :: Common.examplesAttrs
+            )
             examplePanels
         ]

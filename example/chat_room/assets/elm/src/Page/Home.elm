@@ -78,7 +78,7 @@ view model =
             |> Layout.body
                 (Home.init
                     |> Home.socket (socketExamples device)
-                    |> Home.channels channelsExamples
+                    |> Home.channels (channelsExamples device)
                     |> Home.presence presenceExamples
                     |> Home.view device
                 )
@@ -103,9 +103,15 @@ socketExamples device =
     ]
 
 
-channelsExamples : List (Element msg)
-channelsExamples =
-    []
+channelsExamples : Device -> List (Element msg)
+channelsExamples device =
+    [ Panel.init
+        |> Panel.title "Joining and Leaving"
+        |> Panel.description
+            [ "Manually join and leave one or more Channels." ]
+        |> Panel.onClick Nothing
+        |> Panel.view device
+    ]
 
 
 presenceExamples : List (Element msg)
