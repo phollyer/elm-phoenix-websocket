@@ -9,6 +9,7 @@ module Template.Menu.Common exposing
 import Colors.Alpha as Alpha
 import Colors.Opaque as Color
 import Element as El exposing (Attribute, DeviceClass, Element, Orientation)
+import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
@@ -49,7 +50,12 @@ selectedAttrs =
 selectedHighlightAttrs : List (Attribute msg)
 selectedHighlightAttrs =
     [ Border.color Color.aliceblue
-    , Border.width 2
+    , Border.widthEach
+        { left = 0
+        , top = 0
+        , right = 0
+        , bottom = 4
+        }
     , El.width El.fill
     ]
 

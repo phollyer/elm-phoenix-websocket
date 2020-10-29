@@ -30,7 +30,7 @@ introduction : List (Element msg) -> Element msg
 introduction intro =
     El.column
         (List.append
-            [ Font.size 18
+            [ Font.size 22
             , El.spacing 20
             ]
             Common.introductionAttrs
