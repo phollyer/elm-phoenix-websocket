@@ -1,9 +1,6 @@
 module Template.ExampleControls.PhonePortrait exposing (view)
 
-import Colors.Opaque as Color
-import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))
-import Element.Border as Border
-import Extra.List as List
+import Element as El exposing (Element)
 import List.Extra as List
 import Template.ExampleControls.Common as Common
 
@@ -14,7 +11,7 @@ view config =
         Nothing ->
             El.column Common.containerAttrs
                 (Common.maybeId config.userId
-                    :: controls config.elements
+                    :: config.elements
                 )
 
         Just layout ->
@@ -27,18 +24,7 @@ view config =
                                         [ El.spacing 10
                                         , El.centerX
                                         ]
-                                    <|
-                                        controls elements
+                                        elements
                                 )
                        )
                 )
-
-
-controls : List (Element msg) -> List (Element msg)
-controls elements =
-    List.map control elements
-
-
-control : Element msg -> Element msg
-control item =
-    El.el [ El.width El.fill ] item

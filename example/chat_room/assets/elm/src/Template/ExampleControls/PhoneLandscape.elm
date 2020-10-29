@@ -1,9 +1,6 @@
-module Template.ExampleControls.PhoneLandscape exposing (..)
+module Template.ExampleControls.PhoneLandscape exposing (view)
 
-import Colors.Opaque as Color
-import Element as El exposing (Attribute, DeviceClass, Element, Orientation)
-import Element.Border as Border
-import Extra.List as List
+import Element as El exposing (Element)
 import List.Extra as List
 import Template.ExampleControls.Common as Common
 
@@ -40,10 +37,4 @@ toRow elements =
         [ El.width El.fill
         , El.spacing 10
         ]
-    <|
-        List.map element elements
-
-
-element : Element msg -> Element msg
-element item =
-    El.el [ El.centerX ] item
+        elements
