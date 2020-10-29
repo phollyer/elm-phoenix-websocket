@@ -27,7 +27,6 @@ view config =
                         , color = Color.seagreen
                         , offset = ( 0, 0 )
                         }
-                    , Font.size 22
                     ]
                 , Font.color Color.darkolivegreen
                 ]
@@ -42,7 +41,7 @@ view config =
             attrs
             [ Border.rounded 10
             , El.padding 10
-            , Font.size 20
+            , Font.size 18
             , El.centerY
             , El.centerX
             ]

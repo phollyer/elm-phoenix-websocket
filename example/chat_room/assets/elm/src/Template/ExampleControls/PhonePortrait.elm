@@ -12,13 +12,13 @@ view : Common.Config msg c -> Element msg
 view config =
     case config.layout of
         Nothing ->
-            El.column attrs
+            El.column Common.containerAttrs
                 (userId config.userId
                     :: controls config.elements
                 )
 
         Just layout ->
-            El.column attrs
+            El.column Common.containerAttrs
                 (userId config.userId
                     :: (List.groupsOfVarying layout config.elements
                             |> List.map
@@ -32,21 +32,6 @@ view config =
                                 )
                        )
                 )
-
-
-attrs : List (Attribute msg)
-attrs =
-    List.append
-        [ El.spacing 10
-        , El.paddingXY 0 10
-        , Border.widthEach
-            { left = 0
-            , top = 1
-            , right = 0
-            , bottom = 1
-            }
-        ]
-        Common.containerAttrs
 
 
 userId : Maybe String -> Element msg

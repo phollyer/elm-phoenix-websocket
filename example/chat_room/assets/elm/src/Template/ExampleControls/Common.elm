@@ -20,9 +20,17 @@ type alias Config msg c =
 
 containerAttrs : List (Attribute msg)
 containerAttrs =
-    [ El.width El.fill
+    [ Border.color Color.aliceblue
+    , Border.widthEach
+        { left = 0
+        , top = 1
+        , right = 0
+        , bottom = 1
+        }
+    , El.paddingXY 0 10
     , El.scrollbarY
-    , Border.color Color.aliceblue
+    , El.spacing 10
+    , El.width El.fill
     ]
 
 

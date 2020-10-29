@@ -287,6 +287,11 @@ controls : Device -> Phoenix.Model -> Model -> Element Msg
 controls device phoenix model =
     ExampleControls.init
         |> ExampleControls.elements (buttons device phoenix model)
+        |> ExampleControls.group
+            (Group.init
+                |> Group.layouts
+                    [ ( Phone, Portrait, [ 2 ] ) ]
+            )
         |> ExampleControls.view device
 
 

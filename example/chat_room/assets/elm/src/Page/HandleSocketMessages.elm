@@ -781,7 +781,9 @@ order : Model -> List ( DeviceClass, Orientation, List Int )
 order { example } =
     case example of
         ManageSocketHeartbeat _ ->
-            [ ( Phone, Portrait, [ 0, 2, 3, 1 ] ) ]
+            [ ( Phone, Portrait, [ 0, 2, 3, 1 ] )
+            , ( Phone, Landscape, [ 0, 2, 3, 1 ] )
+            ]
 
         ManagePresenceMessages _ ->
             [ ( Phone, Portrait, [ 0, 2, 3, 1 ] ) ]
