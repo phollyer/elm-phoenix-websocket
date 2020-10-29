@@ -40,6 +40,7 @@ type Example
     | ManageChannelMessages Action
     | ManagePresenceMessages Action
     | SimpleJoinAndLeave Action
+    | JoinWithGoodParams Action
 
 
 
@@ -71,6 +72,9 @@ fromString example =
         "SimpleJoinAndLeave" ->
             SimpleJoinAndLeave Anything
 
+        "JoinWithGoodParams" ->
+            JoinWithGoodParams Anything
+
         _ ->
             SimpleConnect Anything
 
@@ -100,6 +104,9 @@ toString example =
         SimpleJoinAndLeave _ ->
             "Simple Join And Leave"
 
+        JoinWithGoodParams _ ->
+            "Join With Good Params"
+
 
 {-| -}
 toAction : Example -> Action
@@ -124,6 +131,9 @@ toAction example =
             action
 
         SimpleJoinAndLeave action ->
+            action
+
+        JoinWithGoodParams action ->
             action
 
 
@@ -151,3 +161,6 @@ toFunc example =
 
         SimpleJoinAndLeave _ ->
             SimpleJoinAndLeave
+
+        JoinWithGoodParams _ ->
+            JoinWithGoodParams

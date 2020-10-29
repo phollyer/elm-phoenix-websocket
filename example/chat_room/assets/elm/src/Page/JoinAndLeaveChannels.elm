@@ -12,6 +12,7 @@ module Page.JoinAndLeaveChannels exposing
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Example exposing (Action(..), Example(..))
 import Extra.String as String
+import Json.Encode as JE
 import Phoenix
 import Route
 import Session exposing (Session)
@@ -78,11 +79,35 @@ update msg model =
                 SimpleJoinAndLeave action ->
                     case action of
                         Join ->
-                            Phoenix.join "example:simple_join_and_leave" phoenix
+                            Phoenix.join "example:join_and_leave_channels" phoenix
                                 |> updatePhoenix model
 
                         Leave ->
-                            Phoenix.leave "example:simple_join_and_leave" phoenix
+                            Phoenix.leave "example:join_and_leave_channels" phoenix
+                                |> updatePhoenix model
+
+                        _ ->
+                            ( model, Cmd.none )
+
+                JoinWithGoodParams action ->
+                    case action of
+                        Join ->
+                            Phoenix.setJoinConfig
+                                { topic = "example:join_and_leave_channels"
+                                , payload =
+                                    JE.object
+                                        [ ( "username", JE.string "username" )
+                                        , ( "password", JE.string "password" )
+                                        ]
+                                , events = []
+                                , timeout = Nothing
+                                }
+                                phoenix
+                                |> Phoenix.join "example:join_and_leave_channels"
+                                |> updatePhoenix model
+
+                        Leave ->
+                            Phoenix.leave "example:join_and_leave_channels" phoenix
                                 |> updatePhoenix model
 
                         _ ->
@@ -187,7 +212,9 @@ menu : Device -> Model -> Element Msg
 menu device { example } =
     Menu.init
         |> Menu.options
-            [ ( Example.toString SimpleJoinAndLeave, GotMenuItem SimpleJoinAndLeave ) ]
+            [ ( Example.toString SimpleJoinAndLeave, GotMenuItem SimpleJoinAndLeave )
+            , ( Example.toString JoinWithGoodParams, GotMenuItem JoinWithGoodParams )
+            ]
         |> Menu.selected (Example.toString <| Example.toFunc example)
         |> Menu.view device
 
@@ -202,6 +229,11 @@ description { example } =
         SimpleJoinAndLeave _ ->
             [ UI.paragraph
                 [ El.text "A simple Join to a Channel without sending any params." ]
+            ]
+
+        JoinWithGoodParams _ ->
+            [ UI.paragraph
+                [ El.text "Join a Channel, providing auth params that are accepted." ]
             ]
 
         _ ->
@@ -228,8 +260,13 @@ buttons : Device -> Phoenix.Model -> Model -> List (Element Msg)
 buttons device phoenix { example } =
     case example of
         SimpleJoinAndLeave _ ->
-            [ join SimpleJoinAndLeave device (not <| Phoenix.channelJoined "example:simple_join_and_leave" phoenix)
-            , leave SimpleJoinAndLeave device (Phoenix.channelJoined "example:simple_join_and_leave" phoenix)
+            [ join SimpleJoinAndLeave device (not <| Phoenix.channelJoined "example:join_and_leave_channels" phoenix)
+            , leave SimpleJoinAndLeave device (Phoenix.channelJoined "example:join_and_leave_channels" phoenix)
+            ]
+
+        JoinWithGoodParams _ ->
+            [ join JoinWithGoodParams device (not <| Phoenix.channelJoined "example:join_and_leave_channels" phoenix)
+            , leave JoinWithGoodParams device (Phoenix.channelJoined "example:join_and_leave_channels" phoenix)
             ]
 
         _ ->
@@ -284,6 +321,12 @@ applicableFunctions device example =
                     , "Phoenix.leave"
                     ]
 
+                JoinWithGoodParams _ ->
+                    [ "Phoenix.setJoinConfig"
+                    , "Phoenix.join"
+                    , "Phoenix.leave"
+                    ]
+
                 _ ->
                     []
             )
@@ -296,7 +339,12 @@ usefulFunctions device phoenix example =
         |> UsefulFunctions.functions
             (case example of
                 SimpleJoinAndLeave _ ->
-                    [ ( "Phoenix.channelJoined", Phoenix.channelJoined "example:simple_join_and_leave" phoenix |> String.printBool )
+                    [ ( "Phoenix.channelJoined", Phoenix.channelJoined "example:join_and_leave_channels" phoenix |> String.printBool )
+                    , ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList )
+                    ]
+
+                JoinWithGoodParams _ ->
+                    [ ( "Phoenix.channelJoined", Phoenix.channelJoined "example:join_and_leave_channels" phoenix |> String.printBool )
                     , ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList )
                     ]
 
