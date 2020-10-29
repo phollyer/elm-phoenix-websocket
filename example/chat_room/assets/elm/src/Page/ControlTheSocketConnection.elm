@@ -252,7 +252,10 @@ menu device { example } =
         |> Menu.selected (Example.toString <| Example.toFunc example)
         |> Menu.group
             (Group.init
-                |> Group.layouts [ ( Phone, Landscape, [ 1, 2 ] ) ]
+                |> Group.layouts
+                    [ ( Phone, Landscape, [ 1, 2 ] )
+                    , ( Tablet, Portrait, [ 1, 2 ] )
+                    ]
             )
         |> Menu.view device
 

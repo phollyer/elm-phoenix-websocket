@@ -56,7 +56,8 @@ view ({ class, orientation } as device) (Config config) =
                 |> PhoneLandscape.view
 
         ( Tablet, Portrait ) ->
-            PhoneLandscape.view config
+            Group.layoutForDevice device config.group config
+                |> PhoneLandscape.view
 
         ( Tablet, Landscape ) ->
             TabletLandscape.view config

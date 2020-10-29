@@ -1,8 +1,6 @@
 module Template.Menu.PhoneLandscape exposing (view)
 
-import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))
-import Element.Font as Font
-import Extra.List as List
+import Element as El exposing (Attribute, Element)
 import List.Extra as List
 import Template.Menu.Common as Common
 
@@ -32,9 +30,9 @@ attrs =
     List.append
         [ El.paddingEach
             { left = 5
-            , top = 10
+            , top = 16
             , right = 5
-            , bottom = 5
+            , bottom = 8
             }
         , El.spacing 10
         ]
@@ -51,8 +49,7 @@ menuItem selected ( item, msg ) =
     let
         ( attrs_, highlight ) =
             if selected == item then
-                ( El.spacing 5
-                    :: Common.selectedAttrs
+                ( Common.selectedAttrs
                 , El.el
                     Common.selectedHighlightAttrs
                     El.none

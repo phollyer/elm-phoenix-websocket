@@ -1,7 +1,6 @@
 module Template.Menu.Desktop exposing (view)
 
 import Element as El exposing (Element)
-import Element.Font as Font
 import Template.Menu.Common as Common
 
 
@@ -35,7 +34,13 @@ menuItem selected ( item, msg ) =
                 )
 
             else
-                ( Common.unselectedAttrs msg
+                ( El.paddingEach
+                    { left = 0
+                    , top = 0
+                    , right = 0
+                    , bottom = 5
+                    }
+                    :: Common.unselectedAttrs msg
                 , El.none
                 )
     in

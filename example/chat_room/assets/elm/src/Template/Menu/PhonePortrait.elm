@@ -1,7 +1,6 @@
 module Template.Menu.PhonePortrait exposing (view)
 
-import Element as El exposing (DeviceClass(..), Element, Orientation(..))
-import Element.Font as Font
+import Element as El exposing (Element)
 import Template.Menu.Common as Common
 
 

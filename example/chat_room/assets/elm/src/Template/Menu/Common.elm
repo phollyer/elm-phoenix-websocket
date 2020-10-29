@@ -42,7 +42,6 @@ selectedAttrs : List (Attribute msg)
 selectedAttrs =
     [ El.centerX
     , El.centerY
-    , El.spacing 5
     , Font.color Color.darkslateblue
     ]
 
@@ -69,12 +68,6 @@ unselectedAttrs msg =
     , El.pointer
     , El.mouseOver
         [ Border.color Color.lavender ]
-    , El.paddingEach
-        { left = 0
-        , top = 0
-        , right = 0
-        , bottom = 5
-        }
     , Event.onClick msg
     , Font.color Color.darkslateblue
     ]
