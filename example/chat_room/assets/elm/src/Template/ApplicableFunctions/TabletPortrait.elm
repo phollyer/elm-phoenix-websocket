@@ -1,8 +1,6 @@
-module Template.ApplicableFunctions.TabletPortrait exposing (..)
+module Template.ApplicableFunctions.TabletPortrait exposing (view)
 
-import Colors.Opaque as Color
 import Element as El exposing (Element)
-import Element.Font as Font
 import Template.ApplicableFunctions.Common as Common
 import UI
 
@@ -10,5 +8,7 @@ import UI
 view : Common.Config -> Element msg
 view { functions } =
     El.column
-        Common.containerAttrs
+        (El.spacing 10
+            :: Common.containerAttrs
+        )
         (List.map UI.functionLink functions)
