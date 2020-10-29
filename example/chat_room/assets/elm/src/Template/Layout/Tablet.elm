@@ -1,9 +1,6 @@
-module Template.Layout.Desktop exposing (view)
+module Template.Layout.Tablet exposing (view)
 
-import Colors.Opaque as Color
 import Element as El exposing (Element)
-import Element.Background as Background
-import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Template.Layout.Common as Common
@@ -12,8 +9,7 @@ import Template.Layout.Common as Common
 view : Common.Config msg c -> Element msg
 view { homeMsg, title, body } =
     El.column
-        (El.inFront
-            (homeButton homeMsg)
+        (El.inFront (homeButton homeMsg)
             :: Common.containerAttrs
         )
         [ header title
@@ -38,10 +34,10 @@ homeButton maybeMsg =
 
         Just msg ->
             El.el
-                [ El.paddingXY 0 10 ]
+                [ El.paddingXY 10 20 ]
             <|
                 Input.button
-                    (Font.size 20
+                    (Font.size 40
                         :: Common.homeButtonAttrs
                     )
                     { label = El.text "<="

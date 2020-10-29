@@ -1,9 +1,6 @@
 module Template.Layout.PhonePortrait exposing (view)
 
-import Colors.Opaque as Color
 import Element as El exposing (Element)
-import Element.Background as Background
-import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Template.Layout.Common as Common

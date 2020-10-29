@@ -1,9 +1,6 @@
 module Template.Layout.PhoneLandscape exposing (view)
 
-import Colors.Opaque as Color
 import Element as El exposing (Element)
-import Element.Background as Background
-import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Template.Layout.Common as Common
@@ -12,8 +9,7 @@ import Template.Layout.Common as Common
 view : Common.Config msg c -> Element msg
 view { homeMsg, title, body } =
     El.column
-        (El.inFront
-            (homeButton homeMsg)
+        (El.inFront (homeButton homeMsg)
             :: Common.containerAttrs
         )
         [ header title
@@ -24,7 +20,7 @@ view { homeMsg, title, body } =
 header : String -> Element msg
 header title =
     El.paragraph
-        (Font.size 30
+        (Font.size 26
             :: Common.headerAttrs
         )
         [ El.text title ]
@@ -38,10 +34,10 @@ homeButton maybeMsg =
 
         Just msg ->
             El.el
-                [ El.paddingXY 0 10 ]
+                [ El.paddingXY 5 10 ]
             <|
                 Input.button
-                    (Font.size 20
+                    (Font.size 26
                         :: Common.homeButtonAttrs
                     )
                     { label = El.text "<="
