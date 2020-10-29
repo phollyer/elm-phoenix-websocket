@@ -9,11 +9,7 @@ view : Common.Config msg c -> Element msg
 view { title, description, onClick } =
     El.column
         (List.concat
-            [ [ El.height El.fill
-              , El.width <| El.px 250
-              , El.centerX
-              ]
-            , Common.onClick onClick
+            [ Common.onClick onClick
             , Common.containerAttrs
             ]
         )

@@ -50,6 +50,10 @@ containerAttrs =
             , offset = ( 0, 0 )
             }
         ]
+    , El.height <|
+        El.maximum 300 El.fill
+    , El.width <| El.maximum 250 El.fill
+    , El.centerX
     ]
 
 

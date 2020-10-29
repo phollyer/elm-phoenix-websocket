@@ -9,16 +9,12 @@ view : Common.Config msg c -> Element msg
 view { title, description, onClick } =
     El.column
         (List.concat
-            [ [ El.height <|
-                    El.maximum 300 El.fill
-              , El.width El.fill
-              ]
-            , Common.onClick onClick
+            [ Common.onClick onClick
             , Common.containerAttrs
             ]
         )
         [ El.el
-            (Font.size 16
+            (Font.size 14
                 :: Common.headerAttrs
             )
             (El.paragraph
@@ -30,7 +26,7 @@ view { title, description, onClick } =
             (List.map
                 (\para ->
                     El.paragraph
-                        (Font.size 14
+                        (Font.size 12
                             :: Common.descriptionAttrs
                         )
                         [ El.text para ]
