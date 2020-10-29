@@ -1,8 +1,6 @@
-module Template.UsefulFunctions.PhoneLandscape exposing (..)
+module Template.UsefulFunctions.PhoneLandscape exposing (view)
 
-import Colors.Opaque as Color
 import Element as El exposing (Element)
-import Element.Font as Font
 import Template.UsefulFunctions.Common as Common
 import UI
 
