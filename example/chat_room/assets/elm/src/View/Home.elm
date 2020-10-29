@@ -8,9 +8,9 @@ module View.Home exposing
     )
 
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
-import Template.Home.Desktop as Desktop
 import Template.Home.PhoneLandscape as PhoneLandscape
 import Template.Home.PhonePortrait as PhonePortrait
+import Template.Home.Tablet as Tablet
 
 
 type Config msg
@@ -40,7 +40,7 @@ view { class, orientation } (Config config) =
             PhoneLandscape.view config
 
         _ ->
-            Desktop.view config
+            Tablet.view config
 
 
 channels : List (Element msg) -> Config msg -> Config msg

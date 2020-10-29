@@ -1,6 +1,5 @@
-module Template.Home.PhoneLandscape exposing (..)
+module Template.Home.PhoneLandscape exposing (view)
 
-import Colors.Opaque as Color
 import Element as El exposing (Element)
 import Element.Font as Font
 import Template.Home.Common as Common

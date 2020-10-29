@@ -1,4 +1,4 @@
-module Template.Home.PhonePortrait exposing (..)
+module Template.Home.PhonePortrait exposing (view)
 
 import Element as El exposing (Element)
 import Element.Font as Font
