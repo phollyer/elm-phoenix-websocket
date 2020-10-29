@@ -1,4 +1,4 @@
-module Template.ApplicableFunctions.TabletPortrait exposing (view)
+module Template.ApplicableFunctions.PhoneLandscape exposing (view)
 
 import Element as El exposing (Element)
 import Template.ApplicableFunctions.Common as Common

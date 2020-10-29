@@ -1,4 +1,4 @@
-module Template.Button.PhonePortrait exposing (view)
+module Template.Button.Phone exposing (view)
 
 import Colors.Opaque as Color
 import Element as El exposing (Attribute, Element)

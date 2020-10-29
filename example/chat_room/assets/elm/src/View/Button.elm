@@ -8,7 +8,7 @@ module View.Button exposing
     )
 
 import Element exposing (Device, Element)
-import Template.Button.PhonePortrait as PhonePortrait
+import Template.Button.Phone as Phone
 
 
 type Config msg
@@ -30,7 +30,7 @@ init =
 
 view : Device -> Config msg -> Element msg
 view _ (Config config) =
-    PhonePortrait.view config
+    Phone.view config
 
 
 enabled : Bool -> Config msg -> Config msg

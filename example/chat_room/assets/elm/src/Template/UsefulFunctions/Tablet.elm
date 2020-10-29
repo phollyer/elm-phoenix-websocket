@@ -1,4 +1,4 @@
-module Template.UsefulFunctions.TabletPortrait exposing (view)
+module Template.UsefulFunctions.Tablet exposing (view)
 
 import Element as El exposing (Element)
 import Template.UsefulFunctions.Common as Common
