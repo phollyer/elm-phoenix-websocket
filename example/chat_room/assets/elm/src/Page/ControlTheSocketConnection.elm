@@ -91,7 +91,9 @@ update msg model =
                 SimpleConnect action ->
                     case action of
                         Connect ->
-                            Phoenix.connect phoenix
+                            phoenix
+                                |> Phoenix.setConnectParams JE.null
+                                |> Phoenix.connect
                                 |> updatePhoenix model
 
                         Disconnect ->
@@ -155,10 +157,7 @@ updatePhoenix model ( phoenix, phoenixCmd ) =
     ( { model
         | session = Session.updatePhoenix phoenix model.session
       }
-    , Cmd.batch
-        [ Cmd.map GotPhoenixMsg phoenixCmd
-        , Cmd.map GotPhoenixMsg (Phoenix.heartbeatMessagesOff phoenix)
-        ]
+    , Cmd.map GotPhoenixMsg phoenixCmd
     )
 
 

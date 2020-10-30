@@ -22,6 +22,7 @@ import View.Button as Button
 import View.Example as Example
 import View.ExampleControls as ExampleControls
 import View.Feedback as Feedback
+import View.FeedbackContent as FeedbackContent
 import View.FeedbackPanel as FeedbackPanel
 import View.Group as Group
 import View.Layout as Layout
@@ -33,6 +34,7 @@ init : Session -> ( Model, Cmd Msg )
 init session =
     ( { session = session
       , example = SimpleJoinAndLeave Join
+      , channelResponses = []
       }
     , Cmd.none
     )
@@ -41,6 +43,7 @@ init session =
 type alias Model =
     { session : Session
     , example : Example
+    , channelResponses : List Phoenix.ChannelResponse
     }
 
 
@@ -66,20 +69,24 @@ update msg model =
             )
 
         GotMenuItem example ->
-            Phoenix.disconnect Nothing phoenix
-                |> updatePhoenix model
+            Phoenix.disconnectAndReset Nothing phoenix
+                |> updatePhoenix
+                    { model | channelResponses = [] }
                 |> updateExample example
-
-        GotPhoenixMsg subMsg ->
-            Phoenix.update subMsg phoenix
-                |> updatePhoenix model
 
         GotControlClick example ->
             case example of
                 SimpleJoinAndLeave action ->
                     case action of
                         Join ->
-                            Phoenix.join "example:join_and_leave_channels" phoenix
+                            phoenix
+                                |> Phoenix.setJoinConfig
+                                    { topic = "example:join_and_leave_channels"
+                                    , payload = JE.null
+                                    , events = []
+                                    , timeout = Nothing
+                                    }
+                                |> Phoenix.join "example:join_and_leave_channels"
                                 |> updatePhoenix model
 
                         Leave ->
@@ -92,17 +99,17 @@ update msg model =
                 JoinWithGoodParams action ->
                     case action of
                         Join ->
-                            Phoenix.setJoinConfig
-                                { topic = "example:join_and_leave_channels"
-                                , payload =
-                                    JE.object
-                                        [ ( "username", JE.string "username" )
-                                        , ( "password", JE.string "password" )
-                                        ]
-                                , events = []
-                                , timeout = Nothing
-                                }
-                                phoenix
+                            phoenix
+                                |> Phoenix.setJoinConfig
+                                    { topic = "example:join_and_leave_channels"
+                                    , payload =
+                                        JE.object
+                                            [ ( "username", JE.string "username" )
+                                            , ( "password", JE.string "password" )
+                                            ]
+                                    , events = []
+                                    , timeout = Nothing
+                                    }
                                 |> Phoenix.join "example:join_and_leave_channels"
                                 |> updatePhoenix model
 
@@ -116,17 +123,17 @@ update msg model =
                 JoinWithBadParams action ->
                     case action of
                         Join ->
-                            Phoenix.setJoinConfig
-                                { topic = "example:join_and_leave_channels"
-                                , payload =
-                                    JE.object
-                                        [ ( "username", JE.string "bad" )
-                                        , ( "password", JE.string "wrong" )
-                                        ]
-                                , events = []
-                                , timeout = Nothing
-                                }
-                                phoenix
+                            phoenix
+                                |> Phoenix.setJoinConfig
+                                    { topic = "example:join_and_leave_channels"
+                                    , payload =
+                                        JE.object
+                                            [ ( "username", JE.string "bad" )
+                                            , ( "password", JE.string "wrong" )
+                                            ]
+                                    , events = []
+                                    , timeout = Nothing
+                                    }
                                 |> Phoenix.join "example:join_and_leave_channels"
                                 |> updatePhoenix model
 
@@ -135,6 +142,47 @@ update msg model =
 
                 _ ->
                     ( model, Cmd.none )
+
+        GotPhoenixMsg subMsg ->
+            let
+                ( newModel, cmd ) =
+                    Phoenix.update subMsg phoenix
+                        |> updatePhoenix model
+
+                phx =
+                    Session.phoenix newModel.session
+            in
+            case Phoenix.phoenixMsg phx of
+                Phoenix.ChannelResponse response ->
+                    case response of
+                        Phoenix.JoinError _ _ ->
+                            -- Leave the Channel after a JoinError to stop
+                            -- PhoenixJS from constantly retrying
+                            Phoenix.leave "example:join_and_leave_channels" phx
+                                |> updatePhoenix
+                                    { newModel
+                                        | channelResponses =
+                                            response :: newModel.channelResponses
+                                    }
+                                |> batch [ cmd ]
+
+                        _ ->
+                            ( { newModel
+                                | channelResponses =
+                                    response :: newModel.channelResponses
+                              }
+                            , cmd
+                            )
+
+                _ ->
+                    ( newModel, cmd )
+
+
+batch : List (Cmd Msg) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+batch cmds ( model, cmd ) =
+    ( model
+    , Cmd.batch (cmd :: cmds)
+    )
 
 
 updateExample : (Action -> Example) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
@@ -151,10 +199,7 @@ updatePhoenix model ( phoenix, phoenixCmd ) =
     ( { model
         | session = Session.updatePhoenix phoenix model.session
       }
-    , Cmd.batch
-        [ Cmd.map GotPhoenixMsg phoenixCmd
-        , Cmd.map GotPhoenixMsg (Phoenix.heartbeatMessagesOff phoenix)
-        ]
+    , Cmd.map GotPhoenixMsg phoenixCmd
     )
 
 
@@ -325,10 +370,14 @@ leave example device enabled =
 
 
 feedback : Device -> Phoenix.Model -> Model -> Element Msg
-feedback device phoenix { example } =
+feedback device phoenix { example, channelResponses } =
     Feedback.init
         |> Feedback.elements
             [ FeedbackPanel.init
+                |> FeedbackPanel.title "Info"
+                |> FeedbackPanel.scrollable (channelResponsesView device channelResponses)
+                |> FeedbackPanel.view device
+            , FeedbackPanel.init
                 |> FeedbackPanel.title "Applicable Functions"
                 |> FeedbackPanel.scrollable [ applicableFunctions device example ]
                 |> FeedbackPanel.view device
@@ -338,6 +387,51 @@ feedback device phoenix { example } =
                 |> FeedbackPanel.view device
             ]
         |> Feedback.view device
+
+
+channelResponsesView : Device -> List Phoenix.ChannelResponse -> List (Element Msg)
+channelResponsesView device responses =
+    List.map (channelResponse device) responses
+
+
+channelResponse : Device -> Phoenix.ChannelResponse -> Element Msg
+channelResponse device response =
+    case response of
+        Phoenix.JoinOk topic payload ->
+            FeedbackContent.init
+                |> FeedbackContent.title (Just "Channel Response")
+                |> FeedbackContent.label "JoinOk"
+                |> FeedbackContent.element
+                    (El.column
+                        [ El.width El.fill ]
+                        [ El.text topic
+                        , El.text (JE.encode 2 payload)
+                        ]
+                    )
+                |> FeedbackContent.view device
+
+        Phoenix.LeaveOk topic ->
+            FeedbackContent.init
+                |> FeedbackContent.title (Just "Channel Response")
+                |> FeedbackContent.label "LeaveOk"
+                |> FeedbackContent.element (El.text topic)
+                |> FeedbackContent.view device
+
+        Phoenix.JoinError topic payload ->
+            FeedbackContent.init
+                |> FeedbackContent.title (Just "Channel Response")
+                |> FeedbackContent.label "JoinError"
+                |> FeedbackContent.element
+                    (El.column
+                        [ El.width El.fill ]
+                        [ El.text topic
+                        , El.text (JE.encode 2 payload)
+                        ]
+                    )
+                |> FeedbackContent.view device
+
+        _ ->
+            El.none
 
 
 applicableFunctions : Device -> Example -> Element Msg

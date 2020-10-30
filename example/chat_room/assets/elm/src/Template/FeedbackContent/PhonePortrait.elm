@@ -54,7 +54,8 @@ label label_ =
 
     else
         El.el
-            [ Font.color Color.darkslateblue
+            [ El.alignTop
+            , Font.color Color.darkslateblue
             , Font.bold
             ]
             (El.text label_)
