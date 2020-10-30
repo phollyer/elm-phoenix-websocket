@@ -111,6 +111,12 @@ channelsExamples device =
             [ "Manually join and leave one or more Channels." ]
         |> Panel.onClick (Just (NavigateTo JoinAndLeaveChannels))
         |> Panel.view device
+    , Panel.init
+        |> Panel.title "Sending and Receiving"
+        |> Panel.description
+            [ "Send and receive events to and from one or more Channels." ]
+        |> Panel.onClick (Just (NavigateTo SendAndReceive))
+        |> Panel.view device
     ]
 
 

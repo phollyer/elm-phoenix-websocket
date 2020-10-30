@@ -47,7 +47,7 @@ channelExamples examplePanels =
                 :: Common.headingAttrs
             )
             (El.text "Channel Examples")
-        , El.column
+        , El.row
             (El.spacing 20
                 :: Common.examplesAttrs
             )
@@ -66,7 +66,7 @@ presenceExamples examplePanels =
                 :: Common.headingAttrs
             )
             (El.text "Presence Examples")
-        , El.column
+        , El.row
             (El.spacing 20
                 :: Common.examplesAttrs
             )

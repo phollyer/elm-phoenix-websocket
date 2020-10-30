@@ -13,6 +13,7 @@ import Page.HandleSocketMessages as HandleSocketMessages
 import Page.Home as Home
 import Page.JoinAndLeaveChannels as JoinAndLeaveChannels
 import Page.NotFound as NotFound
+import Page.SendAndReceive as SendAndReceive
 import Route exposing (Route)
 import Session exposing (Session)
 import Url exposing (Url)
@@ -57,6 +58,10 @@ changeRouteTo maybeRoute model =
             JoinAndLeaveChannels.init session
                 |> updateWith JoinAndLeaveChannels GotJoinAndLeaveChannelsMsg
 
+        Just Route.SendAndReceive ->
+            SendAndReceive.init session
+                |> updateWith SendAndReceive GotSendAndReceiveMsg
+
 
 
 {- Session -}
@@ -82,6 +87,9 @@ toSession model =
 
         JoinAndLeaveChannels subModel ->
             JoinAndLeaveChannels.toSession subModel
+
+        SendAndReceive subModel ->
+            SendAndReceive.toSession subModel
 
 
 updateSession : Session -> Model -> Model
@@ -109,6 +117,10 @@ updateSession session model =
             JoinAndLeaveChannels <|
                 JoinAndLeaveChannels.updateSession session subModel
 
+        SendAndReceive subModel ->
+            SendAndReceive <|
+                SendAndReceive.updateSession session subModel
+
 
 
 {- Device -}
@@ -130,6 +142,7 @@ type Model
     | ControlTheSocketConnection ControlTheSocketConnection.Model
     | HandleSocketMessages HandleSocketMessages.Model
     | JoinAndLeaveChannels JoinAndLeaveChannels.Model
+    | SendAndReceive SendAndReceive.Model
 
 
 
@@ -144,6 +157,7 @@ type Msg
     | GotControlTheSocketConnectionMsg ControlTheSocketConnection.Msg
     | GotHandleSocketMessagesMsg HandleSocketMessages.Msg
     | GotJoinAndLeaveChannelsMsg JoinAndLeaveChannels.Msg
+    | GotSendAndReceiveMsg SendAndReceive.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -191,6 +205,10 @@ update msg model =
             JoinAndLeaveChannels.update subMsg subModel
                 |> updateWith JoinAndLeaveChannels GotJoinAndLeaveChannelsMsg
 
+        ( GotSendAndReceiveMsg subMsg, SendAndReceive subModel ) ->
+            SendAndReceive.update subMsg subModel
+                |> updateWith SendAndReceive GotSendAndReceiveMsg
+
         _ ->
             ( model, Cmd.none )
 
@@ -230,6 +248,13 @@ subscriptions model =
                 , onResize WindowResized
                 ]
 
+        SendAndReceive subModel ->
+            Sub.batch
+                [ Sub.map GotSendAndReceiveMsg <|
+                    SendAndReceive.subscriptions subModel
+                , onResize WindowResized
+                ]
+
         _ ->
             onResize WindowResized
 
@@ -262,6 +287,9 @@ view model =
 
         JoinAndLeaveChannels subModel ->
             viewPage device GotJoinAndLeaveChannelsMsg (JoinAndLeaveChannels.view subModel)
+
+        SendAndReceive subModel ->
+            viewPage device GotSendAndReceiveMsg (SendAndReceive.view subModel)
 
 
 viewPage : Device -> (msg -> Msg) -> { title : String, content : Element msg } -> Document Msg

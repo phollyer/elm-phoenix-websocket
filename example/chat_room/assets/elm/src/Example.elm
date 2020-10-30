@@ -43,6 +43,7 @@ type Example
     | JoinWithGoodParams Action
     | JoinWithBadParams Action
     | JoinMultipleChannels Action
+    | SendAndReceive Action
 
 
 
@@ -83,6 +84,9 @@ fromString example =
         "JoinMultipleChannels" ->
             JoinMultipleChannels Anything
 
+        "SendAndReceive" ->
+            SendAndReceive Anything
+
         _ ->
             SimpleConnect Anything
 
@@ -121,6 +125,9 @@ toString example =
         JoinMultipleChannels _ ->
             "Join Multiple Channels"
 
+        SendAndReceive _ ->
+            "Send And Receive"
+
 
 {-| -}
 toAction : Example -> Action
@@ -154,6 +161,9 @@ toAction example =
             action
 
         JoinMultipleChannels action ->
+            action
+
+        SendAndReceive action ->
             action
 
 
@@ -190,3 +200,6 @@ toFunc example =
 
         JoinMultipleChannels _ ->
             JoinMultipleChannels
+
+        SendAndReceive _ ->
+            SendAndReceive
