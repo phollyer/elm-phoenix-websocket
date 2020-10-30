@@ -413,6 +413,10 @@ feedback device phoenix { example, channelResponses } =
                 |> FeedbackPanel.scrollable [ usefulFunctions device phoenix example ]
                 |> FeedbackPanel.view device
             ]
+        |> Feedback.group
+            (Group.init
+                |> Group.layouts [ ( Tablet, Portrait, [ 1, 2 ] ) ]
+            )
         |> Feedback.view device
 
 
