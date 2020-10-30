@@ -39,6 +39,6 @@ toRow ( function, currentValue ) =
         (El.spacing 5
             :: Common.rowAttrs
         )
-        [ UI.functionLink function
+        [ El.el [ El.alignTop ] (UI.functionLink function)
         , El.el [ El.alignRight ] (El.text currentValue)
         ]

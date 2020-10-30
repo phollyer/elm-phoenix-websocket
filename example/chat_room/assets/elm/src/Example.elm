@@ -42,6 +42,7 @@ type Example
     | SimpleJoinAndLeave Action
     | JoinWithGoodParams Action
     | JoinWithBadParams Action
+    | JoinMultipleChannels Action
 
 
 
@@ -79,6 +80,9 @@ fromString example =
         "JoinWithBadParams" ->
             JoinWithBadParams Anything
 
+        "JoinMultipleChannels" ->
+            JoinMultipleChannels Anything
+
         _ ->
             SimpleConnect Anything
 
@@ -114,6 +118,9 @@ toString example =
         JoinWithBadParams _ ->
             "Join With Bad Params"
 
+        JoinMultipleChannels _ ->
+            "Join Multiple Channels"
+
 
 {-| -}
 toAction : Example -> Action
@@ -144,6 +151,9 @@ toAction example =
             action
 
         JoinWithBadParams action ->
+            action
+
+        JoinMultipleChannels action ->
             action
 
 
@@ -177,3 +187,6 @@ toFunc example =
 
         JoinWithBadParams _ ->
             JoinWithBadParams
+
+        JoinMultipleChannels _ ->
+            JoinMultipleChannels

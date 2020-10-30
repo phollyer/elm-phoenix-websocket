@@ -24,11 +24,11 @@ printList : List String -> String
 printList list =
     List.foldl
         (\str acc ->
-            acc ++ ", " ++ printQuoted str
+            acc ++ "\n, " ++ printQuoted str
         )
         ""
         list
-        |> String.dropLeft 2
+        |> String.dropLeft 3
         |> asList
 
 

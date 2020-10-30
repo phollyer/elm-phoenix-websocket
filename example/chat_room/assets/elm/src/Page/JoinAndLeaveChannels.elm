@@ -140,6 +140,22 @@ update msg model =
                         _ ->
                             ( model, Cmd.none )
 
+                JoinMultipleChannels action ->
+                    case action of
+                        Join ->
+                            let
+                                joins =
+                                    List.range 0 3
+                                        |> List.map
+                                            (\index -> Phoenix.join ("example:join_channel_number_" ++ String.fromInt index))
+                            in
+                            phoenix
+                                |> Phoenix.batch joins
+                                |> updatePhoenix model
+
+                        _ ->
+                            ( model, Cmd.none )
+
                 _ ->
                     ( model, Cmd.none )
 
@@ -280,6 +296,7 @@ menu device { example } =
             [ ( Example.toString SimpleJoinAndLeave, GotMenuItem SimpleJoinAndLeave )
             , ( Example.toString JoinWithGoodParams, GotMenuItem JoinWithGoodParams )
             , ( Example.toString JoinWithBadParams, GotMenuItem JoinWithBadParams )
+            , ( Example.toString JoinMultipleChannels, GotMenuItem JoinMultipleChannels )
             ]
         |> Menu.selected (Example.toString <| Example.toFunc example)
         |> Menu.view device
@@ -305,6 +322,11 @@ description { example } =
         JoinWithBadParams _ ->
             [ UI.paragraph
                 [ El.text "Join a Channel, providing auth params that are not accepted." ]
+            ]
+
+        JoinMultipleChannels _ ->
+            [ UI.paragraph
+                [ El.text "Join multiple Channels with a single command." ]
             ]
 
         _ ->
@@ -342,6 +364,11 @@ buttons device phoenix { example } =
 
         JoinWithBadParams _ ->
             [ join JoinWithBadParams device (not <| Phoenix.channelJoined "example:join_and_leave_channels" phoenix) ]
+
+        JoinMultipleChannels _ ->
+            [ join JoinMultipleChannels device (not <| Phoenix.channelJoined "example:join_and_leave_channels" phoenix)
+            , leave JoinMultipleChannels device (Phoenix.channelJoined "example:join_and_leave_channels" phoenix)
+            ]
 
         _ ->
             []
@@ -456,6 +483,12 @@ applicableFunctions device example =
                     , "Phoenix.leave"
                     ]
 
+                JoinMultipleChannels _ ->
+                    [ "Phoenix.batch"
+                    , "Phoenix.join"
+                    , "Phoenix.leave"
+                    ]
+
                 _ ->
                     []
             )
@@ -481,6 +514,9 @@ usefulFunctions device phoenix example =
                     [ ( "Phoenix.channelJoined", Phoenix.channelJoined "example:join_and_leave_channels" phoenix |> String.printBool )
                     , ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList )
                     ]
+
+                JoinMultipleChannels _ ->
+                    [ ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList ) ]
 
                 _ ->
                     []
