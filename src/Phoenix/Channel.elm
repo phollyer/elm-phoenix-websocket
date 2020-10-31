@@ -254,9 +254,9 @@ type Msg
     = JoinOk Topic Payload
     | JoinError Topic Payload
     | JoinTimeout Topic Payload
-    | PushOk Topic Event Payload Int
-    | PushError Topic Event Payload Int
-    | PushTimeout Topic Event Payload Int
+    | PushOk Topic Event Payload String
+    | PushError Topic Event Payload String
+    | PushTimeout Topic Event Payload String
     | Message Topic Event Payload
     | Error Topic
     | LeaveOk Topic
@@ -387,7 +387,7 @@ allOff { topic, events } portOut =
 {- Decoders -}
 
 
-decodePushResponse : (Msg -> msg) -> Topic -> (Topic -> Event -> Payload -> Int -> Msg) -> Value -> msg
+decodePushResponse : (Msg -> msg) -> Topic -> (Topic -> Event -> Payload -> String -> Msg) -> Value -> msg
 decodePushResponse toMsg topic pushMsg payload =
     case JD.decodeValue pushDecoder payload of
         Ok push_ ->
@@ -400,7 +400,7 @@ decodePushResponse toMsg topic pushMsg payload =
 type alias PushResponse =
     { event : String
     , payload : Value
-    , ref : Int
+    , ref : String
     }
 
 
@@ -410,7 +410,7 @@ pushDecoder =
         PushResponse
         |> andMap (JD.field "event" JD.string)
         |> andMap (JD.field "payload" JD.value)
-        |> andMap (JD.field "ref" JD.int)
+        |> andMap (JD.field "ref" JD.string)
 
 
 decodeEvent : (Msg -> msg) -> Topic -> (Topic -> Event -> Payload -> Msg) -> Value -> msg

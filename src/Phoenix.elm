@@ -294,10 +294,11 @@ type Model
         , presenceLeave : Dict Topic (List Presence)
         , presenceState : Dict Topic (List Presence)
         , pushCount : Int
-        , queuedPushes : Dict Int InternalPush
+        , queuedPushes : Dict String InternalPush
+        , sentPushes : Dict String InternalPush
         , socketInfo : SocketInfo.Info
         , socketState : SocketState
-        , timeoutPushes : Dict Int InternalPush
+        , timeoutPushes : Dict String InternalPush
         }
 
 
@@ -371,6 +372,7 @@ init portConfig =
         , presenceState = Dict.empty
         , pushCount = 0
         , queuedPushes = Dict.empty
+        , sentPushes = Dict.empty
         , socketInfo = SocketInfo.init
         , socketState = Disconnected (Socket.ClosedInfo "" 0 False "" False)
         , timeoutPushes = Dict.empty
@@ -827,7 +829,7 @@ type alias Push =
 
 type alias InternalPush =
     { push : Push
-    , ref : Int
+    , ref : String
     , retryStrategy : RetryStrategy
     , timeoutTick : Int
     }
@@ -856,8 +858,15 @@ type alias InternalPush =
 push : Push -> Model -> ( Model, Cmd Msg )
 push pushConfig (Model model) =
     let
-        pushRef =
-            model.pushCount + 1
+        ( pushRef, pushCount ) =
+            case pushConfig.ref of
+                Nothing ->
+                    ( model.pushCount + 1 |> String.fromInt
+                    , model.pushCount + 1
+                    )
+
+                Just ref ->
+                    ( ref, model.pushCount )
 
         internalConfig =
             { push = pushConfig
@@ -868,7 +877,7 @@ push pushConfig (Model model) =
     in
     Model model
         |> addPushToQueue internalConfig
-        |> updatePushCount pushRef
+        |> updatePushCount pushCount
         |> pushIfJoined internalConfig
 
 
@@ -879,7 +888,7 @@ addPushToQueue pushConfig (Model model) =
         (Model model)
 
 
-dropQueuedInternalPush : Int -> Model -> Model
+dropQueuedInternalPush : String -> Model -> Model
 dropQueuedInternalPush ref (Model model) =
     updateQueuedPushes
         (Dict.remove ref model.queuedPushes)
@@ -902,8 +911,15 @@ pushAll pushes model =
         List.foldl
             (\pushConfig (Model model_) ->
                 let
-                    pushRef =
-                        model_.pushCount + 1
+                    ( pushRef, pushCount ) =
+                        case pushConfig.ref of
+                            Nothing ->
+                                ( model_.pushCount + 1 |> String.fromInt
+                                , model_.pushCount + 1
+                                )
+
+                            Just ref ->
+                                ( ref, model_.pushCount )
 
                     internalConfig =
                         { push = pushConfig
@@ -914,7 +930,7 @@ pushAll pushes model =
                 in
                 Model model_
                     |> addPushToQueue internalConfig
-                    |> updatePushCount pushRef
+                    |> updatePushCount pushCount
             )
             model
             pushes
@@ -923,9 +939,21 @@ pushAll pushes model =
 pushIfJoined : InternalPush -> Model -> ( Model, Cmd Msg )
 pushIfJoined config (Model model) =
     if Set.member config.push.topic model.joinedChannels then
-        ( Model model
+        let
+            push_ =
+                config.push
+        in
+        ( addSentPush config (Model model)
         , Channel.push
-            config.push
+            { push_
+                | ref =
+                    case push_.ref of
+                        Nothing ->
+                            Just config.ref
+
+                        Just ref ->
+                            Just ref
+            }
             model.portConfig.phoenixSend
         )
 
@@ -938,6 +966,13 @@ pushIfJoined config (Model model) =
         Model model
             |> addChannelBeingJoined config.push.topic
             |> join config.push.topic
+
+
+addSentPush : InternalPush -> Model -> Model
+addSentPush config (Model model) =
+    updateSentPushes
+        (Dict.insert config.ref config model.sentPushes)
+        (Model model)
 
 
 sendQueuedPushes : Model -> ( Model, Cmd Msg )
@@ -1012,7 +1047,7 @@ sendTimeoutPushes (Model model) =
         |> sendAllPushes toGo
 
 
-sendAllPushes : Dict Int InternalPush -> Model -> ( Model, Cmd Msg )
+sendAllPushes : Dict String InternalPush -> Model -> ( Model, Cmd Msg )
 sendAllPushes pushConfigs model =
     pushConfigs
         |> Dict.toList
@@ -1215,7 +1250,7 @@ update msg (Model model) =
                 Channel.PushOk topic event payload ref ->
                     let
                         pushRef =
-                            case Dict.get ref model.queuedPushes of
+                            case Dict.get ref model.sentPushes of
                                 Just internalConfig ->
                                     internalConfig.push.ref
 
@@ -2261,12 +2296,17 @@ updatePushCount count (Model model) =
         }
 
 
-updateQueuedPushes : Dict Int InternalPush -> Model -> Model
+updateQueuedPushes : Dict String InternalPush -> Model -> Model
 updateQueuedPushes queuedPushes_ (Model model) =
     Model
         { model
             | queuedPushes = queuedPushes_
         }
+
+
+updateSentPushes : Dict String InternalPush -> Model -> Model
+updateSentPushes sentPushes_ (Model model) =
+    Model { model | sentPushes = sentPushes_ }
 
 
 updateSocketInfo : SocketInfo.Info -> Model -> Model
@@ -2285,7 +2325,7 @@ updateSocketState state (Model model) =
         }
 
 
-updateTimeoutPushes : Dict Int InternalPush -> Model -> Model
+updateTimeoutPushes : Dict String InternalPush -> Model -> Model
 updateTimeoutPushes pushConfig (Model model) =
     Model
         { model

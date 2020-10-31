@@ -498,9 +498,9 @@ let ElmPhoenixWebSocket = {
         }
 
         push
-            .receive("ok", (payload) => self.channelSend(params.topic, "PushOk", {event: params.event, payload: payload, ref: params.ref || 0}))
-            .receive("error", (payload) => self.channelSend(params.topic, "PushError", {event: params.event, payload: payload, ref: params.ref || 0}))
-            .receive("timeout", () => self.channelSend(params.topic, "PushTimeout", {event: params.event, payload: params.payload, ref: params.ref || 0}))
+            .receive("ok", (payload) => self.channelSend(params.topic, "PushOk", {event: params.event, payload: payload, ref: params.ref}))
+            .receive("error", (payload) => self.channelSend(params.topic, "PushError", {event: params.event, payload: payload, ref: params.ref}))
+            .receive("timeout", () => self.channelSend(params.topic, "PushTimeout", {event: params.event, payload: params.payload, ref: params.ref}))
     },
 
     /* on
