@@ -6,6 +6,7 @@ defmodule ChatRoomWeb.UserSocket do
   channel "example:manage_presence_messages", ChatRoomWeb.ManagePresenceMessagesChannel
   channel "example:join_and_leave_channels", ChatRoomWeb.JoinAndLeaveChannel
   channel "example:join_channel_number_*", ChatRoomWeb.JoinMultipleChannelsChannel
+  channel "example:push_events", ChatRoomWeb.PushEventsChannel
   channel "example_controller:*", ChatRoomWeb.ExampleControllerChannel
 
   # Socket params are passed from the client and can
