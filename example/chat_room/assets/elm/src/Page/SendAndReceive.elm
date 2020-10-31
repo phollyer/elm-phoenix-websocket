@@ -105,10 +105,6 @@ update msg model =
             in
             case Phoenix.phoenixMsg phx of
                 Phoenix.ChannelResponse response ->
-                    let
-                        _ =
-                            Debug.log "" response
-                    in
                     ( { newModel
                         | channelResponses =
                             response :: newModel.channelResponses
