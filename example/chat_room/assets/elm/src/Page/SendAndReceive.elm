@@ -80,7 +80,7 @@ update msg model =
                                     , payload = JE.null
                                     , timeout = Nothing
                                     , retryStrategy = Phoenix.Drop
-                                    , ref = Nothing
+                                    , ref = Just "custom_ref"
                                     }
                                 |> updatePhoenix model
 
