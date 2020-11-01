@@ -65,7 +65,8 @@ update msg model =
 
         GotMenuItem example ->
             Phoenix.disconnectAndReset Nothing phoenix
-                |> updatePhoenix model
+                |> updatePhoenix
+                    { model | channelResponses = [] }
                 |> updateExample example
 
         GotControlClick example ->
