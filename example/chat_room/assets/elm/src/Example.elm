@@ -45,6 +45,7 @@ type Example
     | JoinWithBadParams Action
     | JoinMultipleChannels Action
     | PushOneEvent Action
+    | PushMultipleEvents Action
 
 
 
@@ -88,6 +89,9 @@ fromString example =
         "PushOneEvent" ->
             PushOneEvent Anything
 
+        "PushMultipleEvents" ->
+            PushMultipleEvents Anything
+
         _ ->
             SimpleConnect Anything
 
@@ -129,6 +133,9 @@ toString example =
         PushOneEvent _ ->
             "Push One Event"
 
+        PushMultipleEvents _ ->
+            "Push Multiple Events"
+
 
 {-| -}
 toAction : Example -> Action
@@ -165,6 +172,9 @@ toAction example =
             action
 
         PushOneEvent action ->
+            action
+
+        PushMultipleEvents action ->
             action
 
 
@@ -204,3 +214,6 @@ toFunc example =
 
         PushOneEvent _ ->
             PushOneEvent
+
+        PushMultipleEvents _ ->
+            PushMultipleEvents

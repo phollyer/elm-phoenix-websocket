@@ -1049,6 +1049,10 @@ sendTimeoutPushes (Model model) =
 
 sendAllPushes : Dict String InternalPush -> Model -> ( Model, Cmd Msg )
 sendAllPushes pushConfigs model =
+    let
+        _ =
+            Debug.log "" pushConfigs
+    in
     pushConfigs
         |> Dict.toList
         |> List.map Tuple.second

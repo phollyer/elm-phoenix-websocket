@@ -69,13 +69,17 @@ update msg model =
                 |> updateExample example
 
         GotControlClick example ->
+            let
+                _ =
+                    Debug.log "" example
+            in
             case example of
                 PushOneEvent action ->
                     case action of
                         Push ->
                             phoenix
                                 |> Phoenix.push
-                                    { topic = "example:push_events"
+                                    { topic = "example:send_and_receive"
                                     , event = "example_push"
                                     , payload = JE.null
                                     , timeout = Nothing
@@ -85,7 +89,43 @@ update msg model =
                                 |> updatePhoenix model
 
                         Leave ->
-                            Phoenix.leave "example:push_events" phoenix
+                            Phoenix.leave "example:send_and_receive" phoenix
+                                |> updatePhoenix model
+
+                        _ ->
+                            ( model, Cmd.none )
+
+                PushMultipleEvents action ->
+                    case action of
+                        Push ->
+                            phoenix
+                                |> Phoenix.pushAll
+                                    [ { topic = "example:send_and_receive"
+                                      , event = "example_push"
+                                      , payload = JE.null
+                                      , timeout = Nothing
+                                      , retryStrategy = Phoenix.Drop
+                                      , ref = Nothing
+                                      }
+                                    , { topic = "example:send_and_receive"
+                                      , event = "example_push"
+                                      , payload = JE.null
+                                      , timeout = Nothing
+                                      , retryStrategy = Phoenix.Drop
+                                      , ref = Nothing
+                                      }
+                                    , { topic = "example:send_and_receive"
+                                      , event = "example_push"
+                                      , payload = JE.null
+                                      , timeout = Nothing
+                                      , retryStrategy = Phoenix.Drop
+                                      , ref = Nothing
+                                      }
+                                    ]
+                                |> updatePhoenix model
+
+                        Leave ->
+                            Phoenix.leave "example:send_and_receive" phoenix
                                 |> updatePhoenix model
 
                         _ ->
@@ -209,6 +249,7 @@ menu device { example } =
     Menu.init
         |> Menu.options
             [ ( Example.toString PushOneEvent, GotMenuItem PushOneEvent )
+            , ( Example.toString PushMultipleEvents, GotMenuItem PushMultipleEvents )
             ]
         |> Menu.selected (Example.toString <| Example.toFunc example)
         |> Menu.view device
@@ -224,6 +265,13 @@ description { example } =
         PushOneEvent _ ->
             [ UI.paragraph
                 [ El.text "Push an event to the Channel with no need to connect to the socket, or join the channel first." ]
+            ]
+
+        PushMultipleEvents _ ->
+            [ UI.paragraph
+                [ El.text "Push multiple events to the Channel with no need to connect to the socket, or join the channel first. "
+                , El.text "This example will make 3 simultaneous pushes."
+                ]
             ]
 
         _ ->
@@ -246,7 +294,12 @@ buttons device phoenix { example } =
     case example of
         PushOneEvent _ ->
             [ push PushOneEvent device
-            , leave PushOneEvent device (Phoenix.channelJoined "example:push_events" phoenix)
+            , leave PushOneEvent device (Phoenix.channelJoined "example:send_and_receive" phoenix)
+            ]
+
+        PushMultipleEvents _ ->
+            [ push PushMultipleEvents device
+            , leave PushMultipleEvents device (Phoenix.channelJoined "example:send_and_receive" phoenix)
             ]
 
         _ ->
@@ -356,6 +409,11 @@ applicableFunctions device example =
                     , "Phoenix.leave"
                     ]
 
+                PushMultipleEvents _ ->
+                    [ "Phoenix.pushAll"
+                    , "Phoenix.leave"
+                    ]
+
                 _ ->
                     []
             )
@@ -368,7 +426,12 @@ usefulFunctions device phoenix example =
         |> UsefulFunctions.functions
             (case example of
                 PushOneEvent _ ->
-                    [ ( "Phoenix.channelJoined", Phoenix.channelJoined "example:push_events" phoenix |> String.printBool )
+                    [ ( "Phoenix.channelJoined", Phoenix.channelJoined "example:send_and_receive" phoenix |> String.printBool )
+                    , ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList )
+                    ]
+
+                PushMultipleEvents _ ->
+                    [ ( "Phoenix.channelJoined", Phoenix.channelJoined "example:send_and_receive" phoenix |> String.printBool )
                     , ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList )
                     ]
 
