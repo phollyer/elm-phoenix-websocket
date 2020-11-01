@@ -26,6 +26,7 @@ init session =
     ( { session = session
       , example = PushOneEvent Push
       , channelResponses = []
+      , channelEvents = []
       }
     , Cmd.none
     )
@@ -35,6 +36,7 @@ type alias Model =
     { session : Session
     , example : Example
     , channelResponses : List Phoenix.ChannelResponse
+    , channelEvents : List Phoenix.ChannelEvent
     }
 
 
@@ -132,6 +134,33 @@ update msg model =
                         _ ->
                             ( model, Cmd.none )
 
+                ReceiveEvents action ->
+                    case action of
+                        Push ->
+                            phoenix
+                                |> Phoenix.setJoinConfig
+                                    { topic = "example:send_and_receive"
+                                    , events = [ "receive_push", "receive_broadcast" ]
+                                    , payload = JE.null
+                                    , timeout = Nothing
+                                    }
+                                |> Phoenix.push
+                                    { topic = "example:send_and_receive"
+                                    , event = "receive_events"
+                                    , payload = JE.null
+                                    , timeout = Nothing
+                                    , retryStrategy = Phoenix.Drop
+                                    , ref = Just "custom_ref"
+                                    }
+                                |> updatePhoenix model
+
+                        Leave ->
+                            Phoenix.leave "example:send_and_receive" phoenix
+                                |> updatePhoenix model
+
+                        _ ->
+                            ( model, Cmd.none )
+
                 _ ->
                     ( model, Cmd.none )
 
@@ -149,6 +178,18 @@ update msg model =
                     ( { newModel
                         | channelResponses =
                             response :: newModel.channelResponses
+                      }
+                    , cmd
+                    )
+
+                Phoenix.ChannelEvent topic event payload ->
+                    ( { newModel
+                        | channelEvents =
+                            { topic = topic
+                            , event = event
+                            , payload = payload
+                            }
+                                :: newModel.channelEvents
                       }
                     , cmd
                     )
@@ -251,6 +292,7 @@ menu device { example } =
         |> Menu.options
             [ ( Example.toString PushOneEvent, GotMenuItem PushOneEvent )
             , ( Example.toString PushMultipleEvents, GotMenuItem PushMultipleEvents )
+            , ( Example.toString ReceiveEvents, GotMenuItem ReceiveEvents )
             ]
         |> Menu.selected (Example.toString <| Example.toFunc example)
         |> Menu.view device
@@ -272,6 +314,15 @@ description { example } =
             [ UI.paragraph
                 [ El.text "Push multiple events to the Channel with no need to connect to the socket, or join the channel first. "
                 , El.text "This example will make 3 simultaneous pushes."
+                ]
+            ]
+
+        ReceiveEvents _ ->
+            [ UI.paragraph
+                [ El.text "Receive multiple events from the Channel after pushing an event. "
+                , El.text "This example will receive two events in return from a "
+                , UI.code "push"
+                , El.text "."
                 ]
             ]
 
@@ -301,6 +352,11 @@ buttons device phoenix { example } =
         PushMultipleEvents _ ->
             [ push PushMultipleEvents device
             , leave PushMultipleEvents device (Phoenix.channelJoined "example:send_and_receive" phoenix)
+            ]
+
+        ReceiveEvents _ ->
+            [ push ReceiveEvents device
+            , leave ReceiveEvents device (Phoenix.channelJoined "example:send_and_receive" phoenix)
             ]
 
         _ ->
@@ -415,6 +471,11 @@ applicableFunctions device example =
                     , "Phoenix.leave"
                     ]
 
+                ReceiveEvents _ ->
+                    [ "Phoenix.push"
+                    , "Phoenix.leave"
+                    ]
+
                 _ ->
                     []
             )
@@ -432,6 +493,11 @@ usefulFunctions device phoenix example =
                     ]
 
                 PushMultipleEvents _ ->
+                    [ ( "Phoenix.channelJoined", Phoenix.channelJoined "example:send_and_receive" phoenix |> String.printBool )
+                    , ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList )
+                    ]
+
+                ReceiveEvents _ ->
                     [ ( "Phoenix.channelJoined", Phoenix.channelJoined "example:send_and_receive" phoenix |> String.printBool )
                     , ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList )
                     ]

@@ -46,6 +46,7 @@ type Example
     | JoinMultipleChannels Action
     | PushOneEvent Action
     | PushMultipleEvents Action
+    | ReceiveEvents Action
 
 
 
@@ -92,6 +93,9 @@ fromString example =
         "PushMultipleEvents" ->
             PushMultipleEvents Anything
 
+        "ReceiveEvents" ->
+            ReceiveEvents Anything
+
         _ ->
             SimpleConnect Anything
 
@@ -136,6 +140,9 @@ toString example =
         PushMultipleEvents _ ->
             "Push Multiple Events"
 
+        ReceiveEvents _ ->
+            "Receive Events"
+
 
 {-| -}
 toAction : Example -> Action
@@ -175,6 +182,9 @@ toAction example =
             action
 
         PushMultipleEvents action ->
+            action
+
+        ReceiveEvents action ->
             action
 
 
@@ -217,3 +227,6 @@ toFunc example =
 
         PushMultipleEvents _ ->
             PushMultipleEvents
+
+        ReceiveEvents _ ->
+            ReceiveEvents

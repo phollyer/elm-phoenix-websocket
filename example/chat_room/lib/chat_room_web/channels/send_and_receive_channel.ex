@@ -9,4 +9,12 @@ defmodule ChatRoomWeb.SendAndReceiveChannel do
   def handle_in("example_push", _, socket) do
     {:reply, :ok, socket}
   end
+
+  def handle_in("receive_events", _, socket) do
+    push( socket, "receive_push", %{"event" => "pushed"} )
+
+    broadcast( socket, "receive_broadcast", %{"event" => "broadcast"} )
+
+    {:reply, :ok, socket}
+  end
 end
