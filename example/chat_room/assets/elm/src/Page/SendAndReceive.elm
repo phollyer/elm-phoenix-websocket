@@ -3,13 +3,14 @@ module Page.SendAndReceive exposing (..)
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Example exposing (Action(..), Example(..))
 import Extra.String as String
-import Json.Encode as JE
+import Json.Encode as JE exposing (Value)
 import Phoenix
 import Route
 import Session exposing (Session)
 import UI
 import View.ApplicableFunctions as ApplicableFunctions
 import View.Button as Button
+import View.ChannelMessage as ChannelMessage
 import View.Example as Example
 import View.ExampleControls as ExampleControls
 import View.Feedback as Feedback
@@ -25,8 +26,7 @@ init : Session -> ( Model, Cmd Msg )
 init session =
     ( { session = session
       , example = PushOneEvent Push
-      , channelResponses = []
-      , channelEvents = []
+      , info = []
       }
     , Cmd.none
     )
@@ -35,9 +35,17 @@ init session =
 type alias Model =
     { session : Session
     , example : Example
-    , channelResponses : List Phoenix.ChannelResponse
-    , channelEvents : List Phoenix.ChannelEvent
+    , info : List Info
     }
+
+
+type Info
+    = Response Phoenix.ChannelResponse
+    | Event
+        { topic : String
+        , event : String
+        , payload : Value
+        }
 
 
 
@@ -68,14 +76,10 @@ update msg model =
         GotMenuItem example ->
             Phoenix.disconnectAndReset Nothing phoenix
                 |> updatePhoenix
-                    { model | channelResponses = [] }
+                    { model | info = [] }
                 |> updateExample example
 
         GotControlClick example ->
-            let
-                _ =
-                    Debug.log "" example
-            in
             case example of
                 PushOneEvent action ->
                     case action of
@@ -103,28 +107,19 @@ update msg model =
                         Push ->
                             phoenix
                                 |> Phoenix.pushAll
-                                    [ { topic = "example:send_and_receive"
-                                      , event = "example_push"
-                                      , payload = JE.null
-                                      , timeout = Nothing
-                                      , retryStrategy = Phoenix.Drop
-                                      , ref = Nothing
-                                      }
-                                    , { topic = "example:send_and_receive"
-                                      , event = "example_push"
-                                      , payload = JE.null
-                                      , timeout = Nothing
-                                      , retryStrategy = Phoenix.Drop
-                                      , ref = Nothing
-                                      }
-                                    , { topic = "example:send_and_receive"
-                                      , event = "example_push"
-                                      , payload = JE.null
-                                      , timeout = Nothing
-                                      , retryStrategy = Phoenix.Drop
-                                      , ref = Nothing
-                                      }
-                                    ]
+                                    (List.range 1 3
+                                        |> List.map
+                                            (\index ->
+                                                { topic = "example:send_and_receive"
+                                                , event = "example_push"
+                                                , payload = JE.null
+                                                , timeout = Nothing
+                                                , retryStrategy = Phoenix.Drop
+                                                , ref = Just (String.fromInt index)
+                                                }
+                                            )
+                                        |> List.reverse
+                                    )
                                 |> updatePhoenix model
 
                         Leave ->
@@ -176,20 +171,21 @@ update msg model =
             case Phoenix.phoenixMsg phx of
                 Phoenix.ChannelResponse response ->
                     ( { newModel
-                        | channelResponses =
-                            response :: newModel.channelResponses
+                        | info =
+                            Response response :: newModel.info
                       }
                     , cmd
                     )
 
                 Phoenix.ChannelEvent topic event payload ->
                     ( { newModel
-                        | channelEvents =
-                            { topic = topic
-                            , event = event
-                            , payload = payload
-                            }
-                                :: newModel.channelEvents
+                        | info =
+                            Event
+                                { topic = topic
+                                , event = event
+                                , payload = payload
+                                }
+                                :: newModel.info
                       }
                     , cmd
                     )
@@ -319,10 +315,14 @@ description { example } =
 
         ReceiveEvents _ ->
             [ UI.paragraph
-                [ El.text "Receive multiple events from the Channel after pushing an event. "
+                [ El.text "Receive multiple events from the Channel after pushing an event to the Channel. "
                 , El.text "This example will receive two events in return from a "
                 , UI.code "push"
-                , El.text "."
+                , El.text ". The first is "
+                , UI.code "push"
+                , El.text "'ed from the server to the client, the second is "
+                , UI.code "broadcast"
+                , El.text "ed to all connected clients."
                 ]
             ]
 
@@ -386,12 +386,12 @@ leave example device enabled =
 
 
 feedback : Device -> Phoenix.Model -> Model -> Element Msg
-feedback device phoenix { example, channelResponses } =
+feedback device phoenix { example, info } =
     Feedback.init
         |> Feedback.elements
             [ FeedbackPanel.init
                 |> FeedbackPanel.title "Info"
-                |> FeedbackPanel.scrollable (channelResponsesView device channelResponses)
+                |> FeedbackPanel.scrollable (infoView device info)
                 |> FeedbackPanel.view device
             , FeedbackPanel.init
                 |> FeedbackPanel.title "Applicable Functions"
@@ -409,9 +409,18 @@ feedback device phoenix { example, channelResponses } =
         |> Feedback.view device
 
 
-channelResponsesView : Device -> List Phoenix.ChannelResponse -> List (Element Msg)
-channelResponsesView device responses =
-    List.map (channelResponse device) responses
+infoView : Device -> List Info -> List (Element Msg)
+infoView device info =
+    List.map
+        (\item ->
+            case item of
+                Response response ->
+                    channelResponse device response
+
+                Event event ->
+                    channelEvent device event
+        )
+        info
 
 
 channelResponse : Device -> Phoenix.ChannelResponse -> Element Msg
@@ -419,41 +428,57 @@ channelResponse device response =
     case response of
         Phoenix.JoinOk topic payload ->
             FeedbackContent.init
-                |> FeedbackContent.title (Just "Channel Response")
+                |> FeedbackContent.title (Just "ChannelResponse")
                 |> FeedbackContent.label "JoinOk"
                 |> FeedbackContent.element
-                    (El.column
-                        [ El.width El.fill ]
-                        [ El.text topic
-                        , El.text (JE.encode 2 payload)
-                        ]
+                    (ChannelMessage.init
+                        |> ChannelMessage.topic topic
+                        |> ChannelMessage.payload payload
+                        |> ChannelMessage.view device
                     )
                 |> FeedbackContent.view device
 
         Phoenix.LeaveOk topic ->
             FeedbackContent.init
-                |> FeedbackContent.title (Just "Channel Response")
+                |> FeedbackContent.title (Just "ChannelResponse")
                 |> FeedbackContent.label "LeaveOk"
-                |> FeedbackContent.element (El.text topic)
+                |> FeedbackContent.element
+                    (ChannelMessage.init
+                        |> ChannelMessage.topic topic
+                        |> ChannelMessage.view device
+                    )
                 |> FeedbackContent.view device
 
         Phoenix.PushOk topic event ref payload ->
             FeedbackContent.init
-                |> FeedbackContent.title (Just "Channel Response")
+                |> FeedbackContent.title (Just "ChannelResponse")
                 |> FeedbackContent.label "PushOk"
                 |> FeedbackContent.element
-                    (El.column
-                        [ El.width El.fill ]
-                        [ El.text topic
-                        , El.text event
-                        , El.text (Maybe.withDefault "Nothing" ref)
-                        , El.text (JE.encode 2 payload)
-                        ]
+                    (ChannelMessage.init
+                        |> ChannelMessage.topic topic
+                        |> ChannelMessage.event event
+                        |> ChannelMessage.ref ref
+                        |> ChannelMessage.payload payload
+                        |> ChannelMessage.view device
                     )
                 |> FeedbackContent.view device
 
         _ ->
             El.none
+
+
+channelEvent : Device -> { topic : String, event : String, payload : Value } -> Element Msg
+channelEvent device { topic, event, payload } =
+    FeedbackContent.init
+        |> FeedbackContent.title (Just "ChannelEvent")
+        |> FeedbackContent.element
+            (ChannelMessage.init
+                |> ChannelMessage.topic topic
+                |> ChannelMessage.event event
+                |> ChannelMessage.payload payload
+                |> ChannelMessage.view device
+            )
+        |> FeedbackContent.view device
 
 
 applicableFunctions : Device -> Example -> Element Msg
@@ -472,7 +497,8 @@ applicableFunctions device example =
                     ]
 
                 ReceiveEvents _ ->
-                    [ "Phoenix.push"
+                    [ "Phoenix.setJoinConfig"
+                    , "Phoenix.push"
                     , "Phoenix.leave"
                     ]
 
