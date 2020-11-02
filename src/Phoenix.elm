@@ -526,32 +526,42 @@ disconnect code (Model model) =
 [code](https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent#Status_codes)
 for the closure.
 
-This will also reset parts of the internal model, so information relating to
-Channels that have been joined, Pushes queued, and Presence's will all be
-reset, but any configs that have been set will be kept.
+This will also reset the internal model, so information relating to
+Channels that have been joined, Pushes queued, Presence's and configs will all
+be reset.
 
 -}
 disconnectAndReset : Maybe Int -> Model -> ( Model, Cmd Msg )
 disconnectAndReset code (Model model) =
     case model.socketState of
         Disconnected _ ->
-            ( Model model, Cmd.none )
+            ( reset (Model model), Cmd.none )
 
         Disconnecting ->
             ( Model model, Cmd.none )
 
         _ ->
             Model model
-                |> updateChannelsBeingJoined Set.empty
-                |> updateChannelsBeingLeft Set.empty
-                |> updateChannelsJoined Set.empty
-                |> updateQueuedPushes Dict.empty
-                |> updateTimeoutPushes Dict.empty
-                |> updatePresenceState Dict.empty
-                |> updatePresenceJoin Dict.empty
-                |> updatePresenceLeave Dict.empty
-                |> updatePresenceDiff Dict.empty
+                |> reset
                 |> disconnect code
+
+
+reset : Model -> Model
+reset model =
+    model
+        |> updateChannelsBeingJoined Set.empty
+        |> updateChannelsBeingLeft Set.empty
+        |> updateChannelsJoined Set.empty
+        |> updateConnectOptions []
+        |> updateConnectParams JE.null
+        |> updateJoinConfigs Dict.empty
+        |> updateLeaveConfigs Dict.empty
+        |> updateQueuedPushes Dict.empty
+        |> updateTimeoutPushes Dict.empty
+        |> updatePresenceState Dict.empty
+        |> updatePresenceJoin Dict.empty
+        |> updatePresenceLeave Dict.empty
+        |> updatePresenceDiff Dict.empty
 
 
 
