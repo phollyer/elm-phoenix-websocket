@@ -38,17 +38,11 @@ containerAttrs =
 contentAttrs : List (Attribute msg)
 contentAttrs =
     [ El.spacing 15
-    , El.paddingEach
-        { left = 0
-        , top = 15
-        , right = 0
-        , bottom = 0
-        }
     , Border.widthEach
         { left = 0
         , top = 2
         , right = 0
-        , bottom = 0
+        , bottom = 2
         }
     , Border.color Color.skyblue
     , El.width El.fill
@@ -60,6 +54,7 @@ scrollableAttrs =
     [ El.clip
     , El.scrollbars
     , El.height El.fill
+    , El.paddingXY 0 10
     ]
 
 
