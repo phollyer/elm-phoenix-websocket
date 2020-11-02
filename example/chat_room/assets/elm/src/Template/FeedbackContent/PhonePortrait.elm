@@ -23,13 +23,8 @@ view config =
         , El.spacing 10
         ]
         [ title config.title
-        , El.row
-            [ El.spacing 10
-            , El.width El.fill
-            ]
-            [ label config.label
-            , element config.element
-            ]
+        , label config.label
+        , element config.element
         ]
 
 
