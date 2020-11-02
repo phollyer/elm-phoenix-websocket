@@ -3,6 +3,7 @@ module Template.FeedbackPanel.Common exposing
     , containerAttrs
     , contentAttrs
     , scrollableAttrs
+    , seperator
     , staticAttrs
     , titleAttrs
     )
@@ -29,7 +30,6 @@ containerAttrs =
     , Border.width 1
     , El.centerX
     , El.padding 10
-    , El.spacing 15
     , El.height <|
         El.maximum 350 El.fill
     ]
@@ -38,13 +38,6 @@ containerAttrs =
 contentAttrs : List (Attribute msg)
 contentAttrs =
     [ El.spacing 15
-    , Border.widthEach
-        { left = 0
-        , top = 2
-        , right = 0
-        , bottom = 2
-        }
-    , Border.color Color.skyblue
     , El.width El.fill
     ]
 
@@ -55,6 +48,13 @@ scrollableAttrs =
     , El.scrollbars
     , El.height El.fill
     , El.paddingXY 0 10
+    , Border.widthEach
+        { left = 0
+        , top = 2
+        , right = 0
+        , bottom = 2
+        }
+    , Border.color Color.skyblue
     ]
 
 
@@ -62,6 +62,14 @@ staticAttrs : List (Attribute msg)
 staticAttrs =
     [ El.spacing 15
     , El.width El.fill
+    , El.paddingXY 0 10
+    , Border.widthEach
+        { left = 0
+        , top = 2
+        , right = 0
+        , bottom = 0
+        }
+    , Border.color Color.skyblue
     ]
 
 
@@ -71,3 +79,18 @@ titleAttrs =
     , Font.bold
     , Font.color Color.darkslateblue
     ]
+
+
+seperator : Element msg
+seperator =
+    El.el
+        [ El.width El.fill
+        , Border.widthEach
+            { left = 0
+            , top = 0
+            , right = 0
+            , bottom = 1
+            }
+        , Border.color Color.skyblue
+        ]
+        El.none

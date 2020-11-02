@@ -27,13 +27,6 @@ containerAttrs : List (Attribute msg)
 containerAttrs =
     [ El.width El.fill
     , El.alignLeft
-    , Border.widthEach
-        { left = 0
-        , top = 0
-        , right = 0
-        , bottom = 1
-        }
-    , Border.color Color.skyblue
     , El.paddingEach
         { left = 0
         , top = 0

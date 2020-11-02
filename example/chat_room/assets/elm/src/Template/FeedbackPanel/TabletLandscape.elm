@@ -37,7 +37,9 @@ scrollable elements =
                         Common.scrollableAttrs
                         Common.contentAttrs
                 )
-                elements
+                (elements
+                    |> List.intersperse Common.seperator
+                )
 
 
 static : List (Element msg) -> Element msg
