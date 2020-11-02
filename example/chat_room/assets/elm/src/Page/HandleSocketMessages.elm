@@ -32,6 +32,7 @@ import View.Feedback as Feedback
 import View.FeedbackContent as FeedbackContent
 import View.FeedbackPanel as FeedbackPanel
 import View.Group as Group
+import View.LabelAndValue as LabelAndValue
 import View.Layout as Layout
 import View.Menu as Menu
 import View.UsefulFunctions as UsefulFunctions
@@ -983,24 +984,24 @@ staticReports : Device -> Model -> List (Element Msg)
 staticReports device model =
     case model.example of
         ManageSocketHeartbeat _ ->
-            [ FeedbackContent.init
-                |> FeedbackContent.label "Heartbeat Count"
-                |> FeedbackContent.element (El.text (String.fromInt model.heartbeatCount))
-                |> FeedbackContent.view device
+            [ LabelAndValue.init
+                |> LabelAndValue.label "Heartbeat Count"
+                |> LabelAndValue.value (String.fromInt model.heartbeatCount)
+                |> LabelAndValue.view device
             ]
 
         ManageChannelMessages _ ->
-            [ FeedbackContent.init
-                |> FeedbackContent.label "Message Count"
-                |> FeedbackContent.element (El.text (String.fromInt model.channelMessageCount))
-                |> FeedbackContent.view device
+            [ LabelAndValue.init
+                |> LabelAndValue.label "Message Count"
+                |> LabelAndValue.value (String.fromInt model.channelMessageCount)
+                |> LabelAndValue.view device
             ]
 
         ManagePresenceMessages _ ->
-            [ FeedbackContent.init
-                |> FeedbackContent.label "Message Count"
-                |> FeedbackContent.element (El.text (String.fromInt model.presenceMessageCount))
-                |> FeedbackContent.view device
+            [ LabelAndValue.init
+                |> LabelAndValue.label "Message Count"
+                |> LabelAndValue.value (String.fromInt model.presenceMessageCount)
+                |> LabelAndValue.view device
             ]
 
         _ ->
