@@ -227,6 +227,13 @@ updateWith toModel toMsg ( subModel, subCmd ) =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     case model of
+        Home subModel ->
+            Sub.batch
+                [ Sub.map GotHomeMsg <|
+                    Home.subscriptions subModel
+                , onResize WindowResized
+                ]
+
         ControlTheSocketConnection subModel ->
             Sub.batch
                 [ Sub.map GotControlTheSocketConnectionMsg <|

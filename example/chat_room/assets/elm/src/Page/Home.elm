@@ -2,6 +2,7 @@ module Page.Home exposing
     ( Model
     , Msg
     , init
+    , subscriptions
     , toSession
     , update
     , updateSession
@@ -24,8 +25,15 @@ import View.Panel as Panel
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( { session = session }
-    , Cmd.none
+    let
+        ( phx, phxCmd ) =
+            Phoenix.disconnectAndReset Nothing <|
+                Session.phoenix session
+    in
+    ( { session =
+            Session.updatePhoenix phx session
+      }
+    , Cmd.map PhoenixMsg phxCmd
     )
 
 
@@ -42,7 +50,17 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         PhoenixMsg phoenixMsg ->
-            ( model, Cmd.none )
+            let
+                ( phx, phxCmd ) =
+                    Phoenix.update phoenixMsg <|
+                        Session.phoenix model.session
+            in
+            ( { model
+                | session =
+                    Session.updatePhoenix phx model.session
+              }
+            , Cmd.map PhoenixMsg phxCmd
+            )
 
         NavigateTo route ->
             ( model
@@ -63,6 +81,13 @@ toDevice model =
 updateSession : Session -> Model -> Model
 updateSession session model =
     { model | session = session }
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.map PhoenixMsg <|
+        Phoenix.subscriptions
+            (Session.phoenix model.session)
 
 
 view : Model -> { title : String, content : Element Msg }
