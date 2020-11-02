@@ -541,8 +541,7 @@ disconnectAndReset code (Model model) =
             ( Model model, Cmd.none )
 
         _ ->
-            ( Model model
-                |> updateSocketState Disconnecting
+            Model model
                 |> updateChannelsBeingJoined Set.empty
                 |> updateChannelsBeingLeft Set.empty
                 |> updateChannelsJoined Set.empty
@@ -552,9 +551,7 @@ disconnectAndReset code (Model model) =
                 |> updatePresenceJoin Dict.empty
                 |> updatePresenceLeave Dict.empty
                 |> updatePresenceDiff Dict.empty
-            , Socket.disconnect code
-                model.portConfig.phoenixSend
-            )
+                |> disconnect code
 
 
 
