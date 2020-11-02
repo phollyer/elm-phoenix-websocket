@@ -253,7 +253,7 @@ disconnect code portOut =
 {-| A type alias representing the information received when the Socket closes.
 -}
 type alias ClosedInfo =
-    { reason : String
+    { reason : Maybe String
     , code : Int
     , wasClean : Bool
     , type_ : String
@@ -612,7 +612,18 @@ closedDecoder : JD.Decoder ClosedInfo
 closedDecoder =
     JD.succeed
         ClosedInfo
-        |> andMap (JD.field "reason" JD.string)
+        |> andMap
+            (JD.maybe (JD.field "reason" JD.string)
+                |> JD.andThen
+                    (\reason ->
+                        case reason of
+                            Just "" ->
+                                JD.succeed Nothing
+
+                            _ ->
+                                JD.succeed reason
+                    )
+            )
         |> andMap (JD.field "code" JD.int)
         |> andMap (JD.field "wasClean" JD.bool)
         |> andMap (JD.field "type" JD.string)

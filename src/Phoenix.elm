@@ -374,7 +374,7 @@ init portConfig =
         , queuedPushes = Dict.empty
         , sentPushes = Dict.empty
         , socketInfo = SocketInfo.init
-        , socketState = Disconnected (Socket.ClosedInfo "" 0 False "" False)
+        , socketState = Disconnected (Socket.ClosedInfo Nothing 0 False "" False)
         , timeoutPushes = Dict.empty
         }
 
@@ -1355,7 +1355,7 @@ update msg (Model model) =
 
                 Socket.Closed closedInfo ->
                     ( Model model
-                        |> updateDisconnectReason (Just closedInfo.reason)
+                        |> updateDisconnectReason closedInfo.reason
                         |> updateSocketState (Disconnected closedInfo)
                         |> updatePhoenixMsg (StateChanged (Disconnected closedInfo))
                     , Cmd.none
@@ -1459,7 +1459,7 @@ type SocketState
     | Connected
     | Disconnecting
     | Disconnected
-        { reason : String
+        { reason : Maybe String
         , code : Int
         , wasClean : Bool
         , type_ : String
