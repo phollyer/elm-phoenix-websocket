@@ -18,7 +18,7 @@ module Phoenix exposing
     , allSocketMessagesOn, allSocketMessagesOff
     , socketChannelMessagesOn, socketChannelMessagesOff
     , socketPresenceMessagesOn, socketPresenceMessagesOff
-    , heartbeatMessagesOn, heartbeatMessagesOff
+    , heartbeatOn, heartbeatOff
     , queuedChannels, channelQueued, joinedChannels, channelJoined, topicParts
     , queuedPushes, pushQueued, dropQueuedPush
     , timeoutPushes, pushTimedOut, dropTimeoutPush, pushTimeoutCountdown
@@ -219,7 +219,7 @@ handler forwards on to Elm.
 
 @docs socketPresenceMessagesOn, socketPresenceMessagesOff
 
-@docs heartbeatMessagesOn, heartbeatMessagesOff
+@docs heartbeatOn, heartbeatOff
 
 
 ## Channels
@@ -1792,15 +1792,15 @@ socketPresenceMessagesOff (Model model) =
 
 
 {-| -}
-heartbeatMessagesOn : Model -> Cmd Msg
-heartbeatMessagesOn (Model model) =
-    Socket.heartbeatMessagesOn model.portConfig.phoenixSend
+heartbeatOn : Model -> Cmd Msg
+heartbeatOn (Model model) =
+    Socket.heartbeatOn model.portConfig.phoenixSend
 
 
 {-| -}
-heartbeatMessagesOff : Model -> Cmd Msg
-heartbeatMessagesOff (Model model) =
-    Socket.heartbeatMessagesOff model.portConfig.phoenixSend
+heartbeatOff : Model -> Cmd Msg
+heartbeatOff (Model model) =
+    Socket.heartbeatOff model.portConfig.phoenixSend
 
 
 

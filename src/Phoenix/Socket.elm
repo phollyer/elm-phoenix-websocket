@@ -6,7 +6,7 @@ module Phoenix.Socket exposing
     , allMessagesOn, allMessagesOff
     , channelMessagesOn, channelMessagesOff
     , presenceMessagesOn, presenceMessagesOff
-    , heartbeatMessagesOn, heartbeatMessagesOff
+    , heartbeatOn, heartbeatOff
     , log, startLogging, stopLogging
     )
 
@@ -53,7 +53,7 @@ handler forwards on to Elm.
 
 @docs presenceMessagesOn, presenceMessagesOff
 
-@docs heartbeatMessagesOn, heartbeatMessagesOff
+@docs heartbeatOn, heartbeatOff
 
 
 # Logging
@@ -527,15 +527,15 @@ presenceMessagesOff portOut =
 
 
 {-| -}
-heartbeatMessagesOn : PortOut msg -> Cmd msg
-heartbeatMessagesOn portOut =
-    portOut (package "heartbeatMessagesOn")
+heartbeatOn : PortOut msg -> Cmd msg
+heartbeatOn portOut =
+    portOut (package "heartbeatOn")
 
 
 {-| -}
-heartbeatMessagesOff : PortOut msg -> Cmd msg
-heartbeatMessagesOff portOut =
-    portOut (package "heartbeatMessagesOff")
+heartbeatOff : PortOut msg -> Cmd msg
+heartbeatOff portOut =
+    portOut (package "heartbeatOff")
 
 
 
