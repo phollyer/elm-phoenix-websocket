@@ -591,6 +591,10 @@ join topic (Model model) =
         ( Model model, Cmd.none )
 
     else
+        let
+            _ =
+                Debug.log "Join" model.socketState
+        in
         case model.socketState of
             Connected ->
                 case Dict.get topic model.joinConfigs of
@@ -1364,12 +1368,12 @@ update msg (Model model) =
                             ]
 
                 Socket.Closed closedInfo ->
-                    ( Model model
+                    Model model
                         |> updateDisconnectReason closedInfo.reason
                         |> updateSocketState (Disconnected closedInfo)
                         |> updatePhoenixMsg (StateChanged (Disconnected closedInfo))
-                    , Cmd.none
-                    )
+                        |> batchList
+                            [ ( join, queuedChannels (Model model) ) ]
 
                 Socket.Error reason ->
                     ( updatePhoenixMsg (Error (Socket reason)) (Model model)
