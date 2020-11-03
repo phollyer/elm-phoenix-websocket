@@ -69,13 +69,9 @@ init session maybeExample maybeId =
       , example = example
       , exampleId = maybeId
       , userId = Nothing
-      , heartbeatCount = 0
       , heartbeat = True
       , channelMessages = True
-      , channelMessageCount = 0
-      , channelMessageList = []
       , presenceMessages = True
-      , presenceMessageCount = 0
       , presenceState = []
       , socketMessages = []
       }
@@ -92,14 +88,10 @@ type alias Model =
     , example : Example
     , exampleId : Maybe ID
     , userId : Maybe ID
-    , heartbeatCount : Int
     , heartbeat : Bool
     , channelMessages : Bool
-    , channelMessageCount : Int
-    , channelMessageList : List ChannelMsg
     , presenceMessages : Bool
-    , presenceMessageCount : Int
-    , presenceState : List Presence
+    , presenceState : List { id : String, meta : Meta }
     , socketMessages : List SocketMsg
     }
 
@@ -109,12 +101,12 @@ type alias ID =
 
 
 type SocketMsg
-    = HeartbeatMsg Heartbeat
-    | Channel
-    | PresenceMsg
+    = Heartbeat HeartbeatInfo
+    | Channel ChannelInfo
+    | Presence PresenceInfo
 
 
-type alias Heartbeat =
+type alias HeartbeatInfo =
     { topic : String
     , event : String
     , payload : Value
@@ -122,7 +114,7 @@ type alias Heartbeat =
     }
 
 
-type alias ChannelMsg =
+type alias ChannelInfo =
     { topic : Phoenix.Topic
     , event : Phoenix.Event
     , payload : Value
@@ -131,9 +123,10 @@ type alias ChannelMsg =
     }
 
 
-type alias Presence =
-    { id : String
-    , meta : Meta
+type alias PresenceInfo =
+    { topic : String
+    , event : String
+    , payload : Value
     }
 
 
@@ -444,12 +437,12 @@ update msg model =
                     ( newModel, cmd )
 
 
-toPresenceState : List Phoenix.Presence -> List Presence
+toPresenceState : List Phoenix.Presence -> List { id : String, meta : Meta }
 toPresenceState presences =
     List.map toPresence presences
 
 
-toPresence : Phoenix.Presence -> Presence
+toPresence : Phoenix.Presence -> { id : String, meta : Meta }
 toPresence presence =
     { id = presence.id
     , meta =
@@ -502,24 +495,9 @@ reset model =
     { model
         | exampleId = Nothing
         , userId = Nothing
-        , heartbeatCount = 0
-        , heartbeat = True
-        , channelMessages = True
-        , channelMessageCount = 0
-        , channelMessageList = []
-        , presenceMessages = True
-        , presenceMessageCount = 0
-        , presenceState = []
+        , socketMessages = []
+        , heartbeat = model.example == ManageSocketHeartbeat Anything
     }
-
-
-resetHeartbeatCount : ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-resetHeartbeatCount ( model, cmd ) =
-    ( { model
-        | heartbeatCount = 0
-      }
-    , cmd
-    )
 
 
 updateExample : (Action -> Example) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
@@ -846,18 +824,18 @@ remoteControls device phoenix { example, userId, presenceState } =
             []
 
 
-maybeRemoteControl : Maybe ID -> Device -> Presence -> Maybe (Element Msg)
-maybeRemoteControl userId device presence =
-    if userId == Just presence.id then
+maybeRemoteControl : Maybe ID -> Device -> { id : String, meta : Meta } -> Maybe (Element Msg)
+maybeRemoteControl userId device { id, meta } =
+    if userId == Just id then
         Nothing
 
     else
         Just <|
             (ExampleControls.init
-                |> ExampleControls.userId (Just presence.id)
+                |> ExampleControls.userId (Just id)
                 |> ExampleControls.elements
-                    [ joinControl ManagePresenceMessages device (GotRemoteControlClick presence.id) (presence.meta.exampleState == NotJoined)
-                    , leaveControl ManagePresenceMessages device (GotRemoteControlClick presence.id) (presence.meta.exampleState == Joined)
+                    [ joinControl ManagePresenceMessages device (GotRemoteControlClick id) (meta.exampleState == NotJoined)
+                    , leaveControl ManagePresenceMessages device (GotRemoteControlClick id) (meta.exampleState == Joined)
                     ]
                 |> ExampleControls.group
                     (Group.init
@@ -1008,88 +986,80 @@ feedback device phoenix ({ example } as model) =
         |> Feedback.view device
 
 
-staticReports : Device -> Model -> List (Element Msg)
-staticReports device model =
-    case model.example of
-        ManageSocketHeartbeat _ ->
-            [ LabelAndValue.init
-                |> LabelAndValue.label "Heartbeat Count"
-                |> LabelAndValue.value (String.fromInt model.heartbeatCount)
-                |> LabelAndValue.view device
-            ]
+static : Device -> Model -> List (Element Msg)
+static device model =
+    let
+        count =
+            String.fromInt (model.socketMessages |> List.length)
 
-        ManageChannelMessages _ ->
-            [ LabelAndValue.init
-                |> LabelAndValue.label "Message Count"
-                |> LabelAndValue.value (String.fromInt model.channelMessageCount)
-                |> LabelAndValue.view device
-            ]
+        label =
+            case model.example of
+                ManageSocketHeartbeat _ ->
+                    "Heartbeat Count"
 
-        ManagePresenceMessages _ ->
-            [ LabelAndValue.init
-                |> LabelAndValue.label "Message Count"
-                |> LabelAndValue.value (String.fromInt model.presenceMessageCount)
-                |> LabelAndValue.view device
-            ]
-
-        _ ->
-            [ El.none ]
+                _ ->
+                    "Message Count"
+    in
+    [ LabelAndValue.init
+        |> LabelAndValue.label label
+        |> LabelAndValue.value count
+        |> LabelAndValue.view device
+    ]
 
 
 scrollable : Device -> Model -> List (Element Msg)
 scrollable device model =
     List.map
-        (\msg ->
-            case msg of
-                HeartbeatMsg heartbeat ->
-                    FeedbackContent.init
-                        |> FeedbackContent.title (Just "SocketMessage")
-                        |> FeedbackContent.label "Heartbeat"
-                        |> FeedbackContent.element (heartbeatInfo device heartbeat)
-                        |> FeedbackContent.view device
+        (\socketMessage ->
+            let
+                ( label, element ) =
+                    case socketMessage of
+                        Heartbeat info ->
+                            ( "Heartbeat", heartbeatInfo device info )
 
-                Channel ->
-                    FeedbackContent.init
-                        |> FeedbackContent.title (Just "SocketMessage")
-                        |> FeedbackContent.label "ChannelMessage"
-                        |> FeedbackContent.element (channelInfo device)
-                        |> FeedbackContent.view device
+                        Channel info ->
+                            ( "ChannelMessage", channelInfo device info )
 
-                PresenceMsg ->
-                    FeedbackContent.init
-                        |> FeedbackContent.title (Just "SocketMessage")
-                        |> FeedbackContent.label "PresenceEvent"
-                        |> FeedbackContent.element (presenceInfo device)
-                        |> FeedbackContent.view device
+                        Presence info ->
+                            ( "PresenceMessage", presenceInfo device info )
+            in
+            FeedbackContent.init
+                |> FeedbackContent.title (Just "SocketMessage")
+                |> FeedbackContent.label label
+                |> FeedbackContent.element element
+                |> FeedbackContent.view device
         )
         model.socketMessages
 
 
-heartbeatInfo : Device -> Heartbeat -> Element Msg
-heartbeatInfo device heartbeat =
-    El.none
+heartbeatInfo : Device -> HeartbeatInfo -> Element Msg
+heartbeatInfo device info =
+    FeedbackInfo.init
+        |> FeedbackInfo.topic info.topic
+        |> FeedbackInfo.event info.event
+        |> FeedbackInfo.payload info.payload
+        |> FeedbackInfo.ref (Just info.ref)
+        |> FeedbackInfo.view device
 
 
-presenceInfo : Device -> Element Msg
-presenceInfo device =
-    El.none
+presenceInfo : Device -> PresenceInfo -> Element Msg
+presenceInfo device info =
+    FeedbackInfo.init
+        |> FeedbackInfo.topic info.topic
+        |> FeedbackInfo.event info.event
+        |> FeedbackInfo.payload info.payload
+        |> FeedbackInfo.view device
 
 
-channelInfo : Device -> Element Msg
-channelInfo device =
-    El.none
-
-
-
-{-
-   FeedbackInfo.init
-       |> FeedbackInfo.topic msg.topic
-       |> FeedbackInfo.event msg.event
-       |> FeedbackInfo.payload msg.payload
-       |> FeedbackInfo.joinRef msg.joinRef
-       |> FeedbackInfo.ref msg.ref
-       |> FeedbackInfo.view device
--}
+channelInfo : Device -> ChannelInfo -> Element Msg
+channelInfo device info =
+    FeedbackInfo.init
+        |> FeedbackInfo.topic info.topic
+        |> FeedbackInfo.event info.event
+        |> FeedbackInfo.payload info.payload
+        |> FeedbackInfo.ref info.ref
+        |> FeedbackInfo.joinRef info.joinRef
+        |> FeedbackInfo.view device
 
 
 applicableFunctions : Device -> Example -> Element Msg

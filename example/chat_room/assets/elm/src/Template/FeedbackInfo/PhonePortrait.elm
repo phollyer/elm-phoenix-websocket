@@ -14,8 +14,8 @@ view config =
         [ field "Topic: " config.topic
         , field "Event: " config.event
         , field "Payload: " (JE.encode 2 config.payload)
-        , field "Join Ref: " (Maybe.withDefault "Nothing" config.joinRef)
-        , field "Ref: " (Maybe.withDefault "Nothing" config.ref)
+        , maybe "Join Ref: " config.joinRef
+        , maybe "Ref: " config.ref
         ]
 
 
@@ -32,3 +32,13 @@ field label topic_ =
             Common.valueAttrs
             (El.text topic_)
         ]
+
+
+maybe : String -> Maybe String -> Element msg
+maybe label maybeValue =
+    case maybeValue of
+        Just value ->
+            field label value
+
+        Nothing ->
+            El.none
