@@ -56,14 +56,16 @@ init session maybeExample maybeExampleId =
         ( phx, cmd ) =
             case maybeExampleId of
                 Just id ->
-                    Phoenix.join ("example_controller:" ++ id)
-                        (Session.phoenix session)
+                    Session.phoenix session
+                        |> Phoenix.setConnectOptions [ Socket.HeartbeatIntervalMillis 1000 ]
+                        |> Phoenix.join ("example_controller:" ++ id)
                         |> Tuple.mapSecond (Cmd.map GotPhoenixMsg)
 
                 Nothing ->
-                    ( Session.phoenix session
-                    , Cmd.none
-                    )
+                    Session.phoenix session
+                        |> Phoenix.setConnectOptions [ Socket.HeartbeatIntervalMillis 1000 ]
+                        |> Phoenix.connect
+                        |> Tuple.mapSecond (Cmd.map GotPhoenixMsg)
     in
     ( { session = Session.updatePhoenix phx session
       , example = example
@@ -179,7 +181,6 @@ update msg model =
     let
         phoenix =
             Session.phoenix model.session
-                |> Phoenix.setConnectOptions [ Socket.HeartbeatIntervalMillis 1000 ]
     in
     case msg of
         GotHomeBtnClick ->
@@ -785,10 +786,8 @@ buttons : Device -> Phoenix.Model -> Model -> List (Element Msg)
 buttons device phoenix { example, heartbeat, channelMessages, presenceMessages } =
     case example of
         ManageSocketHeartbeat _ ->
-            [ connectControl ManageSocketHeartbeat device phoenix
-            , heartbeatOnControl ManageSocketHeartbeat device heartbeat
+            [ heartbeatOnControl ManageSocketHeartbeat device heartbeat
             , heartbeatOffControl ManageSocketHeartbeat device heartbeat
-            , disconnectControl ManageSocketHeartbeat device phoenix
             ]
 
         ManageChannelMessages _ ->
@@ -867,31 +866,6 @@ maybeRemoteControl userId device { id, meta } =
                     )
                 |> ExampleControls.view device
             )
-
-
-connectControl : (Action -> Example) -> Device -> Phoenix.Model -> Element Msg
-connectControl example device phoenix =
-    Button.init
-        |> Button.label "Connect"
-        |> Button.onPress (Just (GotControlClick (example Connect)))
-        |> Button.enabled
-            (case Phoenix.socketState phoenix of
-                Phoenix.Disconnected _ ->
-                    True
-
-                _ ->
-                    False
-            )
-        |> Button.view device
-
-
-disconnectControl : (Action -> Example) -> Device -> Phoenix.Model -> Element Msg
-disconnectControl example device phoenix =
-    Button.init
-        |> Button.label "Disconnect"
-        |> Button.onPress (Just (GotControlClick (example Disconnect)))
-        |> Button.enabled (Phoenix.socketState phoenix == Phoenix.Connected)
-        |> Button.view device
 
 
 heartbeatOnControl : (Action -> Example) -> Device -> Bool -> Element Msg
