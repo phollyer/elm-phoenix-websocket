@@ -207,14 +207,13 @@ update msg model =
                         Disconnect ->
                             Phoenix.disconnect (Just 1000) phoenix
                                 |> updatePhoenix model
-                                |> resetHeartbeatCount
 
                         On ->
-                            Phoenix.heartbeatMessagesOn phoenix
+                            Phoenix.heartbeatOn phoenix
                                 |> setHeartbeat True model
 
                         Off ->
-                            Phoenix.heartbeatMessagesOff phoenix
+                            Phoenix.heartbeatOff phoenix
                                 |> setHeartbeat False model
 
                         _ ->
@@ -1069,8 +1068,8 @@ applicableFunctions device example =
             (case example of
                 ManageSocketHeartbeat _ ->
                     [ "Phoenix.setConnectOptions"
-                    , "Phoenix.heartbeatMessagesOn"
-                    , "Phoenix.heartbeatMessagesOff"
+                    , "Phoenix.heartbeatOn"
+                    , "Phoenix.heartbeatOff"
                     ]
 
                 ManageChannelMessages _ ->

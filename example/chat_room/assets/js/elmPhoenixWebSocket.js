@@ -271,9 +271,9 @@ let ElmPhoenixWebSocket = {
 
     presenceMessagesOff() { this.socketMessages.presence = false },
 
-    heartbeatMessagesOn() { this.socketMessages.heartbeat = true },
+    heartbeatOn() { this.socketMessages.heartbeat = true },
 
-    heartbeatMessagesOff() { this.socketMessages.heartbeat = false },
+    heartbeatOff() { this.socketMessages.heartbeat = false },
 
     /***** Socket Information *****/
 
