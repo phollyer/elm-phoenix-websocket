@@ -591,10 +591,6 @@ join topic (Model model) =
         ( Model model, Cmd.none )
 
     else
-        let
-            _ =
-                Debug.log "Join" model.socketState
-        in
         case model.socketState of
             Connected ->
                 case Dict.get topic model.joinConfigs of
