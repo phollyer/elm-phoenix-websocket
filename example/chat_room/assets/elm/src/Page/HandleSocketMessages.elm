@@ -1132,7 +1132,11 @@ usefulFunctions device phoenix example =
                     , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
                     , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
                     , ( "Phoenix.channelJoined", Phoenix.channelJoined "example:manage_channel_messages" phoenix |> String.printBool )
-                    , ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList )
+                    , ( "Phoenix.joinedChannels"
+                      , Phoenix.joinedChannels phoenix
+                            |> List.filter (String.startsWith "example:")
+                            |> String.printList
+                      )
                     ]
 
                 ManagePresenceMessages _ ->
