@@ -52,48 +52,34 @@ init session maybeExample maybeId =
 
                 Nothing ->
                     ManageSocketHeartbeat Connect
-    in
-    getExampleId
-        { session = session
-        , example = example
-        , exampleId = maybeId
-        , userId = Nothing
-        , heartbeatCount = 0
-        , heartbeat = True
-        , channelMessages = True
-        , channelMessageCount = 0
-        , channelMessageList = []
-        , presenceMessages = True
-        , presenceMessageCount = 0
-        , presenceState = []
-        }
 
-
-
-{- exampleId is a unique ID supplied by "example_controller:control" that
-   is used to identify the example in each tab. The tabs can then all join the
-   same controlling Channel which routes messages between them.
--}
-
-
-getExampleId : Model -> ( Model, Cmd Msg )
-getExampleId model =
-    let
-        topic =
-            case model.exampleId of
+        ( phx, cmd ) =
+            case maybeId of
                 Just id ->
-                    "example_controller:" ++ id
+                    Phoenix.join ("example_controller:" ++ id)
+                        (Session.phoenix session)
+                        |> Tuple.mapSecond (Cmd.map GotPhoenixMsg)
 
                 Nothing ->
-                    "example_controller:control"
+                    ( Session.phoenix session
+                    , Cmd.none
+                    )
     in
-    case model.example of
-        ManagePresenceMessages _ ->
-            Phoenix.join topic (Session.phoenix model.session)
-                |> updatePhoenix model
-
-        _ ->
-            ( model, Cmd.none )
+    ( { session = Session.updatePhoenix phx session
+      , example = example
+      , exampleId = maybeId
+      , userId = Nothing
+      , heartbeatCount = 0
+      , heartbeat = True
+      , channelMessages = True
+      , channelMessageCount = 0
+      , channelMessageList = []
+      , presenceMessages = True
+      , presenceMessageCount = 0
+      , presenceState = []
+      }
+    , cmd
+    )
 
 
 
@@ -195,9 +181,9 @@ update msg model =
 
         GotMenuItem example ->
             Phoenix.disconnectAndReset (Just 1000) phoenix
-                |> updatePhoenix
-                    (reset model)
+                |> updatePhoenix (reset model)
                 |> updateExample example
+                |> getExampleId
 
         GotControlClick example ->
             case example of
@@ -517,8 +503,9 @@ resetHeartbeatCount ( model, cmd ) =
 
 updateExample : (Action -> Example) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 updateExample example ( model, cmd ) =
-    getExampleId { model | example = example Anything }
-        |> Tuple.mapSecond (\cmd_ -> Cmd.batch [ cmd, cmd_ ])
+    ( { model | example = example Anything }
+    , cmd
+    )
 
 
 updatePhoenix : Model -> ( Phoenix.Model, Cmd Phoenix.Msg ) -> ( Model, Cmd Msg )
@@ -535,6 +522,26 @@ batch cmds ( model, cmd ) =
     ( model
     , Cmd.batch (cmd :: cmds)
     )
+
+
+
+{- exampleId is a unique ID supplied by "example_controller:control" that
+   is used to identify the example in each tab. The tabs can then all join the
+   same controlling Channel which routes messages between them.
+-}
+
+
+getExampleId : ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+getExampleId ( model, cmd ) =
+    case model.example of
+        ManagePresenceMessages _ ->
+            Phoenix.join "example_controller:control" (Session.phoenix model.session)
+                |> updatePhoenix model
+                |> Tuple.mapSecond
+                    (\cmd_ -> Cmd.batch [ cmd, cmd_ ])
+
+        _ ->
+            ( model, cmd )
 
 
 
@@ -1013,7 +1020,8 @@ channelMsgs device model =
     List.map
         (\msg ->
             FeedbackContent.init
-                |> FeedbackContent.title (Just "Channel Message")
+                |> FeedbackContent.title (Just "SocketMessage")
+                |> FeedbackContent.label "ChannelMessage"
                 |> FeedbackContent.element (channelMessage device msg)
                 |> FeedbackContent.view device
         )
