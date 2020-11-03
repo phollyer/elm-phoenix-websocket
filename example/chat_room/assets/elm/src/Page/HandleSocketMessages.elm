@@ -43,7 +43,7 @@ import View.UsefulFunctions as UsefulFunctions
 
 
 init : Session -> Maybe String -> Maybe ID -> ( Model, Cmd Msg )
-init session maybeExample maybeId =
+init session maybeExample maybeExampleId =
     let
         example =
             case maybeExample of
@@ -54,7 +54,7 @@ init session maybeExample maybeId =
                     ManageSocketHeartbeat Connect
 
         ( phx, cmd ) =
-            case maybeId of
+            case maybeExampleId of
                 Just id ->
                     Phoenix.join ("example_controller:" ++ id)
                         (Session.phoenix session)
@@ -67,7 +67,7 @@ init session maybeExample maybeId =
     in
     ( { session = Session.updatePhoenix phx session
       , example = example
-      , exampleId = maybeId
+      , exampleId = maybeExampleId
       , userId = Nothing
       , heartbeat = True
       , channelMessages = True
@@ -142,8 +142,8 @@ type ExampleState
 
 
 controllerTopic : Maybe String -> String
-controllerTopic maybeId =
-    case maybeId of
+controllerTopic maybeId_ =
+    case maybeId_ of
         Just id ->
             "example_controller:" ++ id
 
@@ -179,6 +179,7 @@ update msg model =
     let
         phoenix =
             Session.phoenix model.session
+                |> Phoenix.setConnectOptions [ Socket.HeartbeatIntervalMillis 1000 ]
     in
     case msg of
         GotHomeBtnClick ->
@@ -189,9 +190,7 @@ update msg model =
             )
 
         GotMenuItem example ->
-            Phoenix.disconnectAndReset (Just 1000) phoenix
-                |> updatePhoenix (reset model)
-                |> updateExample example
+            updateExample example model
                 |> getExampleId
 
         GotControlClick example ->
@@ -200,7 +199,6 @@ update msg model =
                     case action of
                         Connect ->
                             phoenix
-                                |> Phoenix.setConnectOptions [ Socket.HeartbeatIntervalMillis 1000 ]
                                 |> Phoenix.connect
                                 |> updatePhoenix model
 
@@ -222,12 +220,12 @@ update msg model =
                 ManageChannelMessages action ->
                     case action of
                         Send ->
-                            Phoenix.push
-                                { pushConfig
-                                    | topic = "example:manage_channel_messages"
-                                    , event = "empty_message"
-                                }
-                                phoenix
+                            phoenix
+                                |> Phoenix.push
+                                    { pushConfig
+                                        | topic = "example:manage_channel_messages"
+                                        , event = "empty_message"
+                                    }
                                 |> updatePhoenix model
 
                         On ->
@@ -370,13 +368,13 @@ update msg model =
                     case Phoenix.topicParts topic of
                         ( "example_controller", "control" ) ->
                             case decodeExampleId payload of
-                                Ok exampleId ->
+                                Ok exampleId_ ->
                                     Phoenix.batch
                                         [ Phoenix.leave "example_controller:control"
-                                        , Phoenix.join (controllerTopic (Just exampleId))
+                                        , Phoenix.join (controllerTopic (Just exampleId_))
                                         ]
                                         phx
-                                        |> updatePhoenix { newModel | exampleId = Just exampleId }
+                                        |> updatePhoenix { newModel | exampleId = Just exampleId_ }
                                         |> batch [ cmd ]
 
                                 _ ->
@@ -518,21 +516,9 @@ setPresenceMessages presenceMessages model phxCmd =
     )
 
 
-reset : Model -> Model
-reset model =
-    { model
-        | exampleId = Nothing
-        , userId = Nothing
-        , socketMessages = []
-        , heartbeat = model.example == ManageSocketHeartbeat Anything
-    }
-
-
-updateExample : (Action -> Example) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-updateExample example ( model, cmd ) =
-    ( { model | example = example Anything }
-    , cmd
-    )
+updateExample : (Action -> Example) -> Model -> Model
+updateExample example model =
+    { model | example = example Anything }
 
 
 updatePhoenix : Model -> ( Phoenix.Model, Cmd Phoenix.Msg ) -> ( Model, Cmd Msg )
@@ -558,17 +544,15 @@ batch cmds ( model, cmd ) =
 -}
 
 
-getExampleId : ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-getExampleId ( model, cmd ) =
+getExampleId : Model -> ( Model, Cmd Msg )
+getExampleId model =
     case model.example of
         ManagePresenceMessages _ ->
             Phoenix.join "example_controller:control" (Session.phoenix model.session)
                 |> updatePhoenix model
-                |> Tuple.mapSecond
-                    (\cmd_ -> Cmd.batch [ cmd, cmd_ ])
 
         _ ->
-            ( model, cmd )
+            ( model, Cmd.none )
 
 
 
@@ -687,7 +671,7 @@ view model =
                     |> Example.introduction introduction
                     |> Example.menu (menu device model)
                     |> Example.description (description model)
-                    |> Example.id model.exampleId
+                    |> Example.id (maybeId model.example model.exampleId)
                     |> Example.controls (controls device phoenix model)
                     |> Example.remoteControls (remoteControls device phoenix model)
                     |> Example.feedback (feedback device phoenix model)
@@ -770,12 +754,24 @@ description { example, exampleId } =
             []
 
 
+{-| Maybe ID
+-}
+maybeId : Example -> Maybe ID -> Maybe ID
+maybeId example maybeId_ =
+    case example of
+        ManagePresenceMessages _ ->
+            maybeId_
+
+        _ ->
+            Nothing
+
+
 {-| Example ExampleControls
 -}
 controls : Device -> Phoenix.Model -> Model -> Element Msg
 controls device phoenix model =
     ExampleControls.init
-        |> ExampleControls.userId model.userId
+        |> ExampleControls.userId (maybeId model.example model.userId)
         |> ExampleControls.elements (buttons device phoenix model)
         |> ExampleControls.group
             (Group.init
