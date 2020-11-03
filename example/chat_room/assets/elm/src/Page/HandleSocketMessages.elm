@@ -546,8 +546,8 @@ batch cmds ( model, cmd ) =
 
 getExampleId : Model -> ( Model, Cmd Msg )
 getExampleId model =
-    case model.example of
-        ManagePresenceMessages _ ->
+    case ( model.example, model.exampleId ) of
+        ( ManagePresenceMessages _, Nothing ) ->
             Phoenix.join "example_controller:control" (Session.phoenix model.session)
                 |> updatePhoenix model
 
