@@ -25,11 +25,11 @@ import Session exposing (Session)
 import UI
 import View.ApplicableFunctions as ApplicableFunctions
 import View.Button as Button
-import View.ChannelMessage as ChannelMessage
 import View.Example as Example
 import View.ExampleControls as ExampleControls
 import View.Feedback as Feedback
 import View.FeedbackContent as FeedbackContent
+import View.FeedbackInfo as FeedbackInfo
 import View.FeedbackPanel as FeedbackPanel
 import View.Group as Group
 import View.LabelAndValue as LabelAndValue
@@ -77,6 +77,7 @@ init session maybeExample maybeId =
       , presenceMessages = True
       , presenceMessageCount = 0
       , presenceState = []
+      , socketMessages = []
       }
     , cmd
     )
@@ -99,11 +100,26 @@ type alias Model =
     , presenceMessages : Bool
     , presenceMessageCount : Int
     , presenceState : List Presence
+    , socketMessages : List SocketMsg
     }
 
 
 type alias ID =
     String
+
+
+type SocketMsg
+    = HeartbeatMsg Heartbeat
+    | Channel
+    | PresenceMsg
+
+
+type alias Heartbeat =
+    { topic : String
+    , event : String
+    , payload : Value
+    , ref : String
+    }
 
 
 type alias ChannelMsg =
@@ -297,8 +313,13 @@ update msg model =
                     Session.phoenix newModel.session
             in
             case Phoenix.phoenixMsg phx of
-                Phoenix.SocketMessage (Phoenix.Heartbeat _) ->
-                    ( { newModel | heartbeatCount = newModel.heartbeatCount + 1 }, cmd )
+                Phoenix.SocketMessage (Phoenix.Heartbeat heartbeat) ->
+                    ( { newModel
+                        | heartbeatCount = newModel.heartbeatCount + 1
+                        , socketMessages = HeartbeatMsg heartbeat :: newModel.socketMessages
+                      }
+                    , cmd
+                    )
 
                 Phoenix.SocketMessage (Phoenix.ChannelMessage msgInfo) ->
                     ( { newModel
@@ -961,7 +982,7 @@ feedback device phoenix ({ example } as model) =
             [ FeedbackPanel.init
                 |> FeedbackPanel.title "Info"
                 |> FeedbackPanel.static (staticReports device model)
-                |> FeedbackPanel.scrollable (channelMsgs device model)
+                |> FeedbackPanel.scrollable (scrollable device model)
                 |> FeedbackPanel.view device
             , FeedbackPanel.init
                 |> FeedbackPanel.title "Applicable Functions"
@@ -1015,28 +1036,60 @@ staticReports device model =
             [ El.none ]
 
 
-channelMsgs : Device -> Model -> List (Element Msg)
-channelMsgs device model =
+scrollable : Device -> Model -> List (Element Msg)
+scrollable device model =
     List.map
         (\msg ->
-            FeedbackContent.init
-                |> FeedbackContent.title (Just "SocketMessage")
-                |> FeedbackContent.label "ChannelMessage"
-                |> FeedbackContent.element (channelMessage device msg)
-                |> FeedbackContent.view device
+            case msg of
+                HeartbeatMsg heartbeat ->
+                    FeedbackContent.init
+                        |> FeedbackContent.title (Just "SocketMessage")
+                        |> FeedbackContent.label "Heartbeat"
+                        |> FeedbackContent.element (heartbeatInfo device heartbeat)
+                        |> FeedbackContent.view device
+
+                Channel ->
+                    FeedbackContent.init
+                        |> FeedbackContent.title (Just "SocketMessage")
+                        |> FeedbackContent.label "ChannelMessage"
+                        |> FeedbackContent.element (channelInfo device)
+                        |> FeedbackContent.view device
+
+                PresenceMsg ->
+                    FeedbackContent.init
+                        |> FeedbackContent.title (Just "SocketMessage")
+                        |> FeedbackContent.label "PresenceEvent"
+                        |> FeedbackContent.element (presenceInfo device)
+                        |> FeedbackContent.view device
         )
-        model.channelMessageList
+        model.socketMessages
 
 
-channelMessage : Device -> ChannelMsg -> Element Msg
-channelMessage device msg =
-    ChannelMessage.init
-        |> ChannelMessage.topic msg.topic
-        |> ChannelMessage.event msg.event
-        |> ChannelMessage.payload msg.payload
-        |> ChannelMessage.joinRef msg.joinRef
-        |> ChannelMessage.ref msg.ref
-        |> ChannelMessage.view device
+heartbeatInfo : Device -> Heartbeat -> Element Msg
+heartbeatInfo device heartbeat =
+    El.none
+
+
+presenceInfo : Device -> Element Msg
+presenceInfo device =
+    El.none
+
+
+channelInfo : Device -> Element Msg
+channelInfo device =
+    El.none
+
+
+
+{-
+   FeedbackInfo.init
+       |> FeedbackInfo.topic msg.topic
+       |> FeedbackInfo.event msg.event
+       |> FeedbackInfo.payload msg.payload
+       |> FeedbackInfo.joinRef msg.joinRef
+       |> FeedbackInfo.ref msg.ref
+       |> FeedbackInfo.view device
+-}
 
 
 applicableFunctions : Device -> Example -> Element Msg

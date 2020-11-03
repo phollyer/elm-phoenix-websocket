@@ -1,8 +1,8 @@
-module Template.ChannelMessage.PhoneLandscape exposing (view)
+module Template.FeedbackInfo.PhoneLandscape exposing (view)
 
 import Element as El exposing (Element)
 import Json.Encode as JE
-import Template.ChannelMessage.Common as Common
+import Template.FeedbackInfo.Common as Common
 
 
 view : Common.Config c -> Element msg

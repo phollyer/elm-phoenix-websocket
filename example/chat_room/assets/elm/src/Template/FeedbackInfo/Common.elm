@@ -1,4 +1,4 @@
-module Template.ChannelMessage.Common exposing
+module Template.FeedbackInfo.Common exposing
     ( Config
     , containerAttrs
     , fieldAttrs

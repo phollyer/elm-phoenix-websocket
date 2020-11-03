@@ -1,4 +1,4 @@
-module View.ChannelMessage exposing
+module View.FeedbackInfo exposing
     ( Config
     , event
     , init
@@ -11,8 +11,8 @@ module View.ChannelMessage exposing
 
 import Element exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Json.Encode as JE exposing (Value)
-import Template.ChannelMessage.PhoneLandscape as PhoneLandscape
-import Template.ChannelMessage.PhonePortrait as PhonePortrait
+import Template.FeedbackInfo.PhoneLandscape as PhoneLandscape
+import Template.FeedbackInfo.PhonePortrait as PhonePortrait
 
 
 type Config msg

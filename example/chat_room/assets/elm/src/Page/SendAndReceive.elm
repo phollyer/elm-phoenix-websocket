@@ -10,11 +10,11 @@ import Session exposing (Session)
 import UI
 import View.ApplicableFunctions as ApplicableFunctions
 import View.Button as Button
-import View.ChannelMessage as ChannelMessage
 import View.Example as Example
 import View.ExampleControls as ExampleControls
 import View.Feedback as Feedback
 import View.FeedbackContent as FeedbackContent
+import View.FeedbackInfo as FeedbackInfo
 import View.FeedbackPanel as FeedbackPanel
 import View.Group as Group
 import View.Layout as Layout
@@ -431,10 +431,10 @@ channelResponse device response =
                 |> FeedbackContent.title (Just "ChannelResponse")
                 |> FeedbackContent.label "JoinOk"
                 |> FeedbackContent.element
-                    (ChannelMessage.init
-                        |> ChannelMessage.topic topic
-                        |> ChannelMessage.payload payload
-                        |> ChannelMessage.view device
+                    (FeedbackInfo.init
+                        |> FeedbackInfo.topic topic
+                        |> FeedbackInfo.payload payload
+                        |> FeedbackInfo.view device
                     )
                 |> FeedbackContent.view device
 
@@ -443,9 +443,9 @@ channelResponse device response =
                 |> FeedbackContent.title (Just "ChannelResponse")
                 |> FeedbackContent.label "LeaveOk"
                 |> FeedbackContent.element
-                    (ChannelMessage.init
-                        |> ChannelMessage.topic topic
-                        |> ChannelMessage.view device
+                    (FeedbackInfo.init
+                        |> FeedbackInfo.topic topic
+                        |> FeedbackInfo.view device
                     )
                 |> FeedbackContent.view device
 
@@ -454,12 +454,12 @@ channelResponse device response =
                 |> FeedbackContent.title (Just "ChannelResponse")
                 |> FeedbackContent.label "PushOk"
                 |> FeedbackContent.element
-                    (ChannelMessage.init
-                        |> ChannelMessage.topic topic
-                        |> ChannelMessage.event event
-                        |> ChannelMessage.ref ref
-                        |> ChannelMessage.payload payload
-                        |> ChannelMessage.view device
+                    (FeedbackInfo.init
+                        |> FeedbackInfo.topic topic
+                        |> FeedbackInfo.event event
+                        |> FeedbackInfo.ref ref
+                        |> FeedbackInfo.payload payload
+                        |> FeedbackInfo.view device
                     )
                 |> FeedbackContent.view device
 
@@ -472,11 +472,11 @@ channelEvent device { topic, event, payload } =
     FeedbackContent.init
         |> FeedbackContent.title (Just "ChannelEvent")
         |> FeedbackContent.element
-            (ChannelMessage.init
-                |> ChannelMessage.topic topic
-                |> ChannelMessage.event event
-                |> ChannelMessage.payload payload
-                |> ChannelMessage.view device
+            (FeedbackInfo.init
+                |> FeedbackInfo.topic topic
+                |> FeedbackInfo.event event
+                |> FeedbackInfo.payload payload
+                |> FeedbackInfo.view device
             )
         |> FeedbackContent.view device
 
