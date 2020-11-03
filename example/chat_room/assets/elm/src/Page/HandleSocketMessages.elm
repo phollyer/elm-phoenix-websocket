@@ -244,7 +244,16 @@ update msg model =
                 ManagePresenceMessages action ->
                     case action of
                         Join ->
-                            Phoenix.join "example:manage_presence_messages" phoenix
+                            phoenix
+                                |> Phoenix.setJoinConfig
+                                    { topic = "example:manage_presence_messages"
+                                    , events = []
+                                    , payload =
+                                        JE.object
+                                            [ ( "user_id", maybe JE.string model.userId ) ]
+                                    , timeout = Nothing
+                                    }
+                                |> Phoenix.join "example:manage_presence_messages"
                                 |> updatePhoenix model
 
                         Leave ->
@@ -386,15 +395,23 @@ update msg model =
                     case ( event, decodeUserId payload ) of
                         ( "join_example", Ok userId ) ->
                             if newModel.userId == Just userId then
-                                Phoenix.batch
-                                    [ Phoenix.join "example:manage_presence_messages"
-                                    , Phoenix.push
-                                        { pushConfig
-                                            | topic = controllerTopic newModel.exampleId
-                                            , event = "joining_example"
+                                phoenix
+                                    |> Phoenix.setJoinConfig
+                                        { topic = "example:manage_presence_messages"
+                                        , events = []
+                                        , payload =
+                                            JE.object
+                                                [ ( "user_id", JE.string userId ) ]
+                                        , timeout = Nothing
                                         }
-                                    ]
-                                    phoenix
+                                    |> Phoenix.batch
+                                        [ Phoenix.join "example:manage_presence_messages"
+                                        , Phoenix.push
+                                            { pushConfig
+                                                | topic = controllerTopic newModel.exampleId
+                                                , event = "joining_example"
+                                            }
+                                        ]
                                     |> updatePhoenix newModel
 
                             else
