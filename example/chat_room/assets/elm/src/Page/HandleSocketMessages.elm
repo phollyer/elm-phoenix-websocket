@@ -314,24 +314,36 @@ update msg model =
                     Session.phoenix newModel.session
             in
             case Phoenix.phoenixMsg phx of
-                Phoenix.SocketMessage (Phoenix.Heartbeat heartbeat) ->
+                Phoenix.SocketMessage (Phoenix.Heartbeat info) ->
                     ( { newModel
-                        | heartbeatCount = newModel.heartbeatCount + 1
-                        , socketMessages = HeartbeatMsg heartbeat :: newModel.socketMessages
+                        | socketMessages = Heartbeat info :: newModel.socketMessages
                       }
                     , cmd
                     )
 
-                Phoenix.SocketMessage (Phoenix.ChannelMessage msgInfo) ->
+                Phoenix.SocketMessage (Phoenix.ChannelMessage info) ->
                     ( { newModel
-                        | channelMessageCount = newModel.channelMessageCount + 1
-                        , channelMessageList = msgInfo :: newModel.channelMessageList
+                        | socketMessages =
+                            if String.startsWith "example_controller" info.topic then
+                                newModel.socketMessages
+
+                            else
+                                Channel info :: newModel.socketMessages
                       }
                     , cmd
                     )
 
-                Phoenix.SocketMessage (Phoenix.PresenceMessage presenceMsg) ->
-                    ( { newModel | presenceMessageCount = newModel.presenceMessageCount + 1 }, cmd )
+                Phoenix.SocketMessage (Phoenix.PresenceMessage info) ->
+                    ( { newModel
+                        | socketMessages =
+                            if String.startsWith "example_controller" info.topic then
+                                newModel.socketMessages
+
+                            else
+                                Presence info :: newModel.socketMessages
+                      }
+                    , cmd
+                    )
 
                 Phoenix.ChannelResponse (Phoenix.JoinOk "example:manage_presence_messages" payload) ->
                     Phoenix.push
