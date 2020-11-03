@@ -987,7 +987,7 @@ feedback device phoenix ({ example } as model) =
         |> Feedback.elements
             [ FeedbackPanel.init
                 |> FeedbackPanel.title "Info"
-                |> FeedbackPanel.static (staticReports device model)
+                |> FeedbackPanel.static (static device model)
                 |> FeedbackPanel.scrollable (scrollable device model)
                 |> FeedbackPanel.view device
             , FeedbackPanel.init
