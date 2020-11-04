@@ -704,9 +704,9 @@ menu : Device -> Model -> Element Msg
 menu device { example } =
     Menu.init
         |> Menu.options
-            [ ( Example.toString ManageSocketHeartbeat, GotMenuItem ManageSocketHeartbeat )
-            , ( Example.toString ManageChannelMessages, GotMenuItem ManageChannelMessages )
-            , ( Example.toString ManagePresenceMessages, GotMenuItem ManagePresenceMessages )
+            [ Example.toString ManageSocketHeartbeat
+            , Example.toString ManageChannelMessages
+            , Example.toString ManagePresenceMessages
             ]
         |> Menu.selected (Example.toString <| Example.toFunc example)
         |> Menu.view device

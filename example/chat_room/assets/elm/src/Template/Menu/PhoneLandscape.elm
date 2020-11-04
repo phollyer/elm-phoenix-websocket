@@ -10,7 +10,7 @@ view config =
     case config.layout of
         Nothing ->
             El.wrappedRow attrs <|
-                menuItems config.selected config.options
+                menuItems config
 
         Just layout ->
             El.column attrs <|
@@ -20,7 +20,7 @@ view config =
                             El.row
                                 [ El.width El.fill ]
                             <|
-                                menuItems config.selected options
+                                menuItems config
                         )
                 )
 
@@ -39,13 +39,13 @@ attrs =
         Common.containerAttrs
 
 
-menuItems : String -> List ( String, msg ) -> List (Element msg)
-menuItems selected options =
-    List.map (menuItem selected) options
+menuItems : Common.Config msg c -> List (Element msg)
+menuItems { selected, options, onClick } =
+    List.map (menuItem selected onClick) options
 
 
-menuItem : String -> ( String, msg ) -> Element msg
-menuItem selected ( item, msg ) =
+menuItem : String -> Maybe (String -> msg) -> String -> Element msg
+menuItem selected onClick item =
     let
         ( attrs_, highlight ) =
             if selected == item then
@@ -56,7 +56,7 @@ menuItem selected ( item, msg ) =
                 )
 
             else
-                ( Common.unselectedAttrs msg
+                ( Common.unselectedAttrs onClick item
                 , El.none
                 )
     in

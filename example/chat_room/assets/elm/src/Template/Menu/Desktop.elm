@@ -18,11 +18,11 @@ view config =
             ]
             Common.containerAttrs
         )
-        (List.map (menuItem config.selected) config.options)
+        (List.map (menuItem config) config.options)
 
 
-menuItem : String -> ( String, msg ) -> Element msg
-menuItem selected ( item, msg ) =
+menuItem : Common.Config msg c -> String -> Element msg
+menuItem { selected, onClick } item =
     let
         ( attrs, highlight ) =
             if selected == item then
@@ -40,7 +40,7 @@ menuItem selected ( item, msg ) =
                     , right = 0
                     , bottom = 5
                     }
-                    :: Common.unselectedAttrs msg
+                    :: Common.unselectedAttrs onClick item
                 , El.none
                 )
     in

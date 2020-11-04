@@ -286,9 +286,9 @@ menu : Device -> Model -> Element Msg
 menu device { example } =
     Menu.init
         |> Menu.options
-            [ ( Example.toString PushOneEvent, GotMenuItem PushOneEvent )
-            , ( Example.toString PushMultipleEvents, GotMenuItem PushMultipleEvents )
-            , ( Example.toString ReceiveEvents, GotMenuItem ReceiveEvents )
+            [ Example.toString PushOneEvent
+            , Example.toString PushMultipleEvents
+            , Example.toString ReceiveEvents
             ]
         |> Menu.selected (Example.toString <| Example.toFunc example)
         |> Menu.view device

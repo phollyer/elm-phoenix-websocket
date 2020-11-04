@@ -1,7 +1,7 @@
 module View.Menu exposing
     ( Config, init
     , view
-    , options, selected, group
+    , options, selected, onClick, group
     )
 
 {-| This module is intended to enable building up a menu with pipelines and
@@ -11,7 +11,7 @@ then passing off the menu config to the relevant template.
 
 @docs Template, view
 
-@docs options, selected, group
+@docs options, selected, onClick, group
 
 -}
 
@@ -26,8 +26,9 @@ import View.Group as Group
 {-| -}
 type Config msg
     = Config
-        { options : List ( String, msg )
+        { options : List String
         , selected : String
+        , onClick : Maybe (String -> msg)
         , layout : Maybe (List Int)
         , group : Group.Config
         }
@@ -39,6 +40,7 @@ init =
     Config
         { options = []
         , selected = ""
+        , onClick = Nothing
         , layout = Nothing
         , group = Group.init
         }
@@ -67,7 +69,7 @@ view ({ class, orientation } as device) (Config config) =
 
 
 {-| -}
-options : List ( String, msg ) -> Config msg -> Config msg
+options : List String -> Config msg -> Config msg
 options options_ (Config config) =
     Config { config | options = options_ }
 
@@ -76,6 +78,12 @@ options options_ (Config config) =
 selected : String -> Config msg -> Config msg
 selected selected_ (Config config) =
     Config { config | selected = selected_ }
+
+
+{-| -}
+onClick : Maybe (String -> msg) -> Config msg -> Config msg
+onClick msg (Config config) =
+    Config { config | onClick = msg }
 
 
 {-| -}

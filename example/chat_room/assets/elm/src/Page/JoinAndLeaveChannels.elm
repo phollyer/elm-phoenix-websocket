@@ -293,10 +293,10 @@ menu : Device -> Model -> Element Msg
 menu device { example } =
     Menu.init
         |> Menu.options
-            [ ( Example.toString SimpleJoinAndLeave, GotMenuItem SimpleJoinAndLeave )
-            , ( Example.toString JoinWithGoodParams, GotMenuItem JoinWithGoodParams )
-            , ( Example.toString JoinWithBadParams, GotMenuItem JoinWithBadParams )
-            , ( Example.toString JoinMultipleChannels, GotMenuItem JoinMultipleChannels )
+            [ Example.toString SimpleJoinAndLeave
+            , Example.toString JoinWithGoodParams
+            , Example.toString JoinWithBadParams
+            , Example.toString JoinMultipleChannels
             ]
         |> Menu.selected (Example.toString <| Example.toFunc example)
         |> Menu.view device

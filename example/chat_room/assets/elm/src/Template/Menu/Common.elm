@@ -18,8 +18,9 @@ import Template.Example.Common as Common
 
 type alias Config msg c =
     { c
-        | options : List ( String, msg )
+        | options : List String
         , selected : String
+        , onClick : Maybe (String -> msg)
         , layout : Maybe (List Int)
     }
 
@@ -60,20 +61,29 @@ selectedHighlightAttrs =
     ]
 
 
-unselectedAttrs : msg -> List (Attribute msg)
-unselectedAttrs msg =
-    [ Border.color (Alpha.darkslateblue 0)
-    , Border.widthEach
-        { left = 0
-        , top = 0
-        , right = 0
-        , bottom = 4
-        }
-    , El.centerX
-    , El.centerY
-    , El.pointer
-    , El.mouseOver
-        [ Border.color Color.lavender ]
-    , Event.onClick msg
-    , Font.color Color.darkslateblue
-    ]
+unselectedAttrs : Maybe (String -> msg) -> String -> List (Attribute msg)
+unselectedAttrs maybeMsg item =
+    let
+        attrs =
+            [ Border.color (Alpha.darkslateblue 0)
+            , Border.widthEach
+                { left = 0
+                , top = 0
+                , right = 0
+                , bottom = 4
+                }
+            , El.centerX
+            , El.centerY
+            , El.pointer
+            , El.mouseOver
+                [ Border.color Color.lavender ]
+            , Font.color Color.darkslateblue
+            ]
+    in
+    case maybeMsg of
+        Just msg ->
+            Event.onClick (msg item)
+                :: attrs
+
+        Nothing ->
+            attrs

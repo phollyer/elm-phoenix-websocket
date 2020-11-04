@@ -1,20 +1,17 @@
-module Template.Example.Common exposing
+module Template.ExamplePage.Common exposing
     ( Config
     , containerAttrs
-    , controlsAttrs
-    , descriptionAttrs
+    , exampleAttrs
     , idAttrs
     , idLabelAttrs
     , idValueAttrs
     , introductionAttrs
     , menuAttrs
-    , remoteControlAttrs
     )
 
 import Colors.Opaque as Color
 import Element as El exposing (Attribute, DeviceClass, Element, Orientation)
 import Element.Font as Font
-import List.Extra as List
 
 
 type alias Config msg c =
@@ -22,10 +19,7 @@ type alias Config msg c =
         | id : Maybe String
         , introduction : List (Element msg)
         , menu : Element msg
-        , description : List (Element msg)
-        , controls : Element msg
-        , remoteControls : List (Element msg)
-        , feedback : Element msg
+        , example : Element msg
     }
 
 
@@ -57,8 +51,8 @@ menuAttrs =
     [ El.width El.fill ]
 
 
-descriptionAttrs : List (Attribute msg)
-descriptionAttrs =
+exampleAttrs : List (Attribute msg)
+exampleAttrs =
     [ El.spacing 12
     , Font.color Color.darkslateblue
     , Font.justify
@@ -66,16 +60,6 @@ descriptionAttrs =
         [ Font.typeface "Varela Round" ]
     , El.width El.fill
     ]
-
-
-controlsAttrs : List (Attribute msg)
-controlsAttrs =
-    [ El.width El.fill ]
-
-
-remoteControlAttrs : List (Attribute msg)
-remoteControlAttrs =
-    [ El.width El.fill ]
 
 
 idAttrs : List (Attribute msg)
