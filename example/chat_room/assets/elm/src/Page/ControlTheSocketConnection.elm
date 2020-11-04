@@ -10,27 +10,17 @@ module Page.ControlTheSocketConnection exposing
     )
 
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
-import Example exposing (Action(..), Example(..))
 import Example.ConnectWithBadParams as ConnectWithBadParams
 import Example.ConnectWithGoodParams as ConnectWithGoodParams
 import Example.SimpleConnect as SimpleConnect
-import Extra.String as String
-import Json.Encode as JE
 import Phoenix
 import Route
 import Session exposing (Session)
 import UI
-import View.ApplicableFunctions as ApplicableFunctions
-import View.Button as Button
-import View.Example as Example
-import View.ExampleControls as ExampleControls
 import View.ExamplePage as ExamplePage
-import View.Feedback as Feedback
-import View.FeedbackPanel as FeedbackPanel
 import View.Group as Group
 import View.Layout as Layout
 import View.Menu as Menu
-import View.UsefulFunctions as UsefulFunctions
 
 
 
@@ -177,10 +167,6 @@ updateExample selectedExample ( model, cmd ) =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     let
-        phoenixSub =
-            Sub.map GotPhoenixMsg <|
-                Phoenix.subscriptions (Session.phoenix model.session)
-
         exampleSub =
             case model.example of
                 SimpleConnect subModel ->
@@ -196,8 +182,9 @@ subscriptions model =
                         ConnectWithBadParams.subscriptions subModel
     in
     Sub.batch
-        [ phoenixSub
-        , exampleSub
+        [ exampleSub
+        , Sub.map GotPhoenixMsg <|
+            Phoenix.subscriptions (Session.phoenix model.session)
         ]
 
 
@@ -216,26 +203,14 @@ updateSession session model =
 
 
 
-{- Device -}
-
-
-toDevice : Model -> Device
-toDevice model =
-    Session.device model.session
-
-
-
 {- View -}
 
 
 view : Model -> { title : String, content : Element Msg }
 view model =
     let
-        phoenix =
-            Session.phoenix model.session
-
         device =
-            toDevice model
+            Session.device model.session
     in
     { title = "Control The Socket Connection"
     , content =
