@@ -13,6 +13,9 @@ import Colors.Opaque as Color
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Element.Font as Font
 import Example exposing (Action(..), Example(..))
+import Example.ManageChannelMessages as ManageChannelMessages
+import Example.ManagePresenceMessages as ManagePresenceMessages
+import Example.ManageSocketHeartbeat as ManageSocketHeartbeat
 import Extra.String as String
 import Json.Decode as JD
 import Json.Decode.Extra exposing (andMap)
@@ -27,6 +30,7 @@ import View.ApplicableFunctions as ApplicableFunctions
 import View.Button as Button
 import View.Example as Example
 import View.ExampleControls as ExampleControls
+import View.ExamplePage as ExamplePage
 import View.Feedback as Feedback
 import View.FeedbackContent as FeedbackContent
 import View.FeedbackInfo as FeedbackInfo
@@ -44,41 +48,36 @@ import View.UsefulFunctions as UsefulFunctions
 
 init : Session -> Maybe String -> Maybe ID -> ( Model, Cmd Msg )
 init session maybeExample maybeExampleId =
-    let
-        example =
-            case maybeExample of
-                Just ex ->
-                    Example.fromString ex
-
-                Nothing ->
-                    ManageSocketHeartbeat Connect
-
-        ( phx, cmd ) =
-            case maybeExampleId of
-                Just id ->
-                    Session.phoenix session
-                        |> Phoenix.setConnectOptions [ Socket.HeartbeatIntervalMillis 1000 ]
-                        |> Phoenix.join ("example_controller:" ++ id)
-                        |> Tuple.mapSecond (Cmd.map GotPhoenixMsg)
-
-                Nothing ->
-                    Session.phoenix session
-                        |> Phoenix.setConnectOptions [ Socket.HeartbeatIntervalMillis 1000 ]
-                        |> Phoenix.connect
-                        |> Tuple.mapSecond (Cmd.map GotPhoenixMsg)
-    in
-    ( { session = Session.updatePhoenix phx session
-      , example = example
-      , exampleId = maybeExampleId
-      , userId = Nothing
-      , heartbeat = True
-      , channelMessages = True
-      , presenceMessages = True
-      , presenceState = []
-      , socketMessages = []
+    ( { session = session
+      , example = initExample maybeExample maybeExampleId session
+      , maybeExampleId = maybeExampleId
       }
-    , cmd
+    , Cmd.none
     )
+
+
+initExample : Maybe String -> Maybe ID -> Session -> Example
+initExample maybeExample maybeExampleId session =
+    case maybeExample of
+        Just example ->
+            if example == "ManagePresenceMessages" then
+                ManagePresenceMessages <|
+                    ManagePresenceMessages.init
+                        maybeExampleId
+                        (Session.device session)
+                        (Session.phoenix session)
+
+            else
+                ManageSocketHeartbeat <|
+                    ManageSocketHeartbeat.init
+                        (Session.device session)
+                        (Session.phoenix session)
+
+        Nothing ->
+            ManageSocketHeartbeat <|
+                ManageSocketHeartbeat.init
+                    (Session.device session)
+                    (Session.phoenix session)
 
 
 
@@ -88,80 +87,18 @@ init session maybeExample maybeExampleId =
 type alias Model =
     { session : Session
     , example : Example
-    , exampleId : Maybe ID
-    , userId : Maybe ID
-    , heartbeat : Bool
-    , channelMessages : Bool
-    , presenceMessages : Bool
-    , presenceState : List { id : String, meta : Meta }
-    , socketMessages : List SocketMsg
+    , maybeExampleId : Maybe ID
     }
+
+
+type Example
+    = ManageSocketHeartbeat ManageSocketHeartbeat.Model
+    | ManageChannelMessages ManageChannelMessages.Model
+    | ManagePresenceMessages ManagePresenceMessages.Model
 
 
 type alias ID =
     String
-
-
-type SocketMsg
-    = Heartbeat HeartbeatInfo
-    | Channel ChannelInfo
-    | Presence PresenceInfo
-
-
-type alias HeartbeatInfo =
-    { topic : String
-    , event : String
-    , payload : Value
-    , ref : String
-    }
-
-
-type alias ChannelInfo =
-    { topic : Phoenix.Topic
-    , event : Phoenix.Event
-    , payload : Value
-    , joinRef : Maybe String
-    , ref : Maybe String
-    }
-
-
-type alias PresenceInfo =
-    { topic : String
-    , event : String
-    , payload : Value
-    }
-
-
-type alias Meta =
-    { exampleState : ExampleState }
-
-
-type ExampleState
-    = Joined
-    | Joining
-    | Leaving
-    | NotJoined
-
-
-controllerTopic : Maybe String -> String
-controllerTopic maybeId_ =
-    case maybeId_ of
-        Just id ->
-            "example_controller:" ++ id
-
-        Nothing ->
-            ""
-
-
-pushConfig : Phoenix.Push
-pushConfig =
-    { topic = ""
-    , event = ""
-    , payload = JE.null
-    , timeout = Nothing
-    , retryStrategy = Phoenix.Drop
-    , ref = Nothing
-    }
 
 
 
@@ -169,11 +106,12 @@ pushConfig =
 
 
 type Msg
-    = GotControlClick Example
-    | GotHomeBtnClick
-    | GotRemoteControlClick ID Example
-    | GotMenuItem (Action -> Example)
+    = GotHomeBtnClick
+    | GotMenuItem String
     | GotPhoenixMsg Phoenix.Msg
+    | GotManageSocketHeartbeatMsg ManageSocketHeartbeat.Msg
+    | GotManageChannelMessagesMsg ManageChannelMessages.Msg
+    | GotManagePresenceMessagesMsg ManagePresenceMessages.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -182,344 +120,44 @@ update msg model =
         phoenix =
             Session.phoenix model.session
     in
-    case msg of
-        GotHomeBtnClick ->
+    case ( msg, model.example ) of
+        ( GotHomeBtnClick, _ ) ->
             ( model
             , Route.pushUrl
                 (Session.navKey model.session)
                 Route.Home
             )
 
-        GotMenuItem example ->
-            updateExample example model
-                |> getExampleId
+        ( GotMenuItem example_, _ ) ->
+            Phoenix.disconnect Nothing phoenix
+                |> updatePhoenix model
+                |> updateExample example_
 
-        GotControlClick example ->
-            case example of
-                ManageSocketHeartbeat action ->
-                    case action of
-                        Connect ->
-                            phoenix
-                                |> Phoenix.connect
-                                |> updatePhoenix model
+        ( GotPhoenixMsg subMsg, _ ) ->
+            Phoenix.update subMsg phoenix
+                |> updatePhoenix model
 
-                        Disconnect ->
-                            Phoenix.disconnect (Just 1000) phoenix
-                                |> updatePhoenix model
+        ( GotManageSocketHeartbeatMsg subMsg, ManageSocketHeartbeat subModel ) ->
+            ManageSocketHeartbeat.update subMsg subModel
+                |> updateWith ManageSocketHeartbeat GotManageSocketHeartbeatMsg model
 
-                        On ->
-                            Phoenix.heartbeatOn phoenix
-                                |> setHeartbeat True model
+        ( GotManageChannelMessagesMsg subMsg, ManageChannelMessages subModel ) ->
+            ManageChannelMessages.update subMsg subModel
+                |> updateWith ManageChannelMessages GotManageChannelMessagesMsg model
 
-                        Off ->
-                            Phoenix.heartbeatOff phoenix
-                                |> setHeartbeat False model
+        ( GotManagePresenceMessagesMsg subMsg, ManagePresenceMessages subModel ) ->
+            ManagePresenceMessages.update subMsg subModel
+                |> updateWith ManagePresenceMessages GotManagePresenceMessagesMsg model
 
-                        _ ->
-                            ( model, Cmd.none )
-
-                ManageChannelMessages action ->
-                    case action of
-                        Send ->
-                            phoenix
-                                |> Phoenix.push
-                                    { pushConfig
-                                        | topic = "example:manage_channel_messages"
-                                        , event = "empty_message"
-                                    }
-                                |> updatePhoenix model
-
-                        On ->
-                            Phoenix.socketChannelMessagesOn phoenix
-                                |> setChannelMessages True model
-
-                        Off ->
-                            Phoenix.socketChannelMessagesOff phoenix
-                                |> setChannelMessages False model
-
-                        _ ->
-                            ( model, Cmd.none )
-
-                ManagePresenceMessages action ->
-                    case action of
-                        Join ->
-                            phoenix
-                                |> Phoenix.setJoinConfig
-                                    { topic = "example:manage_presence_messages"
-                                    , events = []
-                                    , payload =
-                                        JE.object
-                                            [ ( "user_id", maybe JE.string model.userId ) ]
-                                    , timeout = Nothing
-                                    }
-                                |> Phoenix.join "example:manage_presence_messages"
-                                |> updatePhoenix model
-
-                        Leave ->
-                            Phoenix.leave "example:manage_presence_messages" phoenix
-                                |> updatePhoenix model
-
-                        On ->
-                            Phoenix.socketPresenceMessagesOn phoenix
-                                |> setPresenceMessages True model
-
-                        Off ->
-                            Phoenix.socketPresenceMessagesOff phoenix
-                                |> setPresenceMessages False model
-
-                        _ ->
-                            ( model, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
-
-        GotRemoteControlClick userId example ->
-            case example of
-                ManagePresenceMessages action ->
-                    case action of
-                        Join ->
-                            Phoenix.push
-                                { pushConfig
-                                    | topic = controllerTopic model.exampleId
-                                    , event = "join_example"
-                                    , payload = encodeUserId userId
-                                }
-                                phoenix
-                                |> updatePhoenix model
-
-                        Leave ->
-                            Phoenix.push
-                                { pushConfig
-                                    | topic = controllerTopic model.exampleId
-                                    , event = "leave_example"
-                                    , payload = encodeUserId userId
-                                }
-                                phoenix
-                                |> updatePhoenix model
-
-                        _ ->
-                            ( model, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
-
-        GotPhoenixMsg subMsg ->
-            let
-                ( newModel, cmd ) =
-                    Phoenix.update subMsg phoenix
-                        |> updatePhoenix model
-
-                phx =
-                    Session.phoenix newModel.session
-            in
-            case Phoenix.phoenixMsg phx of
-                Phoenix.SocketMessage (Phoenix.Heartbeat info) ->
-                    ( { newModel
-                        | socketMessages = Heartbeat info :: newModel.socketMessages
-                      }
-                    , cmd
-                    )
-
-                Phoenix.SocketMessage (Phoenix.ChannelMessage info) ->
-                    ( { newModel
-                        | socketMessages =
-                            if String.startsWith "example_controller" info.topic then
-                                newModel.socketMessages
-
-                            else
-                                Channel info :: newModel.socketMessages
-                      }
-                    , cmd
-                    )
-
-                Phoenix.SocketMessage (Phoenix.PresenceMessage info) ->
-                    ( { newModel
-                        | socketMessages =
-                            if String.startsWith "example_controller" info.topic then
-                                newModel.socketMessages
-
-                            else
-                                Presence info :: newModel.socketMessages
-                      }
-                    , cmd
-                    )
-
-                Phoenix.ChannelResponse (Phoenix.JoinOk "example:manage_presence_messages" payload) ->
-                    Phoenix.push
-                        { pushConfig
-                            | topic = controllerTopic newModel.exampleId
-                            , event = "joined_example"
-                        }
-                        phx
-                        |> updatePhoenix newModel
-                        |> batch [ cmd ]
-
-                Phoenix.ChannelResponse (Phoenix.LeaveOk "example:manage_presence_messages") ->
-                    Phoenix.push
-                        { pushConfig
-                            | topic = controllerTopic newModel.exampleId
-                            , event = "left_example"
-                        }
-                        phx
-                        |> updatePhoenix newModel
-                        |> batch [ cmd ]
-
-                {- Remote Control -}
-                Phoenix.ChannelResponse (Phoenix.JoinOk topic payload) ->
-                    case Phoenix.topicParts topic of
-                        ( "example_controller", "control" ) ->
-                            case decodeExampleId payload of
-                                Ok exampleId_ ->
-                                    Phoenix.batch
-                                        [ Phoenix.leave "example_controller:control"
-                                        , Phoenix.join (controllerTopic (Just exampleId_))
-                                        ]
-                                        phx
-                                        |> updatePhoenix { newModel | exampleId = Just exampleId_ }
-                                        |> batch [ cmd ]
-
-                                _ ->
-                                    ( newModel, cmd )
-
-                        ( "example_controller", _ ) ->
-                            case decodeUserId payload of
-                                Ok id ->
-                                    ( { newModel | userId = Just id }
-                                    , Cmd.batch
-                                        [ cmd
-                                        , Cmd.map GotPhoenixMsg <|
-                                            Phoenix.addEvents (controllerTopic newModel.exampleId)
-                                                [ "join_example"
-                                                , "leave_example"
-                                                ]
-                                                phoenix
-                                        ]
-                                    )
-
-                                _ ->
-                                    ( newModel, cmd )
-
-                        _ ->
-                            ( newModel, cmd )
-
-                Phoenix.ChannelEvent _ event payload ->
-                    case ( event, decodeUserId payload ) of
-                        ( "join_example", Ok userId ) ->
-                            if newModel.userId == Just userId then
-                                phoenix
-                                    |> Phoenix.setJoinConfig
-                                        { topic = "example:manage_presence_messages"
-                                        , events = []
-                                        , payload =
-                                            JE.object
-                                                [ ( "user_id", JE.string userId ) ]
-                                        , timeout = Nothing
-                                        }
-                                    |> Phoenix.batch
-                                        [ Phoenix.join "example:manage_presence_messages"
-                                        , Phoenix.push
-                                            { pushConfig
-                                                | topic = controllerTopic newModel.exampleId
-                                                , event = "joining_example"
-                                            }
-                                        ]
-                                    |> updatePhoenix newModel
-
-                            else
-                                ( newModel, cmd )
-
-                        ( "leave_example", Ok userId ) ->
-                            if newModel.userId == Just userId then
-                                Phoenix.batch
-                                    [ Phoenix.leave "example:manage_presence_messages"
-                                    , Phoenix.push
-                                        { pushConfig
-                                            | topic = controllerTopic newModel.exampleId
-                                            , event = "leaving_example"
-                                        }
-                                    ]
-                                    phoenix
-                                    |> updatePhoenix newModel
-
-                            else
-                                ( newModel, cmd )
-
-                        _ ->
-                            ( newModel, cmd )
-
-                Phoenix.PresenceEvent (Phoenix.State topic state) ->
-                    case Phoenix.topicParts topic of
-                        ( "example_controller", _ ) ->
-                            ( { newModel
-                                | presenceState =
-                                    toPresenceState state
-                              }
-                            , cmd
-                            )
-
-                        _ ->
-                            ( newModel, cmd )
-
-                _ ->
-                    ( newModel, cmd )
+        _ ->
+            ( model, Cmd.none )
 
 
-toPresenceState : List Phoenix.Presence -> List { id : String, meta : Meta }
-toPresenceState presences =
-    List.map toPresence presences
-
-
-toPresence : Phoenix.Presence -> { id : String, meta : Meta }
-toPresence presence =
-    { id = presence.id
-    , meta =
-        case presence.metas of
-            -- There will only ever be one meta in the list because each new
-            -- join will be considered a new user, so a user cannot have
-            -- multiple joins.
-            meta :: _ ->
-                case decodeMeta meta of
-                    Ok m ->
-                        m
-
-                    _ ->
-                        { exampleState = NotJoined }
-
-            [] ->
-                { exampleState = NotJoined }
-    }
-
-
-setChannelMessages : Bool -> Model -> Cmd Phoenix.Msg -> ( Model, Cmd Msg )
-setChannelMessages channelMessages model phxCmd =
-    ( { model
-        | channelMessages = channelMessages
-      }
-    , Cmd.map GotPhoenixMsg phxCmd
+updateWith : (subModel -> Example) -> (subMsg -> Msg) -> Model -> ( subModel, Cmd subMsg ) -> ( Model, Cmd Msg )
+updateWith toExample toMsg model ( subModel, cmd ) =
+    ( { model | example = toExample subModel }
+    , Cmd.map toMsg cmd
     )
-
-
-setHeartbeat : Bool -> Model -> Cmd Phoenix.Msg -> ( Model, Cmd Msg )
-setHeartbeat heartbeat model phxCmd =
-    ( { model
-        | heartbeat = heartbeat
-      }
-    , Cmd.map GotPhoenixMsg phxCmd
-    )
-
-
-setPresenceMessages : Bool -> Model -> Cmd Phoenix.Msg -> ( Model, Cmd Msg )
-setPresenceMessages presenceMessages model phxCmd =
-    ( { model
-        | presenceMessages = presenceMessages
-      }
-    , Cmd.map GotPhoenixMsg phxCmd
-    )
-
-
-updateExample : (Action -> Example) -> Model -> Model
-updateExample example model =
-    { model | example = example Anything }
 
 
 updatePhoenix : Model -> ( Phoenix.Model, Cmd Phoenix.Msg ) -> ( Model, Cmd Msg )
@@ -531,89 +169,38 @@ updatePhoenix model ( phoenix, phoenixCmd ) =
     )
 
 
-batch : List (Cmd Msg) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-batch cmds ( model, cmd ) =
-    ( model
-    , Cmd.batch (cmd :: cmds)
+updateExample : String -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+updateExample selectedExample ( model, cmd ) =
+    ( { model
+        | example =
+            case selectedExample of
+                "Manage The Socket Heartbeat" ->
+                    ManageSocketHeartbeat <|
+                        ManageSocketHeartbeat.init
+                            (Session.device model.session)
+                            (Session.phoenix model.session)
+
+                "Manage Channel Messages" ->
+                    ManageChannelMessages <|
+                        ManageChannelMessages.init
+                            (Session.device model.session)
+                            (Session.phoenix model.session)
+
+                "Manage Presence Messages" ->
+                    ManagePresenceMessages <|
+                        ManagePresenceMessages.init
+                            model.maybeExampleId
+                            (Session.device model.session)
+                            (Session.phoenix model.session)
+
+                _ ->
+                    ManageSocketHeartbeat <|
+                        ManageSocketHeartbeat.init
+                            (Session.device model.session)
+                            (Session.phoenix model.session)
+      }
+    , cmd
     )
-
-
-
-{- exampleId is a unique ID supplied by "example_controller:control" that
-   is used to identify the example in each tab. The tabs can then all join the
-   same controlling Channel which routes messages between them.
--}
-
-
-getExampleId : Model -> ( Model, Cmd Msg )
-getExampleId model =
-    case ( model.example, model.exampleId ) of
-        ( ManagePresenceMessages _, Nothing ) ->
-            Phoenix.join "example_controller:control" (Session.phoenix model.session)
-                |> updatePhoenix model
-
-        _ ->
-            ( model, Cmd.none )
-
-
-
-{- Decoders -}
-
-
-decodeExampleId : Value -> Result JD.Error String
-decodeExampleId payload =
-    JD.decodeValue (JD.field "example_id" JD.string) payload
-
-
-decodeUserId : Value -> Result JD.Error String
-decodeUserId payload =
-    JD.decodeValue (JD.field "user_id" JD.string) payload
-
-
-metaDecoder : JD.Decoder Meta
-metaDecoder =
-    JD.succeed
-        Meta
-        |> andMap
-            (JD.field "example_state" JD.string
-                |> JD.andThen stateDecoder
-            )
-
-
-stateDecoder : String -> JD.Decoder ExampleState
-stateDecoder state =
-    case state of
-        "Joined" ->
-            JD.succeed Joined
-
-        "Joining" ->
-            JD.succeed Joining
-
-        "Leaving" ->
-            JD.succeed Leaving
-
-        "Not Joined" ->
-            JD.succeed NotJoined
-
-        _ ->
-            JD.fail <|
-                "Not a valid Example State: "
-                    ++ state
-
-
-decodeMeta : Value -> Result JD.Error Meta
-decodeMeta payload =
-    JD.decodeValue metaDecoder payload
-
-
-
-{- Encoders -}
-
-
-encodeUserId : String -> Value
-encodeUserId userId =
-    JE.object
-        [ ( "user_id", JE.string userId ) ]
 
 
 
@@ -668,15 +255,11 @@ view model =
             |> Layout.homeMsg (Just GotHomeBtnClick)
             |> Layout.title "Handle Socket Messages"
             |> Layout.body
-                (Example.init
-                    |> Example.introduction introduction
-                    |> Example.menu (menu device model)
-                    |> Example.description (description model)
-                    |> Example.id (maybeId model.example model.exampleId)
-                    |> Example.controls (controls device phoenix model)
-                    |> Example.remoteControls (remoteControls device phoenix model)
-                    |> Example.feedback (feedback device phoenix model)
-                    |> Example.view device
+                (ExamplePage.init
+                    |> ExamplePage.introduction introduction
+                    |> ExamplePage.menu (menu device model)
+                    |> ExamplePage.example (viewExample model)
+                    |> ExamplePage.view device
                 )
             |> Layout.view device
     }
@@ -702,33 +285,41 @@ introduction =
 -}
 menu : Device -> Model -> Element Msg
 menu device { example } =
+    let
+        selected =
+            case example of
+                ManageSocketHeartbeat _ ->
+                    "Manage The Socket Heartbeat"
+
+                ManageChannelMessages _ ->
+                    "Manage Channel Messages"
+
+                ManagePresenceMessages _ ->
+                    "Manage Presence Messages"
+    in
     Menu.init
         |> Menu.options
-            [ Example.toString ManageSocketHeartbeat
-            , Example.toString ManageChannelMessages
-            , Example.toString ManagePresenceMessages
+            [ "Manage The Socket Heartbeat"
+            , "Manage Channel Messages"
+            , "Manage Presence Messages"
             ]
-        |> Menu.selected (Example.toString <| Example.toFunc example)
+        |> Menu.selected selected
+        |> Menu.onClick (Just GotMenuItem)
+        |> Menu.group
+            (Group.init
+                |> Group.layouts
+                    [ ( Phone, Landscape, [ 1, 2 ] )
+                    , ( Tablet, Portrait, [ 1, 2 ] )
+                    ]
+            )
         |> Menu.view device
 
 
 {-| Example Description
 -}
 description : Model -> List (Element msg)
-description { example, exampleId } =
+description { example, maybeExampleId } =
     case example of
-        ManageSocketHeartbeat _ ->
-            [ UI.paragraph
-                [ El.text "Choose whether to receive the heartbeat as an incoming Socket message. For this example, the heartbeat interval is set at 1 second." ]
-            ]
-
-        ManageChannelMessages _ ->
-            [ UI.paragraph
-                [ El.text "Choose whether to receive Channel messages as an incoming Socket message. "
-                , El.text ""
-                ]
-            ]
-
         ManagePresenceMessages _ ->
             [ UI.paragraph
                 [ El.text "Choose whether to receive Presence messages as an incoming Socket message. "
@@ -739,7 +330,7 @@ description { example, exampleId } =
                         [ Font.color Color.lavender ]
                     ]
                     { url =
-                        case exampleId of
+                        case maybeExampleId of
                             Just id ->
                                 "/HandleSocketMessages?example=ManagePresenceMessages&id=" ++ id
 
@@ -755,379 +346,21 @@ description { example, exampleId } =
             []
 
 
-{-| Maybe ID
--}
-maybeId : Example -> Maybe ID -> Maybe ID
-maybeId example maybeId_ =
+
+{- Example -}
+
+
+viewExample : Model -> Element Msg
+viewExample { example } =
     case example of
-        ManagePresenceMessages _ ->
-            maybeId_
-
-        _ ->
-            Nothing
-
-
-{-| Example ExampleControls
--}
-controls : Device -> Phoenix.Model -> Model -> Element Msg
-controls device phoenix model =
-    ExampleControls.init
-        |> ExampleControls.userId (maybeId model.example model.userId)
-        |> ExampleControls.elements (buttons device phoenix model)
-        |> ExampleControls.group
-            (Group.init
-                |> Group.layouts (layouts model)
-                |> Group.order (order model)
-            )
-        |> ExampleControls.view device
-
-
-buttons : Device -> Phoenix.Model -> Model -> List (Element Msg)
-buttons device phoenix { example, heartbeat, channelMessages, presenceMessages } =
-    case example of
-        ManageSocketHeartbeat _ ->
-            [ heartbeatOnControl ManageSocketHeartbeat device heartbeat
-            , heartbeatOffControl ManageSocketHeartbeat device heartbeat
-            ]
-
-        ManageChannelMessages _ ->
-            [ sendMessageControl ManageChannelMessages device
-            , channelMessagesOn ManageChannelMessages device channelMessages
-            , channelMessagesOff ManageChannelMessages device channelMessages
-            ]
-
-        ManagePresenceMessages _ ->
-            [ joinControl ManagePresenceMessages device GotControlClick (not <| Phoenix.channelJoined "example:manage_presence_messages" phoenix)
-            , presenceOnControl ManagePresenceMessages device presenceMessages
-            , presenceOffControl ManagePresenceMessages device presenceMessages
-            , leaveControl ManagePresenceMessages device GotControlClick (Phoenix.channelJoined "example:manage_presence_messages" phoenix)
-            ]
-
-        _ ->
-            []
-
-
-order : Model -> List ( DeviceClass, Orientation, List Int )
-order { example } =
-    case example of
-        ManageSocketHeartbeat _ ->
-            [ ( Phone, Portrait, [ 0, 2, 3, 1 ] )
-            , ( Phone, Landscape, [ 0, 2, 3, 1 ] )
-            ]
-
-        ManagePresenceMessages _ ->
-            [ ( Phone, Portrait, [ 0, 2, 3, 1 ] ) ]
-
-        _ ->
-            []
-
-
-layouts : Model -> List ( DeviceClass, Orientation, List Int )
-layouts { example } =
-    case example of
-        ManageSocketHeartbeat _ ->
-            [ ( Phone, Portrait, [ 2, 2 ] ) ]
-
-        ManagePresenceMessages _ ->
-            [ ( Phone, Portrait, [ 2, 2 ] ) ]
-
-        _ ->
-            []
-
-
-{-| Remote ExampleControls
--}
-remoteControls : Device -> Phoenix.Model -> Model -> List (Element Msg)
-remoteControls device phoenix { example, userId, presenceState } =
-    case example of
-        ManagePresenceMessages _ ->
-            List.filterMap (maybeRemoteControl userId device) presenceState
-
-        _ ->
-            []
-
-
-maybeRemoteControl : Maybe ID -> Device -> { id : String, meta : Meta } -> Maybe (Element Msg)
-maybeRemoteControl userId device { id, meta } =
-    if userId == Just id then
-        Nothing
-
-    else
-        Just <|
-            (ExampleControls.init
-                |> ExampleControls.userId (Just id)
-                |> ExampleControls.elements
-                    [ joinControl ManagePresenceMessages device (GotRemoteControlClick id) (meta.exampleState == NotJoined)
-                    , leaveControl ManagePresenceMessages device (GotRemoteControlClick id) (meta.exampleState == Joined)
-                    ]
-                |> ExampleControls.group
-                    (Group.init
-                        |> Group.layouts [ ( Phone, Portrait, [ 2 ] ) ]
-                    )
-                |> ExampleControls.view device
-            )
-
-
-heartbeatOnControl : (Action -> Example) -> Device -> Bool -> Element Msg
-heartbeatOnControl example device heartbeat =
-    Button.init
-        |> Button.label "Heartbeat On"
-        |> Button.onPress (Just (GotControlClick (example On)))
-        |> Button.enabled (not heartbeat)
-        |> Button.view device
-
-
-heartbeatOffControl : (Action -> Example) -> Device -> Bool -> Element Msg
-heartbeatOffControl example device heartbeat =
-    Button.init
-        |> Button.label "Heartbeat Off"
-        |> Button.onPress (Just (GotControlClick (example Off)))
-        |> Button.enabled heartbeat
-        |> Button.view device
-
-
-joinControl : (Action -> Example) -> Device -> (Example -> Msg) -> Bool -> Element Msg
-joinControl example device onPress enabled =
-    Button.init
-        |> Button.label "Join Channel"
-        |> Button.onPress (Just (onPress (example Join)))
-        |> Button.enabled enabled
-        |> Button.view device
-
-
-leaveControl : (Action -> Example) -> Device -> (Example -> Msg) -> Bool -> Element Msg
-leaveControl example device onPress enabled =
-    Button.init
-        |> Button.label "Leave Channel"
-        |> Button.onPress (Just (onPress (example Leave)))
-        |> Button.enabled enabled
-        |> Button.view device
-
-
-presenceOnControl : (Action -> Example) -> Device -> Bool -> Element Msg
-presenceOnControl example device presence =
-    Button.init
-        |> Button.label "Presence On"
-        |> Button.onPress (Just (GotControlClick (example On)))
-        |> Button.enabled (not presence)
-        |> Button.view device
-
-
-presenceOffControl : (Action -> Example) -> Device -> Bool -> Element Msg
-presenceOffControl example device presence =
-    Button.init
-        |> Button.label "Presence Off"
-        |> Button.onPress (Just (GotControlClick (example Off)))
-        |> Button.enabled presence
-        |> Button.view device
-
-
-sendMessageControl : (Action -> Example) -> Device -> Element Msg
-sendMessageControl example device =
-    Button.init
-        |> Button.label "Push Message"
-        |> Button.onPress (Just (GotControlClick (example Send)))
-        |> Button.enabled True
-        |> Button.view device
-
-
-channelMessagesOn : (Action -> Example) -> Device -> Bool -> Element Msg
-channelMessagesOn example device channelMessages =
-    Button.init
-        |> Button.label "Messages On"
-        |> Button.onPress (Just (GotControlClick (example On)))
-        |> Button.enabled (not channelMessages)
-        |> Button.view device
-
-
-channelMessagesOff : (Action -> Example) -> Device -> Bool -> Element Msg
-channelMessagesOff example device channelMessages =
-    Button.init
-        |> Button.label "Messages Off"
-        |> Button.onPress (Just (GotControlClick (example Off)))
-        |> Button.enabled channelMessages
-        |> Button.view device
-
-
-{-| Example Feedback and Info
--}
-feedback : Device -> Phoenix.Model -> Model -> Element Msg
-feedback device phoenix ({ example } as model) =
-    Feedback.init
-        |> Feedback.elements
-            [ FeedbackPanel.init
-                |> FeedbackPanel.title "Info"
-                |> FeedbackPanel.static (static device model)
-                |> FeedbackPanel.scrollable (scrollable device model)
-                |> FeedbackPanel.view device
-            , FeedbackPanel.init
-                |> FeedbackPanel.title "Applicable Functions"
-                |> FeedbackPanel.scrollable [ applicableFunctions device example ]
-                |> FeedbackPanel.view device
-            , FeedbackPanel.init
-                |> FeedbackPanel.title "Useful Functions"
-                |> FeedbackPanel.scrollable [ usefulFunctions device phoenix example ]
-                |> FeedbackPanel.view device
-            ]
-        |> Feedback.group
-            (Group.init
-                |> Group.layouts
-                    [ ( Phone, Landscape, [ 1, 2 ] )
-                    , ( Tablet, Portrait, [ 1, 2 ] )
-                    , ( Tablet, Landscape, [ 1, 2 ] )
-                    , ( Desktop, Portrait, [ 1, 2 ] )
-                    , ( Desktop, Landscape, [ 3 ] )
-                    , ( BigDesktop, Portrait, [ 3 ] )
-                    , ( BigDesktop, Landscape, [ 3 ] )
-                    ]
-            )
-        |> Feedback.view device
-
-
-static : Device -> Model -> List (Element Msg)
-static device model =
-    let
-        count =
-            String.fromInt (model.socketMessages |> List.length)
-
-        label =
-            case model.example of
-                ManageSocketHeartbeat _ ->
-                    "Heartbeat Count"
-
-                _ ->
-                    "Message Count"
-    in
-    [ LabelAndValue.init
-        |> LabelAndValue.label label
-        |> LabelAndValue.value count
-        |> LabelAndValue.view device
-    ]
-
-
-scrollable : Device -> Model -> List (Element Msg)
-scrollable device model =
-    List.map
-        (\socketMessage ->
-            let
-                ( label, element ) =
-                    case socketMessage of
-                        Heartbeat info ->
-                            ( "Heartbeat", heartbeatInfo device info )
-
-                        Channel info ->
-                            ( "ChannelMessage", channelInfo device info )
-
-                        Presence info ->
-                            ( "PresenceMessage", presenceInfo device info )
-            in
-            FeedbackContent.init
-                |> FeedbackContent.title (Just "SocketMessage")
-                |> FeedbackContent.label label
-                |> FeedbackContent.element element
-                |> FeedbackContent.view device
-        )
-        model.socketMessages
-
-
-heartbeatInfo : Device -> HeartbeatInfo -> Element Msg
-heartbeatInfo device info =
-    FeedbackInfo.init
-        |> FeedbackInfo.topic info.topic
-        |> FeedbackInfo.event info.event
-        |> FeedbackInfo.payload info.payload
-        |> FeedbackInfo.ref (Just info.ref)
-        |> FeedbackInfo.view device
-
-
-presenceInfo : Device -> PresenceInfo -> Element Msg
-presenceInfo device info =
-    FeedbackInfo.init
-        |> FeedbackInfo.topic info.topic
-        |> FeedbackInfo.event info.event
-        |> FeedbackInfo.payload info.payload
-        |> FeedbackInfo.view device
-
-
-channelInfo : Device -> ChannelInfo -> Element Msg
-channelInfo device info =
-    FeedbackInfo.init
-        |> FeedbackInfo.topic info.topic
-        |> FeedbackInfo.event info.event
-        |> FeedbackInfo.payload info.payload
-        |> FeedbackInfo.ref info.ref
-        |> FeedbackInfo.joinRef info.joinRef
-        |> FeedbackInfo.view device
-
-
-applicableFunctions : Device -> Example -> Element Msg
-applicableFunctions device example =
-    ApplicableFunctions.init
-        |> ApplicableFunctions.functions
-            (case example of
-                ManageSocketHeartbeat _ ->
-                    [ "Phoenix.setConnectOptions"
-                    , "Phoenix.heartbeatOn"
-                    , "Phoenix.heartbeatOff"
-                    ]
-
-                ManageChannelMessages _ ->
-                    [ "Phoenix.push"
-                    , "Phoenix.socketChannelMessagesOn"
-                    , "Phoenix.socketChannelMessagesOff"
-                    ]
-
-                ManagePresenceMessages _ ->
-                    [ "Phoenix.join"
-                    , "Phoenix.socketPresenceMessagesOn"
-                    , "Phoenix.socketPresenceMessagesOff"
-                    , "Phoeinx.leave"
-                    ]
-
-                _ ->
-                    []
-            )
-        |> ApplicableFunctions.view device
-
-
-usefulFunctions : Device -> Phoenix.Model -> Example -> Element Msg
-usefulFunctions device phoenix example =
-    UsefulFunctions.init
-        |> UsefulFunctions.functions
-            (case example of
-                ManageSocketHeartbeat _ ->
-                    [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
-                    , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
-                    , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
-                    ]
-
-                ManageChannelMessages _ ->
-                    [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
-                    , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
-                    , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
-                    , ( "Phoenix.channelJoined", Phoenix.channelJoined "example:manage_channel_messages" phoenix |> String.printBool )
-                    , ( "Phoenix.joinedChannels"
-                      , Phoenix.joinedChannels phoenix
-                            |> List.filter (String.startsWith "example:")
-                            |> String.printList
-                      )
-                    ]
-
-                ManagePresenceMessages _ ->
-                    [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
-                    , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
-                    , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
-                    , ( "Phoenix.channelJoined", Phoenix.channelJoined "example:manage_presence_messages" phoenix |> String.printBool )
-                    , ( "Phoenix.joinedChannels"
-                      , Phoenix.joinedChannels phoenix
-                            |> List.filter (String.startsWith "example:")
-                            |> String.printList
-                      )
-                    , ( "Phoenix.lastPresenceJoin", Phoenix.lastPresenceJoin "example:manage_presence_messages" phoenix |> String.printMaybe "Presence" )
-                    , ( "Phoenix.lastPresenceLeave", Phoenix.lastPresenceLeave "example:manage_presence_messages" phoenix |> String.printMaybe "Presence" )
-                    ]
-
-                _ ->
-                    []
-            )
-        |> UsefulFunctions.view device
+        ManageSocketHeartbeat subModel ->
+            ManageSocketHeartbeat.view subModel
+                |> El.map GotManageSocketHeartbeatMsg
+
+        ManageChannelMessages subModel ->
+            ManageChannelMessages.view subModel
+                |> El.map GotManageChannelMessagesMsg
+
+        ManagePresenceMessages subModel ->
+            ManagePresenceMessages.view subModel
+                |> El.map GotManagePresenceMessagesMsg

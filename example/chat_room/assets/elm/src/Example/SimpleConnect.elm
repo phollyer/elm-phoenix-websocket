@@ -107,8 +107,10 @@ view model =
         |> Example.view model.device
 
 
-{-| Description
--}
+
+{- Description -}
+
+
 description : List (Element msg)
 description =
     [ UI.paragraph
@@ -155,8 +157,10 @@ disconnect device phoenix =
         |> Button.view device
 
 
-{-| Example Feedback and Info
--}
+
+{- Feedback -}
+
+
 feedback : Model -> Element Msg
 feedback { device, phoenix } =
     Feedback.init

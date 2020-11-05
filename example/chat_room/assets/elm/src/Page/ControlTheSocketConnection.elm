@@ -83,14 +83,14 @@ update msg model =
                 Route.Home
             )
 
-        ( GotPhoenixMsg subMsg, _ ) ->
-            Phoenix.update subMsg phoenix
-                |> updatePhoenix model
-
         ( GotMenuItem example_, _ ) ->
             Phoenix.disconnect Nothing phoenix
                 |> updatePhoenix model
                 |> updateExample example_
+
+        ( GotPhoenixMsg subMsg, _ ) ->
+            Phoenix.update subMsg phoenix
+                |> updatePhoenix model
 
         ( GotSimpleConnectMsg subMsg, SimpleConnect subModel ) ->
             SimpleConnect.update subMsg subModel
@@ -221,7 +221,7 @@ view model =
                 (ExamplePage.init
                     |> ExamplePage.introduction introduction
                     |> ExamplePage.menu (menu device model)
-                    |> ExamplePage.example (example model)
+                    |> ExamplePage.example (viewExample model)
                     |> ExamplePage.view device
                 )
             |> Layout.view device
@@ -244,10 +244,10 @@ introduction =
 {-| Examples Menu
 -}
 menu : Device -> Model -> Element Msg
-menu device model =
+menu device { example } =
     let
         selected =
-            case model.example of
+            case example of
                 SimpleConnect _ ->
                     "Simple Connect"
 
@@ -279,9 +279,9 @@ menu device model =
 {- Example -}
 
 
-example : Model -> Element Msg
-example model =
-    case model.example of
+viewExample : Model -> Element Msg
+viewExample { example } =
+    case example of
         SimpleConnect subModel ->
             SimpleConnect.view subModel
                 |> El.map GotSimpleConnectMsg
