@@ -12,7 +12,6 @@ import Extra.String as String
 import Json.Decode as JD
 import Json.Decode.Extra exposing (andMap)
 import Json.Encode as JE exposing (Value)
-import Json.Encode.Extra exposing (maybe)
 import Phoenix
 import UI
 import View.ApplicableFunctions as ApplicableFunctions
@@ -32,16 +31,21 @@ import View.UsefulFunctions as UsefulFunctions
 {- Init -}
 
 
-init : Maybe ID -> Device -> Phoenix.Model -> Model
-init maybeExampleId device phoenix =
-    { device = device
-    , phoenix = phoenix
-    , messages = []
-    , receiveMessages = True
-    , maybeExampleId = maybeExampleId
-    , maybeUserId = Nothing
-    , presenceState = []
-    }
+init : Device -> Phoenix.Model -> ( Model, Cmd Msg )
+init device phoenix =
+    let
+        ( phx, phxCmd ) =
+            Phoenix.join "example_controller:control" phoenix
+    in
+    ( { device = device
+      , phoenix = phx
+      , messages = []
+      , receiveMessages = True
+      , maybeExampleId = Nothing
+      , maybeUserId = Nothing
+      }
+    , Cmd.map GotPhoenixMsg phxCmd
+    )
 
 
 
@@ -55,7 +59,6 @@ type alias Model =
     , receiveMessages : Bool
     , maybeExampleId : Maybe ID
     , maybeUserId : Maybe ID
-    , presenceState : List { id : String, meta : Meta }
     }
 
 
@@ -68,17 +71,6 @@ type alias PresenceInfo =
 
 type alias ID =
     String
-
-
-type alias Meta =
-    { exampleState : ExampleState }
-
-
-type ExampleState
-    = NotJoined
-    | Joining
-    | Joined
-    | Leaving
 
 
 type Action
@@ -105,7 +97,6 @@ pushConfig =
 
 type Msg
     = GotControlClick Action
-    | GotRemoteControlClick String Action
     | GotPhoenixMsg Phoenix.Msg
 
 
@@ -115,20 +106,11 @@ update msg model =
         GotControlClick action ->
             case action of
                 Join ->
-                    model.phoenix
-                        |> Phoenix.setJoinConfig
-                            { topic = "example:manage_presence_messages"
-                            , events = []
-                            , payload =
-                                JE.object
-                                    [ ( "user_id", maybe JE.string model.maybeUserId ) ]
-                            , timeout = Nothing
-                            }
-                        |> Phoenix.join "example:manage_presence_messages"
+                    Phoenix.join (controllerTopic model.maybeExampleId) model.phoenix
                         |> updatePhoenix model
 
                 Leave ->
-                    Phoenix.leave "example:manage_presence_messages" model.phoenix
+                    Phoenix.leave (controllerTopic model.maybeExampleId) model.phoenix
                         |> updatePhoenix model
 
                 On ->
@@ -143,9 +125,6 @@ update msg model =
                         |> Cmd.map GotPhoenixMsg
                     )
 
-        GotRemoteControlClick id action ->
-            ( model, Cmd.none )
-
         GotPhoenixMsg subMsg ->
             let
                 ( newModel, cmd ) =
@@ -154,122 +133,35 @@ update msg model =
             in
             case Phoenix.phoenixMsg newModel.phoenix of
                 Phoenix.SocketMessage (Phoenix.PresenceMessage info) ->
-                    ( { newModel
-                        | messages =
-                            if String.startsWith "example_controller" info.topic then
-                                newModel.messages
+                    updateMessages info ( newModel, cmd )
 
-                            else
-                                info :: newModel.messages
-                      }
-                    , cmd
-                    )
-
-                Phoenix.ChannelResponse (Phoenix.JoinOk "example:manage_presence_messages" payload) ->
-                    Phoenix.push
-                        { pushConfig
-                            | topic = controllerTopic newModel.maybeExampleId
-                            , event = "joined_example"
-                        }
-                        newModel.phoenix
-                        |> updatePhoenix newModel
-                        |> batch [ cmd ]
-
-                Phoenix.ChannelResponse (Phoenix.LeaveOk "example:manage_presence_messages") ->
-                    Phoenix.push
-                        { pushConfig
-                            | topic = controllerTopic newModel.maybeExampleId
-                            , event = "left_example"
-                        }
-                        newModel.phoenix
-                        |> updatePhoenix newModel
-                        |> batch [ cmd ]
-
-                {- Remote Control -}
-                Phoenix.ChannelResponse (Phoenix.JoinOk topic payload) ->
-                    case Phoenix.topicParts topic of
-                        ( "example_controller", "control" ) ->
-                            case decodeExampleId payload of
-                                Ok exampleId_ ->
-                                    Phoenix.batch
-                                        [ Phoenix.leave "example_controller:control"
-                                        , Phoenix.join (controllerTopic (Just exampleId_))
-                                        ]
-                                        newModel.phoenix
-                                        |> updatePhoenix { newModel | maybeExampleId = Just exampleId_ }
+                Phoenix.SocketMessage (Phoenix.ChannelMessage { topic, event, payload }) ->
+                    case ( Phoenix.topicParts topic, event ) of
+                        ( ( "example_controller", "control" ), "phx_reply" ) ->
+                            case decodeExampleIdResponse payload of
+                                Ok { response } ->
+                                    Phoenix.leave "example_controller:control" newModel.phoenix
+                                        |> updatePhoenix { newModel | maybeExampleId = Just response.exampleId }
                                         |> batch [ cmd ]
 
-                                _ ->
+                                Err _ ->
                                     ( newModel, cmd )
 
-                        ( "example_controller", _ ) ->
-                            case decodeUserId payload of
-                                Ok id ->
-                                    ( { newModel | maybeUserId = Just id }
-                                    , Cmd.batch
-                                        [ cmd
-                                        , Cmd.map GotPhoenixMsg <|
-                                            Phoenix.addEvents (controllerTopic newModel.maybeExampleId)
-                                                [ "join_example"
-                                                , "leave_example"
-                                                ]
-                                                newModel.phoenix
-                                        ]
+                        ( ( "example_controller", exampleId ), "phx_reply" ) ->
+                            case decodeUserIdResponse payload of
+                                Ok { response } ->
+                                    ( { newModel | maybeUserId = Just response.userId }
+                                    , cmd
                                     )
 
-                                _ ->
+                                Err _ ->
                                     ( newModel, cmd )
-
-                        _ ->
-                            ( newModel, cmd )
-
-                Phoenix.ChannelEvent _ event payload ->
-                    case ( event, decodeUserId payload ) of
-                        ( "join_example", Ok userId ) ->
-                            if newModel.maybeUserId == Just userId then
-                                model.phoenix
-                                    |> Phoenix.setJoinConfig
-                                        { topic = "example:manage_presence_messages"
-                                        , events = []
-                                        , payload =
-                                            JE.object
-                                                [ ( "user_id", JE.string userId ) ]
-                                        , timeout = Nothing
-                                        }
-                                    |> Phoenix.batch
-                                        [ Phoenix.join "example:manage_presence_messages"
-                                        , Phoenix.push
-                                            { pushConfig
-                                                | topic = controllerTopic newModel.maybeExampleId
-                                                , event = "joining_example"
-                                            }
-                                        ]
-                                    |> updatePhoenix newModel
-
-                            else
-                                ( newModel, cmd )
-
-                        ( "leave_example", Ok userId ) ->
-                            if newModel.maybeUserId == Just userId then
-                                model.phoenix
-                                    |> Phoenix.batch
-                                        [ Phoenix.leave "example:manage_presence_messages"
-                                        , Phoenix.push
-                                            { pushConfig
-                                                | topic = controllerTopic newModel.maybeExampleId
-                                                , event = "leaving_example"
-                                            }
-                                        ]
-                                    |> updatePhoenix newModel
-
-                            else
-                                ( newModel, cmd )
 
                         _ ->
                             ( newModel, cmd )
 
                 _ ->
-                    ( model, Cmd.none )
+                    ( newModel, cmd )
 
 
 controllerTopic : Maybe ID -> String
@@ -289,30 +181,9 @@ updatePhoenix model ( phoenix, phoenixCmd ) =
     )
 
 
-toPresenceState : List Phoenix.Presence -> List { id : String, meta : Meta }
-toPresenceState presences =
-    List.map toPresence presences
-
-
-toPresence : Phoenix.Presence -> { id : String, meta : Meta }
-toPresence presence =
-    { id = presence.id
-    , meta =
-        case presence.metas of
-            -- There will only ever be one meta in the list because each new
-            -- join will be considered a new user, so a user cannot have
-            -- multiple joins.
-            meta :: _ ->
-                case decodeMeta meta of
-                    Ok m ->
-                        m
-
-                    _ ->
-                        { exampleState = NotJoined }
-
-            [] ->
-                { exampleState = NotJoined }
-    }
+updateMessages : PresenceInfo -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+updateMessages info ( model, cmd ) =
+    ( { model | messages = info :: model.messages }, cmd )
 
 
 batch : List (Cmd Msg) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
@@ -323,71 +194,61 @@ batch cmds ( model, cmd ) =
 
 
 
-{- exampleId is a unique ID supplied by "example_controller:control" that
-   is used to identify the example in each tab. The tabs can then all join the
-   same controlling Channel which routes messages between them.
--}
-
-
-getExampleId : Model -> ( Model, Cmd Msg )
-getExampleId model =
-    case model.maybeExampleId of
-        Nothing ->
-            Phoenix.join "example_controller:control" model.phoenix
-                |> updatePhoenix model
-
-        _ ->
-            ( model, Cmd.none )
-
-
-
 {- Decoders -}
 
 
-decodeExampleId : Value -> Result JD.Error String
-decodeExampleId payload =
-    JD.decodeValue (JD.field "example_id" JD.string) payload
+type alias ExampleIdResponse =
+    { response : ExampleID }
 
 
-decodeUserId : Value -> Result JD.Error String
-decodeUserId payload =
-    JD.decodeValue (JD.field "user_id" JD.string) payload
+type alias ExampleID =
+    { exampleId : String }
 
 
-metaDecoder : JD.Decoder Meta
-metaDecoder =
+type alias UserIdResponse =
+    { response : UserID }
+
+
+type alias UserID =
+    { userId : String }
+
+
+decodeExampleIdResponse : Value -> Result JD.Error ExampleIdResponse
+decodeExampleIdResponse payload =
+    JD.decodeValue exampleIdResponseDecoder payload
+
+
+exampleIdResponseDecoder : JD.Decoder ExampleIdResponse
+exampleIdResponseDecoder =
     JD.succeed
-        Meta
-        |> andMap
-            (JD.field "example_state" JD.string
-                |> JD.andThen stateDecoder
-            )
+        ExampleIdResponse
+        |> andMap (JD.field "response" exampleIdDecoder)
 
 
-stateDecoder : String -> JD.Decoder ExampleState
-stateDecoder state =
-    case state of
-        "Joined" ->
-            JD.succeed Joined
-
-        "Joining" ->
-            JD.succeed Joining
-
-        "Leaving" ->
-            JD.succeed Leaving
-
-        "Not Joined" ->
-            JD.succeed NotJoined
-
-        _ ->
-            JD.fail <|
-                "Not a valid Example State: "
-                    ++ state
+exampleIdDecoder : JD.Decoder ExampleID
+exampleIdDecoder =
+    JD.succeed
+        ExampleID
+        |> andMap (JD.field "example_id" JD.string)
 
 
-decodeMeta : Value -> Result JD.Error Meta
-decodeMeta payload =
-    JD.decodeValue metaDecoder payload
+decodeUserIdResponse : Value -> Result JD.Error UserIdResponse
+decodeUserIdResponse payload =
+    JD.decodeValue userIdResponseDecoder payload
+
+
+userIdResponseDecoder : JD.Decoder UserIdResponse
+userIdResponseDecoder =
+    JD.succeed
+        UserIdResponse
+        |> andMap (JD.field "response" userIdDecoder)
+
+
+userIdDecoder : JD.Decoder UserID
+userIdDecoder =
+    JD.succeed
+        UserID
+        |> andMap (JD.field "user_id" JD.string)
 
 
 
@@ -407,7 +268,8 @@ subscriptions model =
 view : Model -> Element Msg
 view model =
     Example.init
-        |> Example.description description
+        |> Example.id model.maybeExampleId
+        |> Example.description (description model)
         |> Example.controls (controls model)
         |> Example.feedback (feedback model)
         |> Example.view model.device
@@ -417,10 +279,10 @@ view model =
 {- Description -}
 
 
-description : List (Element msg)
-description =
+description : Model -> List (Element msg)
+description { maybeExampleId } =
     [ UI.paragraph
-        [ El.text "Choose whether to receive Channel messages as an incoming Socket message." ]
+        [ El.text "Choose whether to receive Presence messages as an incoming Socket message." ]
     ]
 
 
@@ -429,13 +291,18 @@ description =
 
 
 controls : Model -> Element Msg
-controls { device, phoenix, receiveMessages } =
+controls { device, phoenix, maybeUserId, maybeExampleId, receiveMessages } =
+    let
+        joinedChannel =
+            Phoenix.channelJoined (controllerTopic maybeExampleId) phoenix
+    in
     ExampleControls.init
+        |> ExampleControls.userId maybeUserId
         |> ExampleControls.elements
-            [ join device GotControlClick (not <| Phoenix.channelJoined "example:manage_presence_messages" phoenix)
+            [ join device GotControlClick (not <| joinedChannel)
             , on device (not receiveMessages)
             , off device receiveMessages
-            , leave device GotControlClick (Phoenix.channelJoined "example:manage_presence_messages" phoenix)
+            , leave device GotControlClick joinedChannel
             ]
         |> ExampleControls.group
             (Group.init
@@ -484,41 +351,11 @@ off device enabled =
 
 
 
-{- Remote ExampleControls -}
-
-
-remoteControls : Device -> Phoenix.Model -> Model -> List (Element Msg)
-remoteControls device phoenix { maybeUserId, presenceState } =
-    List.filterMap (maybeRemoteControl maybeUserId device) presenceState
-
-
-maybeRemoteControl : Maybe ID -> Device -> { id : String, meta : Meta } -> Maybe (Element Msg)
-maybeRemoteControl userId device { id, meta } =
-    if userId == Just id then
-        Nothing
-
-    else
-        Just <|
-            (ExampleControls.init
-                |> ExampleControls.userId (Just id)
-                |> ExampleControls.elements
-                    [ join device (GotRemoteControlClick id) (meta.exampleState == NotJoined)
-                    , leave device (GotRemoteControlClick id) (meta.exampleState == Joined)
-                    ]
-                |> ExampleControls.group
-                    (Group.init
-                        |> Group.layouts [ ( Phone, Portrait, [ 2 ] ) ]
-                    )
-                |> ExampleControls.view device
-            )
-
-
-
 {- Feedback -}
 
 
 feedback : Model -> Element Msg
-feedback { device, phoenix, messages } =
+feedback { device, phoenix, maybeExampleId, messages } =
     Feedback.init
         |> Feedback.elements
             [ FeedbackPanel.init
@@ -532,7 +369,7 @@ feedback { device, phoenix, messages } =
                 |> FeedbackPanel.view device
             , FeedbackPanel.init
                 |> FeedbackPanel.title "Useful Functions"
-                |> FeedbackPanel.scrollable [ usefulFunctions device phoenix ]
+                |> FeedbackPanel.scrollable [ usefulFunctions device phoenix maybeExampleId ]
                 |> FeedbackPanel.view device
             ]
         |> Feedback.group
@@ -590,20 +427,20 @@ applicableFunctions device =
         |> ApplicableFunctions.view device
 
 
-usefulFunctions : Device -> Phoenix.Model -> Element Msg
-usefulFunctions device phoenix =
+usefulFunctions : Device -> Phoenix.Model -> Maybe ID -> Element Msg
+usefulFunctions device phoenix maybeExampleId =
+    let
+        topic =
+            controllerTopic maybeExampleId
+    in
     UsefulFunctions.init
         |> UsefulFunctions.functions
             [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
             , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
             , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
-            , ( "Phoenix.channelJoined", Phoenix.channelJoined "example:manage_presence_messages" phoenix |> String.printBool )
-            , ( "Phoenix.joinedChannels"
-              , Phoenix.joinedChannels phoenix
-                    |> List.filter (String.startsWith "example:")
-                    |> String.printList
-              )
-            , ( "Phoenix.lastPresenceJoin", Phoenix.lastPresenceJoin "example:manage_presence_messages" phoenix |> String.printMaybe "Presence" )
-            , ( "Phoenix.lastPresenceLeave", Phoenix.lastPresenceLeave "example:manage_presence_messages" phoenix |> String.printMaybe "Presence" )
+            , ( "Phoenix.channelJoined", Phoenix.channelJoined topic phoenix |> String.printBool )
+            , ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList )
+            , ( "Phoenix.lastPresenceJoin", Phoenix.lastPresenceJoin topic phoenix |> String.printMaybe "Presence" )
+            , ( "Phoenix.lastPresenceLeave", Phoenix.lastPresenceLeave topic phoenix |> String.printMaybe "Presence" )
             ]
         |> UsefulFunctions.view device

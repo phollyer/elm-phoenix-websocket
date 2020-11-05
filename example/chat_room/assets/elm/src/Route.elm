@@ -7,7 +7,7 @@ module Route exposing
 
 import Browser.Navigation as Nav
 import Url exposing (Url)
-import Url.Parser as Parser exposing ((<?>), Parser, oneOf, s)
+import Url.Parser as Parser exposing (Parser, oneOf, s)
 import Url.Parser.Query as Query
 
 
@@ -15,7 +15,7 @@ type Route
     = Home
     | Root
     | ControlTheSocketConnection
-    | HandleSocketMessages (Maybe String) (Maybe String)
+    | HandleSocketMessages
     | JoinAndLeaveChannels
     | SendAndReceive
 
@@ -25,7 +25,7 @@ parser =
     oneOf
         [ Parser.map Home Parser.top
         , Parser.map ControlTheSocketConnection (s "ControlTheSocketConnection")
-        , Parser.map HandleSocketMessages (s "HandleSocketMessages" <?> Query.string "example" <?> Query.string "id")
+        , Parser.map HandleSocketMessages (s "HandleSocketMessages")
         , Parser.map JoinAndLeaveChannels (s "JoinAndLeaveChannels")
         , Parser.map SendAndReceive (s "SendAndReceive")
         ]
@@ -58,7 +58,7 @@ routeToString route =
         ControlTheSocketConnection ->
             "/ControlTheSocketConnection"
 
-        HandleSocketMessages _ _ ->
+        HandleSocketMessages ->
             "/HandleSocketMessages"
 
         JoinAndLeaveChannels ->

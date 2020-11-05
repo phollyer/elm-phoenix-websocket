@@ -11,6 +11,7 @@ import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..)
 import Extra.String as String
 import Json.Encode exposing (Value)
 import Phoenix
+import Phoenix.Socket exposing (ConnectOption(..))
 import UI
 import View.ApplicableFunctions as ApplicableFunctions
 import View.Button as Button
@@ -29,13 +30,22 @@ import View.UsefulFunctions as UsefulFunctions
 {- Init -}
 
 
-init : Device -> Phoenix.Model -> Model
+init : Device -> Phoenix.Model -> ( Model, Cmd Msg )
 init device phoenix =
-    { device = device
-    , phoenix = phoenix
-    , messages = []
-    , receiveMessages = True
-    }
+    let
+        ( phx, phxCmd ) =
+            phoenix
+                |> Phoenix.setConnectOptions
+                    [ HeartbeatIntervalMillis 1000 ]
+                |> Phoenix.connect
+    in
+    ( { device = device
+      , phoenix = phx
+      , messages = []
+      , receiveMessages = True
+      }
+    , Cmd.map GotPhoenixMsg phxCmd
+    )
 
 
 
@@ -91,20 +101,27 @@ update msg model =
 
         GotPhoenixMsg subMsg ->
             let
-                ( phoenix, phoenixCmd ) =
+                ( newModel, cmd ) =
                     Phoenix.update subMsg model.phoenix
+                        |> updatePhoenix model
             in
-            case Phoenix.phoenixMsg phoenix of
+            case Phoenix.phoenixMsg newModel.phoenix of
                 Phoenix.SocketMessage (Phoenix.Heartbeat info) ->
-                    ( { model
-                        | phoenix = phoenix
-                        , messages = info :: model.messages
+                    ( { newModel
+                        | messages = info :: model.messages
                       }
-                    , Cmd.map GotPhoenixMsg phoenixCmd
+                    , cmd
                     )
 
                 _ ->
-                    ( model, Cmd.none )
+                    ( newModel, cmd )
+
+
+updatePhoenix : Model -> ( Phoenix.Model, Cmd Phoenix.Msg ) -> ( Model, Cmd Msg )
+updatePhoenix model ( phoenix, phoenixCmd ) =
+    ( { model | phoenix = phoenix }
+    , Cmd.map GotPhoenixMsg phoenixCmd
+    )
 
 
 

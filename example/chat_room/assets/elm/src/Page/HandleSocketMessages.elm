@@ -46,38 +46,19 @@ import View.UsefulFunctions as UsefulFunctions
 {- Init -}
 
 
-init : Session -> Maybe String -> Maybe ID -> ( Model, Cmd Msg )
-init session maybeExample maybeExampleId =
-    ( { session = session
-      , example = initExample maybeExample maybeExampleId session
-      , maybeExampleId = maybeExampleId
+init : Session -> ( Model, Cmd Msg )
+init session =
+    let
+        ( subModel, subCmd ) =
+            ManageSocketHeartbeat.init
+                (Session.device session)
+                (Session.phoenix session)
+    in
+    ( { session = Session.updatePhoenix subModel.phoenix session
+      , example = ManageSocketHeartbeat subModel
       }
-    , Cmd.none
+    , Cmd.map GotManageSocketHeartbeatMsg subCmd
     )
-
-
-initExample : Maybe String -> Maybe ID -> Session -> Example
-initExample maybeExample maybeExampleId session =
-    case maybeExample of
-        Just example ->
-            if example == "ManagePresenceMessages" then
-                ManagePresenceMessages <|
-                    ManagePresenceMessages.init
-                        maybeExampleId
-                        (Session.device session)
-                        (Session.phoenix session)
-
-            else
-                ManageSocketHeartbeat <|
-                    ManageSocketHeartbeat.init
-                        (Session.device session)
-                        (Session.phoenix session)
-
-        Nothing ->
-            ManageSocketHeartbeat <|
-                ManageSocketHeartbeat.init
-                    (Session.device session)
-                    (Session.phoenix session)
 
 
 
@@ -87,7 +68,6 @@ initExample maybeExample maybeExampleId session =
 type alias Model =
     { session : Session
     , example : Example
-    , maybeExampleId : Maybe ID
     }
 
 
@@ -129,7 +109,7 @@ update msg model =
             )
 
         ( GotMenuItem example_, _ ) ->
-            Phoenix.disconnect Nothing phoenix
+            Phoenix.disconnectAndReset Nothing phoenix
                 |> updatePhoenix model
                 |> updateExample example_
 
@@ -171,35 +151,57 @@ updatePhoenix model ( phoenix, phoenixCmd ) =
 
 updateExample : String -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 updateExample selectedExample ( model, cmd ) =
-    ( { model
-        | example =
+    let
+        ( example, cmd_ ) =
             case selectedExample of
                 "Manage The Socket Heartbeat" ->
-                    ManageSocketHeartbeat <|
-                        ManageSocketHeartbeat.init
-                            (Session.device model.session)
-                            (Session.phoenix model.session)
+                    let
+                        ( subModel, subCmd ) =
+                            ManageSocketHeartbeat.init
+                                (Session.device model.session)
+                                (Session.phoenix model.session)
+                    in
+                    ( ManageSocketHeartbeat subModel
+                    , Cmd.map GotManageSocketHeartbeatMsg subCmd
+                    )
 
                 "Manage Channel Messages" ->
-                    ManageChannelMessages <|
-                        ManageChannelMessages.init
-                            (Session.device model.session)
-                            (Session.phoenix model.session)
+                    let
+                        ( subModel, subCmd ) =
+                            ManageChannelMessages.init
+                                (Session.device model.session)
+                                (Session.phoenix model.session)
+                    in
+                    ( ManageChannelMessages subModel
+                    , Cmd.map GotManageChannelMessagesMsg subCmd
+                    )
 
                 "Manage Presence Messages" ->
-                    ManagePresenceMessages <|
-                        ManagePresenceMessages.init
-                            model.maybeExampleId
-                            (Session.device model.session)
-                            (Session.phoenix model.session)
+                    let
+                        ( subModel, subCmd ) =
+                            ManagePresenceMessages.init
+                                (Session.device model.session)
+                                (Session.phoenix model.session)
+                    in
+                    ( ManagePresenceMessages subModel
+                    , Cmd.map GotManagePresenceMessagesMsg subCmd
+                    )
 
                 _ ->
-                    ManageSocketHeartbeat <|
-                        ManageSocketHeartbeat.init
-                            (Session.device model.session)
-                            (Session.phoenix model.session)
+                    let
+                        ( subModel, subCmd ) =
+                            ManageSocketHeartbeat.init
+                                (Session.device model.session)
+                                (Session.phoenix model.session)
+                    in
+                    ( ManageSocketHeartbeat subModel
+                    , Cmd.map GotManageSocketHeartbeatMsg subCmd
+                    )
+    in
+    ( { model
+        | example = example
       }
-    , cmd
+    , Cmd.batch [ cmd, cmd_ ]
     )
 
 
@@ -209,8 +211,26 @@ updateExample selectedExample ( model, cmd ) =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map GotPhoenixMsg <|
-        Phoenix.subscriptions (Session.phoenix model.session)
+    let
+        exampleSub =
+            case model.example of
+                ManageSocketHeartbeat subModel ->
+                    Sub.map GotManageSocketHeartbeatMsg <|
+                        ManageSocketHeartbeat.subscriptions subModel
+
+                ManageChannelMessages subModel ->
+                    Sub.map GotManageChannelMessagesMsg <|
+                        ManageChannelMessages.subscriptions subModel
+
+                ManagePresenceMessages subModel ->
+                    Sub.map GotManagePresenceMessagesMsg <|
+                        ManagePresenceMessages.subscriptions subModel
+    in
+    Sub.batch
+        [ exampleSub
+        , Sub.map GotPhoenixMsg <|
+            Phoenix.subscriptions (Session.phoenix model.session)
+        ]
 
 
 
@@ -313,37 +333,6 @@ menu device { example } =
                     ]
             )
         |> Menu.view device
-
-
-{-| Example Description
--}
-description : Model -> List (Element msg)
-description { example, maybeExampleId } =
-    case example of
-        ManagePresenceMessages _ ->
-            [ UI.paragraph
-                [ El.text "Choose whether to receive Presence messages as an incoming Socket message. "
-                , El.text "To get the best out of this example, you should open it in mulitple tabs. Click "
-                , El.newTabLink
-                    [ Font.color Color.dodgerblue
-                    , El.mouseOver
-                        [ Font.color Color.lavender ]
-                    ]
-                    { url =
-                        case maybeExampleId of
-                            Just id ->
-                                "/HandleSocketMessages?example=ManagePresenceMessages&id=" ++ id
-
-                            Nothing ->
-                                "/HandleSocketMessages?example=ManagePresenceMessages"
-                    , label = El.text "here"
-                    }
-                , El.text " to open a new tab(s). You will then be able to control each tab from whichever tab you are in."
-                ]
-            ]
-
-        _ ->
-            []
 
 
 

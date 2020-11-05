@@ -50,8 +50,8 @@ changeRouteTo maybeRoute model =
             ControlTheSocketConnection.init session
                 |> updateWith ControlTheSocketConnection GotControlTheSocketConnectionMsg
 
-        Just (Route.HandleSocketMessages maybeExample maybeId) ->
-            HandleSocketMessages.init session maybeExample maybeId
+        Just Route.HandleSocketMessages ->
+            HandleSocketMessages.init session
                 |> updateWith HandleSocketMessages GotHandleSocketMessagesMsg
 
         Just Route.JoinAndLeaveChannels ->

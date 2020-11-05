@@ -29,13 +29,15 @@ import View.UsefulFunctions as UsefulFunctions
 {- Init -}
 
 
-init : Device -> Phoenix.Model -> Model
+init : Device -> Phoenix.Model -> ( Model, Cmd Msg )
 init device phoenix =
-    { device = device
-    , phoenix = phoenix
-    , messages = []
-    , receiveMessages = True
-    }
+    ( { device = device
+      , phoenix = phoenix
+      , messages = []
+      , receiveMessages = True
+      }
+    , Cmd.none
+    )
 
 
 
@@ -113,19 +115,20 @@ update msg model =
 
         GotPhoenixMsg subMsg ->
             let
-                ( phoenix, phoenixCmd ) =
+                ( newModel, cmd ) =
                     Phoenix.update subMsg model.phoenix
+                        |> updatePhoenix model
             in
-            case Phoenix.phoenixMsg phoenix of
+            case Phoenix.phoenixMsg newModel.phoenix of
                 Phoenix.SocketMessage (Phoenix.ChannelMessage info) ->
-                    ( { model
+                    ( { newModel
                         | messages = info :: model.messages
                       }
-                    , Cmd.map GotPhoenixMsg phoenixCmd
+                    , cmd
                     )
 
                 _ ->
-                    ( model, Cmd.none )
+                    ( newModel, cmd )
 
 
 updatePhoenix : Model -> ( Phoenix.Model, Cmd Phoenix.Msg ) -> ( Model, Cmd Msg )
@@ -196,13 +199,14 @@ push device =
     Button.init
         |> Button.label "Push Message"
         |> Button.onPress (Just (GotControlClick Push))
+        |> Button.enabled True
         |> Button.view device
 
 
 on : Device -> Bool -> Element Msg
 on device state =
     Button.init
-        |> Button.label "Heartbeat On"
+        |> Button.label "Messages On"
         |> Button.onPress (Just (GotControlClick On))
         |> Button.enabled (not state)
         |> Button.view device
@@ -211,7 +215,7 @@ on device state =
 off : Device -> Bool -> Element Msg
 off device state =
     Button.init
-        |> Button.label "Heartbeat Off"
+        |> Button.label "Messages Off"
         |> Button.onPress (Just (GotControlClick Off))
         |> Button.enabled state
         |> Button.view device
