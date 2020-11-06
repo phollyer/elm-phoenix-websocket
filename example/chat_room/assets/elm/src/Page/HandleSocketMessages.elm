@@ -12,7 +12,6 @@ module Page.HandleSocketMessages exposing
 import Colors.Opaque as Color
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Element.Font as Font
-import Example exposing (Action(..), Example(..))
 import Example.ManageChannelMessages as ManageChannelMessages
 import Example.ManagePresenceMessages as ManagePresenceMessages
 import Example.ManageSocketHeartbeat as ManageSocketHeartbeat

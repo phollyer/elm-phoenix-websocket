@@ -8,7 +8,6 @@ module Example.ConnectWithBadParams exposing
     )
 
 import Element as El exposing (Device, Element)
-import Example exposing (Action(..))
 import Extra.String as String
 import Json.Encode as JE
 import Phoenix
@@ -43,6 +42,11 @@ type alias Model =
     }
 
 
+type Action
+    = Connect
+    | Disconnect
+
+
 
 {- Update -}
 
@@ -70,9 +74,6 @@ update msg model =
                     model.phoenix
                         |> Phoenix.disconnect Nothing
                         |> updatePhoenix model
-
-                _ ->
-                    ( model, Cmd.none )
 
         GotPhoenixMsg subMsg ->
             Phoenix.update subMsg model.phoenix
