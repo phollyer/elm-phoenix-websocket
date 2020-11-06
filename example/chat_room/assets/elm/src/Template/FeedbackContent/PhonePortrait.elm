@@ -21,6 +21,7 @@ view config =
     El.column
         [ El.width El.fill
         , El.spacing 10
+        , Font.family [ Font.typeface "Oswald" ]
         ]
         [ title config.title
         , label config.label

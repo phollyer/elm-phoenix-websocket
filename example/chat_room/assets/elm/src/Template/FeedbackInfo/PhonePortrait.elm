@@ -1,6 +1,7 @@
 module Template.FeedbackInfo.PhonePortrait exposing (view)
 
 import Element as El exposing (Element)
+import Element.Font as Font
 import Json.Encode as JE
 import Template.FeedbackInfo.Common as Common
 
@@ -22,14 +23,19 @@ view config =
 field : String -> String -> Element msg
 field label topic_ =
     El.wrappedRow
-        (El.spacing 5
-            :: Common.fieldAttrs
+        (List.append
+            [ El.spacing 5
+            , Font.size 10
+            ]
+            Common.fieldAttrs
         )
         [ El.el
             Common.labelAttrs
             (El.text label)
         , El.el
-            Common.valueAttrs
+            (El.alignRight
+                :: Common.valueAttrs
+            )
             (El.text topic_)
         ]
 

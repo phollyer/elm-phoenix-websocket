@@ -33,6 +33,7 @@ containerAttrs =
         , right = 0
         , bottom = 10
         }
+    , Font.family [ Font.typeface "Roboto Mono" ]
     ]
 
 
@@ -50,4 +51,4 @@ labelAttrs =
 
 valueAttrs : List (Attribute msg)
 valueAttrs =
-    [ El.width El.fill ]
+    [ Font.color Color.black ]
