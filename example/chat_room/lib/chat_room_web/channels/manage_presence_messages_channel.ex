@@ -7,7 +7,7 @@ defmodule ChatRoomWeb.ManagePresenceMessagesChannel do
     {:ok, %{example_id: inspect(System.system_time(:millisecond))}, socket}
   end
 
-  def join("example:" <> example_id, _, socket) do
+  def join("example:manage_presence_messages_" <> example_id, _, socket) do
     send(self(), :after_join)
 
     user_id = inspect(System.system_time(:millisecond))
@@ -16,9 +16,7 @@ defmodule ChatRoomWeb.ManagePresenceMessagesChannel do
   end
 
   def handle_info(:after_join, socket) do
-    {:ok, _} = Presence.track(socket, socket.assigns.user_id, %{
-      example_state: "Joined"
-    })
+    {:ok, _} = Presence.track(socket, socket.assigns.user_id, %{})
 
     push(socket, "presence_state", Presence.list(socket))
 

@@ -35,7 +35,7 @@ init : Device -> Phoenix.Model -> ( Model, Cmd Msg )
 init device phoenix =
     let
         ( phx, phxCmd ) =
-            Phoenix.join "example_controller:control" phoenix
+            Phoenix.join "example:manage_presence_messages" phoenix
     in
     ( { device = device
       , phoenix = phx
@@ -137,17 +137,17 @@ update msg model =
 
                 Phoenix.SocketMessage (Phoenix.ChannelMessage { topic, event, payload }) ->
                     case ( Phoenix.topicParts topic, event ) of
-                        ( ( "example_controller", "control" ), "phx_reply" ) ->
+                        ( ( "example", "manage_presence_messages" ), "phx_reply" ) ->
                             case decodeExampleIdResponse payload of
                                 Ok { response } ->
-                                    Phoenix.leave "example_controller:control" newModel.phoenix
+                                    Phoenix.leave "example:manage_presence_messages" newModel.phoenix
                                         |> updatePhoenix { newModel | maybeExampleId = Just response.exampleId }
                                         |> batch [ cmd ]
 
                                 Err _ ->
                                     ( newModel, cmd )
 
-                        ( ( "example_controller", exampleId ), "phx_reply" ) ->
+                        ( ( "example", _ ), "phx_reply" ) ->
                             case decodeUserIdResponse payload of
                                 Ok { response } ->
                                     ( { newModel | maybeUserId = Just response.userId }
@@ -168,7 +168,7 @@ controllerTopic : Maybe ID -> String
 controllerTopic maybeId =
     case maybeId of
         Just id ->
-            "example_controller:" ++ id
+            "example:manage_presence_messages_" ++ id
 
         Nothing ->
             ""
