@@ -7,7 +7,7 @@ module View.Home exposing
     , view
     )
 
-import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
+import Element exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Template.Home.PhoneLandscape as PhoneLandscape
 import Template.Home.PhonePortrait as PhonePortrait
 import Template.Home.Tablet as Tablet

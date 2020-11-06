@@ -4,18 +4,18 @@ module View.ApplicableFunctions exposing
     , view
     )
 
-import Element exposing (Device, DeviceClass(..), Element, Orientation)
+import Element exposing (Device, DeviceClass(..), Element)
 import Template.ApplicableFunctions.PhoneLandscape as PhoneLandscape
 import Template.ApplicableFunctions.PhonePortrait as PhonePortrait
 
 
 type Config
-    = Config { functions : List String }
+    = Config (List String)
 
 
 init : Config
 init =
-    Config { functions = [] }
+    Config []
 
 
 view : Device -> Config -> Element msg
@@ -29,5 +29,5 @@ view { class, orientation } (Config config) =
 
 
 functions : List String -> Config -> Config
-functions functions_ (Config config) =
-    Config { config | functions = functions_ }
+functions functions_ (Config _) =
+    Config functions_

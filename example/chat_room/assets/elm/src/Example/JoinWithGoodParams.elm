@@ -21,7 +21,6 @@ import View.Feedback as Feedback
 import View.FeedbackContent as FeedbackContent
 import View.FeedbackInfo as FeedbackInfo
 import View.FeedbackPanel as FeedbackPanel
-import View.LabelAndValue as LabelAndValue
 import View.UsefulFunctions as UsefulFunctions
 
 

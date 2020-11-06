@@ -1,7 +1,6 @@
 module Main exposing (main)
 
 import Browser exposing (Document)
-import Browser.Dom as Dom
 import Browser.Events exposing (onResize)
 import Browser.Navigation as Nav
 import Element as El exposing (Device, Element)
@@ -101,9 +100,9 @@ updateSession session model =
         NotFound _ ->
             NotFound session
 
-        Home subModel ->
+        Home _ ->
             Home <|
-                Home.updateSession session subModel
+                Home.updateSession session
 
         ControlTheSocketConnection subModel ->
             ControlTheSocketConnection <|

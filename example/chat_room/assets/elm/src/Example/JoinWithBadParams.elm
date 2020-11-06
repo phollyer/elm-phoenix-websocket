@@ -21,7 +21,6 @@ import View.Feedback as Feedback
 import View.FeedbackContent as FeedbackContent
 import View.FeedbackInfo as FeedbackInfo
 import View.FeedbackPanel as FeedbackPanel
-import View.LabelAndValue as LabelAndValue
 import View.UsefulFunctions as UsefulFunctions
 
 
@@ -143,15 +142,15 @@ description =
 
 
 controls : Model -> Element Msg
-controls { device, phoenix } =
+controls { device } =
     ExampleControls.init
         |> ExampleControls.elements
-            [ join device phoenix ]
+            [ join device ]
         |> ExampleControls.view device
 
 
-join : Device -> Phoenix.Model -> Element Msg
-join device phoenix =
+join : Device -> Element Msg
+join device =
     Button.init
         |> Button.label "Join"
         |> Button.onPress (Just GotControlClick)

@@ -10,7 +10,6 @@ module Example.JoinMultipleChannels exposing
 import Element as El exposing (Device, Element)
 import Example.Utils exposing (updatePhoenixWith)
 import Extra.String as String
-import Json.Encode as JE
 import Phoenix
 import UI
 import View.ApplicableFunctions as ApplicableFunctions
@@ -21,7 +20,6 @@ import View.Feedback as Feedback
 import View.FeedbackContent as FeedbackContent
 import View.FeedbackInfo as FeedbackInfo
 import View.FeedbackPanel as FeedbackPanel
-import View.LabelAndValue as LabelAndValue
 import View.UsefulFunctions as UsefulFunctions
 
 

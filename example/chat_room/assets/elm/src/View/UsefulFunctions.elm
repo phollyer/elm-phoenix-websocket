@@ -11,12 +11,12 @@ import Template.UsefulFunctions.Tablet as Tablet
 
 
 type Config
-    = Config { functions : List ( String, String ) }
+    = Config (List ( String, String ))
 
 
 init : Config
 init =
-    Config { functions = [] }
+    Config []
 
 
 view : Device -> Config -> Element msg
@@ -33,5 +33,5 @@ view { class, orientation } (Config config) =
 
 
 functions : List ( String, String ) -> Config -> Config
-functions functions_ (Config config) =
-    Config { config | functions = functions_ }
+functions functions_ (Config _) =
+    Config functions_

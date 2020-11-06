@@ -8,7 +8,6 @@ module Route exposing
 import Browser.Navigation as Nav
 import Url exposing (Url)
 import Url.Parser as Parser exposing (Parser, oneOf, s)
-import Url.Parser.Query as Query
 
 
 type Route

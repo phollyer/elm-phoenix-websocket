@@ -7,7 +7,6 @@ module Template.Layout.Common exposing
 
 import Colors.Opaque as Color
 import Element as El exposing (Attribute, Element)
-import Element.Border as Border
 import Element.Font as Font
 
 

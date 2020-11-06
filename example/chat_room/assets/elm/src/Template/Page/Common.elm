@@ -1,4 +1,7 @@
-module Template.Page.Common exposing (..)
+module Template.Page.Common exposing
+    ( bodyAttrs
+    , layoutAttrs
+    )
 
 import Colors.Opaque as Color
 import Element as El exposing (Attribute)

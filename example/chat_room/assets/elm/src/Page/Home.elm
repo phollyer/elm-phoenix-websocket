@@ -9,12 +9,7 @@ module Page.Home exposing
     , view
     )
 
-import Colors.Opaque as Color
-import Element as El exposing (Device, Element)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Events as Event
-import Element.Font as Font
+import Element exposing (Device, Element)
 import Phoenix
 import Route exposing (Route(..))
 import Session exposing (Session)
@@ -30,15 +25,13 @@ init session =
             Phoenix.disconnectAndReset Nothing <|
                 Session.phoenix session
     in
-    ( { session =
-            Session.updatePhoenix phx session
-      }
+    ( Session.updatePhoenix phx session
     , Cmd.map PhoenixMsg phxCmd
     )
 
 
 type alias Model =
-    { session : Session }
+    Session
 
 
 type Msg
@@ -53,41 +46,38 @@ update msg model =
             let
                 ( phx, phxCmd ) =
                     Phoenix.update phoenixMsg <|
-                        Session.phoenix model.session
+                        Session.phoenix model
             in
-            ( { model
-                | session =
-                    Session.updatePhoenix phx model.session
-              }
+            ( Session.updatePhoenix phx model
             , Cmd.map PhoenixMsg phxCmd
             )
 
         NavigateTo route ->
             ( model
-            , Route.pushUrl (Session.navKey model.session) route
+            , Route.pushUrl (Session.navKey model) route
             )
 
 
 toSession : Model -> Session
 toSession model =
-    model.session
+    model
 
 
 toDevice : Model -> Device
 toDevice model =
-    Session.device model.session
+    Session.device model
 
 
-updateSession : Session -> Model -> Model
-updateSession session model =
-    { model | session = session }
+updateSession : Session -> Model
+updateSession session =
+    session
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.map PhoenixMsg <|
         Phoenix.subscriptions
-            (Session.phoenix model.session)
+            (Session.phoenix model)
 
 
 view : Model -> { title : String, content : Element Msg }

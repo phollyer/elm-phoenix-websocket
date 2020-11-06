@@ -8,7 +8,6 @@ module Template.FeedbackInfo.Common exposing
 
 import Colors.Opaque as Color
 import Element as El exposing (Attribute)
-import Element.Border as Border
 import Element.Font as Font
 import Json.Encode exposing (Value)
 

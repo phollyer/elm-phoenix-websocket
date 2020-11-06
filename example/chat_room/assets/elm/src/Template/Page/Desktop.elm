@@ -7,8 +7,8 @@ import Html exposing (Html)
 import Template.Page.Common as Common
 
 
-view : { body : Element msg } -> Html msg
-view { body } =
+view : Element msg -> Html msg
+view body =
     El.layout
         (El.padding 30
             :: Common.layoutAttrs

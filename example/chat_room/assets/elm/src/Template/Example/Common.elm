@@ -12,9 +12,8 @@ module Template.Example.Common exposing
     )
 
 import Colors.Opaque as Color
-import Element as El exposing (Attribute, DeviceClass, Element, Orientation)
+import Element as El exposing (Attribute, Element)
 import Element.Font as Font
-import List.Extra as List
 
 
 type alias Config msg c =

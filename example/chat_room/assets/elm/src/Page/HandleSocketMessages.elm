@@ -9,36 +9,18 @@ module Page.HandleSocketMessages exposing
     , view
     )
 
-import Colors.Opaque as Color
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
-import Element.Font as Font
 import Example.ManageChannelMessages as ManageChannelMessages
 import Example.ManagePresenceMessages as ManagePresenceMessages
 import Example.ManageSocketHeartbeat as ManageSocketHeartbeat
-import Extra.String as String
-import Json.Decode as JD
-import Json.Decode.Extra exposing (andMap)
-import Json.Encode as JE exposing (Value)
-import Json.Encode.Extra exposing (maybe)
 import Phoenix
-import Phoenix.Socket as Socket
 import Route
 import Session exposing (Session)
 import UI
-import View.ApplicableFunctions as ApplicableFunctions
-import View.Button as Button
-import View.Example as Example
-import View.ExampleControls as ExampleControls
 import View.ExamplePage as ExamplePage
-import View.Feedback as Feedback
-import View.FeedbackContent as FeedbackContent
-import View.FeedbackInfo as FeedbackInfo
-import View.FeedbackPanel as FeedbackPanel
 import View.Group as Group
-import View.LabelAndValue as LabelAndValue
 import View.Layout as Layout
 import View.Menu as Menu
-import View.UsefulFunctions as UsefulFunctions
 
 
 
@@ -74,10 +56,6 @@ type Example
     = ManageSocketHeartbeat ManageSocketHeartbeat.Model
     | ManageChannelMessages ManageChannelMessages.Model
     | ManagePresenceMessages ManagePresenceMessages.Model
-
-
-type alias ID =
-    String
 
 
 
@@ -262,9 +240,6 @@ toDevice model =
 view : Model -> { title : String, content : Element Msg }
 view model =
     let
-        phoenix =
-            Session.phoenix model.session
-
         device =
             toDevice model
     in

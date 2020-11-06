@@ -12,7 +12,7 @@ import Element.Font as Font
 
 
 type alias Config =
-    { functions : List ( String, String ) }
+    List ( String, String )
 
 
 containerAttrs : List (Attribute msg)

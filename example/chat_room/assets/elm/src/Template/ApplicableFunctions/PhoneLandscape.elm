@@ -6,7 +6,7 @@ import UI
 
 
 view : Common.Config -> Element msg
-view { functions } =
+view functions =
     El.column
         (El.spacing 10
             :: Common.containerAttrs

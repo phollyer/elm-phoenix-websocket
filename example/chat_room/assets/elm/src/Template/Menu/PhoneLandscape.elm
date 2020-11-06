@@ -9,19 +9,12 @@ view : Common.Config msg c -> Element msg
 view config =
     case config.layout of
         Nothing ->
-            El.wrappedRow attrs <|
-                menuItems config
+            toRow config.selected config.onClick config.options
 
         Just layout ->
             El.column attrs <|
                 (List.groupsOfVarying layout config.options
-                    |> List.map
-                        (\options ->
-                            El.row
-                                [ El.width El.fill ]
-                            <|
-                                menuItems config
-                        )
+                    |> toRows config.selected config.onClick
                 )
 
 
@@ -39,9 +32,16 @@ attrs =
         Common.containerAttrs
 
 
-menuItems : Common.Config msg c -> List (Element msg)
-menuItems { selected, options, onClick } =
-    List.map (menuItem selected onClick) options
+toRows : String -> Maybe (String -> msg) -> List (List String) -> List (Element msg)
+toRows selected onClick options =
+    List.map (toRow selected onClick) options
+
+
+toRow : String -> Maybe (String -> msg) -> List String -> Element msg
+toRow selected onClick options =
+    El.wrappedRow
+        [ El.width El.fill ]
+        (List.map (menuItem selected onClick) options)
 
 
 menuItem : String -> Maybe (String -> msg) -> String -> Element msg
@@ -60,11 +60,11 @@ menuItem selected onClick item =
                 , El.none
                 )
     in
-    El.row
+    El.el
         [ El.width El.fill ]
-        [ El.column
+        (El.column
             attrs_
             [ El.text item
             , highlight
             ]
-        ]
+        )

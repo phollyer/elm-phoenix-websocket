@@ -9,7 +9,7 @@ module Template.Panel.Common exposing
     )
 
 import Colors.Opaque as Color
-import Element as El exposing (Attribute, Element)
+import Element as El exposing (Attribute)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Event

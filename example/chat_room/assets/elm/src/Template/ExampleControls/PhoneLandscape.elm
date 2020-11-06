@@ -10,9 +10,9 @@ view config =
     case config.layout of
         Nothing ->
             El.column Common.containerAttrs
-                (Common.maybeId config.userId
-                    :: [ toRow config.elements ]
-                )
+                [ Common.maybeId config.userId
+                , toRow config.elements
+                ]
 
         Just layout ->
             El.column Common.containerAttrs

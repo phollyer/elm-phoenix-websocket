@@ -29,7 +29,7 @@ init =
 
 
 view : Device -> Config msg -> Element msg
-view { class, orientation } (Config config) =
+view _ (Config config) =
     PhonePortrait.view config
 
 

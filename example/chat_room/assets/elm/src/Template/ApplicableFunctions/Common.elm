@@ -7,7 +7,7 @@ import Element as El exposing (Attribute)
 
 
 type alias Config =
-    { functions : List String }
+    List String
 
 
 containerAttrs : List (Attribute msg)

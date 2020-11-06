@@ -24,11 +24,39 @@ import Json.Encode exposing (Value)
     Phoenix.init Ports.config []
 
 -}
+config : Config msg
 config =
     { phoenixSend = phoenixSend
     , socketReceiver = socketReceiver
     , channelReceiver = channelReceiver
     , presenceReceiver = presenceReceiver
+    }
+
+
+type alias Config msg =
+    { channelReceiver : (ChannelIn -> msg) -> Sub msg
+    , phoenixSend : Out -> Cmd msg
+    , presenceReceiver : (ChannelIn -> msg) -> Sub msg
+    , socketReceiver : (SocketIn -> msg) -> Sub msg
+    }
+
+
+type alias Out =
+    { msg : String
+    , payload : Value
+    }
+
+
+type alias ChannelIn =
+    { topic : String
+    , msg : String
+    , payload : Value
+    }
+
+
+type alias SocketIn =
+    { msg : String
+    , payload : Value
     }
 
 
@@ -39,7 +67,7 @@ functions. The package docs show you where this is required, and the Elm
 compiler will help too.
 
 -}
-port phoenixSend : { msg : String, payload : Value } -> Cmd msg
+port phoenixSend : Out -> Cmd msg
 
 
 {-| Receive messages from the socket.
@@ -48,7 +76,7 @@ This is passed in as parameter to the `subscriptions` function in the Phoenix
 and Socket modules.
 
 -}
-port socketReceiver : ({ msg : String, payload : Value } -> msg) -> Sub msg
+port socketReceiver : (SocketIn -> msg) -> Sub msg
 
 
 {-| Receive messages from channels.
@@ -57,7 +85,7 @@ This is passed in as parameter to the `subscriptions` function in the Phoenix
 and Channel modules.
 
 -}
-port channelReceiver : ({ topic : String, msg : String, payload : Value } -> msg) -> Sub msg
+port channelReceiver : (ChannelIn -> msg) -> Sub msg
 
 
 {-| Receive presence messages.
@@ -66,4 +94,4 @@ This is passed in as parameter to the `subscriptions` function in the Phoenix
 and Presence modules.
 
 -}
-port presenceReceiver : ({ topic : String, msg : String, payload : Value } -> msg) -> Sub msg
+port presenceReceiver : (ChannelIn -> msg) -> Sub msg

@@ -12,13 +12,12 @@ import Template.Page.Tablet as Tablet
 
 
 type Config msg
-    = Config { body : Element msg }
+    = Config (Element msg)
 
 
 init : Config msg
 init =
-    Config
-        { body = El.none }
+    Config El.none
 
 
 view : Device -> Config msg -> Html msg
@@ -35,5 +34,5 @@ view { class } (Config config) =
 
 
 body : Element msg -> Config msg -> Config msg
-body body_ (Config config) =
-    Config { config | body = body_ }
+body body_ (Config _) =
+    Config body_

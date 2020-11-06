@@ -8,12 +8,10 @@ module Template.Menu.Common exposing
 
 import Colors.Alpha as Alpha
 import Colors.Opaque as Color
-import Element as El exposing (Attribute, DeviceClass, Element, Orientation)
-import Element.Background as Background
+import Element as El exposing (Attribute)
 import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
-import Template.Example.Common as Common
 
 
 type alias Config msg c =

@@ -9,12 +9,8 @@ import List.Extra as List
 
 findByClassAndOrientation : DeviceClass -> Orientation -> List ( DeviceClass, Orientation, a ) -> Maybe a
 findByClassAndOrientation class orientation list =
-    case List.find (\( c, o, _ ) -> c == class && o == orientation) list of
-        Nothing ->
-            Nothing
-
-        Just ( _, _, a ) ->
-            Just a
+    List.find (\( c, o, _ ) -> c == class && o == orientation) list
+        |> Maybe.map (\( _, _, a ) -> a)
 
 
 reIndex : List Int -> List a -> List a

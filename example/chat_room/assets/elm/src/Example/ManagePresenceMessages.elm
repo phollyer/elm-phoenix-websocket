@@ -11,7 +11,7 @@ import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..)
 import Extra.String as String
 import Json.Decode as JD
 import Json.Decode.Extra exposing (andMap)
-import Json.Encode as JE exposing (Value)
+import Json.Encode exposing (Value)
 import Phoenix
 import UI
 import View.ApplicableFunctions as ApplicableFunctions
@@ -80,17 +80,6 @@ type Action
     | Off
 
 
-pushConfig : Phoenix.Push
-pushConfig =
-    { topic = ""
-    , event = ""
-    , payload = JE.null
-    , timeout = Nothing
-    , retryStrategy = Phoenix.Drop
-    , ref = Nothing
-    }
-
-
 
 {- Update -}
 
@@ -138,19 +127,19 @@ update msg model =
                 Phoenix.SocketMessage (Phoenix.ChannelMessage { topic, event, payload }) ->
                     case ( Phoenix.topicParts topic, event ) of
                         ( ( "example", "manage_presence_messages" ), "phx_reply" ) ->
-                            case decodeExampleIdResponse payload of
-                                Ok { response } ->
+                            case decodeExampleId payload of
+                                Ok exampleId ->
                                     Phoenix.leave "example:manage_presence_messages" newModel.phoenix
-                                        |> updatePhoenix { newModel | maybeExampleId = Just response.exampleId }
+                                        |> updatePhoenix { newModel | maybeExampleId = Just exampleId }
                                         |> batch [ cmd ]
 
                                 Err _ ->
                                     ( newModel, cmd )
 
                         ( ( "example", _ ), "phx_reply" ) ->
-                            case decodeUserIdResponse payload of
-                                Ok { response } ->
-                                    ( { newModel | maybeUserId = Just response.userId }
+                            case decodeUserId payload of
+                                Ok userId ->
+                                    ( { newModel | maybeUserId = Just userId }
                                     , cmd
                                     )
 
@@ -197,57 +186,27 @@ batch cmds ( model, cmd ) =
 {- Decoders -}
 
 
-type alias ExampleIdResponse =
-    { response : ExampleID }
+decodeExampleId : Value -> Result JD.Error String
+decodeExampleId payload =
+    JD.decodeValue (JD.field "response" exampleIdDecoder) payload
 
 
-type alias ExampleID =
-    { exampleId : String }
-
-
-type alias UserIdResponse =
-    { response : UserID }
-
-
-type alias UserID =
-    { userId : String }
-
-
-decodeExampleIdResponse : Value -> Result JD.Error ExampleIdResponse
-decodeExampleIdResponse payload =
-    JD.decodeValue exampleIdResponseDecoder payload
-
-
-exampleIdResponseDecoder : JD.Decoder ExampleIdResponse
-exampleIdResponseDecoder =
-    JD.succeed
-        ExampleIdResponse
-        |> andMap (JD.field "response" exampleIdDecoder)
-
-
-exampleIdDecoder : JD.Decoder ExampleID
+exampleIdDecoder : JD.Decoder String
 exampleIdDecoder =
     JD.succeed
-        ExampleID
+        identity
         |> andMap (JD.field "example_id" JD.string)
 
 
-decodeUserIdResponse : Value -> Result JD.Error UserIdResponse
-decodeUserIdResponse payload =
-    JD.decodeValue userIdResponseDecoder payload
+decodeUserId : Value -> Result JD.Error String
+decodeUserId payload =
+    JD.decodeValue (JD.field "response" userIdDecoder) payload
 
 
-userIdResponseDecoder : JD.Decoder UserIdResponse
-userIdResponseDecoder =
-    JD.succeed
-        UserIdResponse
-        |> andMap (JD.field "response" userIdDecoder)
-
-
-userIdDecoder : JD.Decoder UserID
+userIdDecoder : JD.Decoder String
 userIdDecoder =
     JD.succeed
-        UserID
+        identity
         |> andMap (JD.field "user_id" JD.string)
 
 
@@ -269,7 +228,7 @@ view : Model -> Element Msg
 view model =
     Example.init
         |> Example.id model.maybeExampleId
-        |> Example.description (description model)
+        |> Example.description description
         |> Example.controls (controls model)
         |> Example.feedback (feedback model)
         |> Example.view model.device
@@ -279,8 +238,8 @@ view model =
 {- Description -}
 
 
-description : Model -> List (Element msg)
-description { maybeExampleId } =
+description : List (Element msg)
+description =
     [ UI.paragraph
         [ El.text "Choose whether to receive Presence messages as an incoming Socket message." ]
     ]

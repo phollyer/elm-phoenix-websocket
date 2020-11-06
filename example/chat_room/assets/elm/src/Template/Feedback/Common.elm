@@ -5,9 +5,7 @@ module Template.Feedback.Common exposing
     , rowAttrs
     )
 
-import Colors.Opaque as Color
-import Element as El exposing (Attribute, DeviceClass, Element, Orientation)
-import Element.Border as Border
+import Element as El exposing (Attribute, Element)
 
 
 type alias Config msg c =
