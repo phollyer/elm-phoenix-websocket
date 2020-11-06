@@ -9,10 +9,7 @@ module Page.JoinAndLeaveChannels exposing
     , view
     )
 
-{- Init -}
-
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
-import Example exposing (Example(..))
 import Example.JoinMultipleChannels as JoinMultipleChannels
 import Example.JoinWithBadParams as JoinWithBadParams
 import Example.JoinWithGoodParams as JoinWithGoodParams
@@ -25,6 +22,10 @@ import View.ExamplePage as ExamplePage
 import View.Group as Group
 import View.Layout as Layout
 import View.Menu as Menu
+
+
+
+{- Init -}
 
 
 init : Session -> ( Model, Cmd Msg )

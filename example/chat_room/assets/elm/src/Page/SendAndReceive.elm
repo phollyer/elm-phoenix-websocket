@@ -1,51 +1,59 @@
-module Page.SendAndReceive exposing (..)
+module Page.SendAndReceive exposing
+    ( Model
+    , Msg
+    , init
+    , subscriptions
+    , toSession
+    , update
+    , updateSession
+    , view
+    )
 
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
-import Example exposing (Action(..), Example(..))
-import Extra.String as String
-import Json.Encode as JE exposing (Value)
+import Example.PushMultipleEvents as PushMultipleEvents
+import Example.PushOneEvent as PushOneEvent
+import Example.ReceiveEvents as ReceiveEvents
 import Phoenix
 import Route
 import Session exposing (Session)
 import UI
-import View.ApplicableFunctions as ApplicableFunctions
-import View.Button as Button
-import View.Example as Example
-import View.ExampleControls as ExampleControls
-import View.Feedback as Feedback
-import View.FeedbackContent as FeedbackContent
-import View.FeedbackInfo as FeedbackInfo
-import View.FeedbackPanel as FeedbackPanel
+import View.ExamplePage as ExamplePage
 import View.Group as Group
 import View.Layout as Layout
 import View.Menu as Menu
-import View.UsefulFunctions as UsefulFunctions
+
+
+
+{- Init -}
 
 
 init : Session -> ( Model, Cmd Msg )
 init session =
     ( { session = session
-      , example = PushOneEvent Push
-      , info = []
+      , example =
+            PushOneEvent <|
+                PushOneEvent.init
+                    (Session.device session)
+                    (Session.phoenix session)
       }
     , Cmd.none
     )
 
 
+
+{- Model -}
+
+
 type alias Model =
     { session : Session
     , example : Example
-    , info : List Info
     }
 
 
-type Info
-    = Response Phoenix.ChannelResponse
-    | Event
-        { topic : String
-        , event : String
-        , payload : Value
-        }
+type Example
+    = PushOneEvent PushOneEvent.Model
+    | PushMultipleEvents PushMultipleEvents.Model
+    | ReceiveEvents ReceiveEvents.Model
 
 
 
@@ -54,9 +62,11 @@ type Info
 
 type Msg
     = GotHomeBtnClick
-    | GotMenuItem (Action -> Example)
-    | GotControlClick Example
+    | GotMenuItem String
     | GotPhoenixMsg Phoenix.Msg
+    | GotPushOneEventMsg PushOneEvent.Msg
+    | GotPushMultipleEventsMsg PushMultipleEvents.Msg
+    | GotReceiveEventsMsg ReceiveEvents.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -65,141 +75,43 @@ update msg model =
         phoenix =
             Session.phoenix model.session
     in
-    case msg of
-        GotHomeBtnClick ->
+    case ( msg, model.example ) of
+        ( GotHomeBtnClick, _ ) ->
             ( model
             , Route.pushUrl
                 (Session.navKey model.session)
                 Route.Home
             )
 
-        GotMenuItem example ->
+        ( GotMenuItem example, _ ) ->
             Phoenix.disconnectAndReset Nothing phoenix
-                |> updatePhoenix
-                    { model | info = [] }
+                |> updatePhoenix model
                 |> updateExample example
 
-        GotControlClick example ->
-            case example of
-                PushOneEvent action ->
-                    case action of
-                        Push ->
-                            phoenix
-                                |> Phoenix.push
-                                    { topic = "example:send_and_receive"
-                                    , event = "example_push"
-                                    , payload = JE.null
-                                    , timeout = Nothing
-                                    , retryStrategy = Phoenix.Drop
-                                    , ref = Just "custom_ref"
-                                    }
-                                |> updatePhoenix model
+        ( GotPhoenixMsg subMsg, _ ) ->
+            Phoenix.update subMsg phoenix
+                |> updatePhoenix model
 
-                        Leave ->
-                            Phoenix.leave "example:send_and_receive" phoenix
-                                |> updatePhoenix model
+        ( GotPushOneEventMsg subMsg, PushOneEvent subModel ) ->
+            PushOneEvent.update subMsg subModel
+                |> updateWith PushOneEvent GotPushOneEventMsg model
 
-                        _ ->
-                            ( model, Cmd.none )
+        ( GotPushMultipleEventsMsg subMsg, PushMultipleEvents subModel ) ->
+            PushMultipleEvents.update subMsg subModel
+                |> updateWith PushMultipleEvents GotPushMultipleEventsMsg model
 
-                PushMultipleEvents action ->
-                    case action of
-                        Push ->
-                            phoenix
-                                |> Phoenix.pushAll
-                                    (List.range 1 3
-                                        |> List.map
-                                            (\index ->
-                                                { topic = "example:send_and_receive"
-                                                , event = "example_push"
-                                                , payload = JE.null
-                                                , timeout = Nothing
-                                                , retryStrategy = Phoenix.Drop
-                                                , ref = Just (String.fromInt index)
-                                                }
-                                            )
-                                        |> List.reverse
-                                    )
-                                |> updatePhoenix model
+        ( GotReceiveEventsMsg subMsg, ReceiveEvents subModel ) ->
+            ReceiveEvents.update subMsg subModel
+                |> updateWith ReceiveEvents GotReceiveEventsMsg model
 
-                        Leave ->
-                            Phoenix.leave "example:send_and_receive" phoenix
-                                |> updatePhoenix model
-
-                        _ ->
-                            ( model, Cmd.none )
-
-                ReceiveEvents action ->
-                    case action of
-                        Push ->
-                            phoenix
-                                |> Phoenix.setJoinConfig
-                                    { topic = "example:send_and_receive"
-                                    , events = [ "receive_push", "receive_broadcast" ]
-                                    , payload = JE.null
-                                    , timeout = Nothing
-                                    }
-                                |> Phoenix.push
-                                    { topic = "example:send_and_receive"
-                                    , event = "receive_events"
-                                    , payload = JE.null
-                                    , timeout = Nothing
-                                    , retryStrategy = Phoenix.Drop
-                                    , ref = Just "custom_ref"
-                                    }
-                                |> updatePhoenix model
-
-                        Leave ->
-                            Phoenix.leave "example:send_and_receive" phoenix
-                                |> updatePhoenix model
-
-                        _ ->
-                            ( model, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
-
-        GotPhoenixMsg phxMsg ->
-            let
-                ( newModel, cmd ) =
-                    Phoenix.update phxMsg phoenix
-                        |> updatePhoenix model
-
-                phx =
-                    Session.phoenix newModel.session
-            in
-            case Phoenix.phoenixMsg phx of
-                Phoenix.ChannelResponse response ->
-                    ( { newModel
-                        | info =
-                            Response response :: newModel.info
-                      }
-                    , cmd
-                    )
-
-                Phoenix.ChannelEvent topic event payload ->
-                    ( { newModel
-                        | info =
-                            Event
-                                { topic = topic
-                                , event = event
-                                , payload = payload
-                                }
-                                :: newModel.info
-                      }
-                    , cmd
-                    )
-
-                _ ->
-                    ( newModel, cmd )
+        _ ->
+            ( model, Cmd.none )
 
 
-updateExample : (Action -> Example) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-updateExample example ( model, cmd ) =
-    ( { model
-        | example = example Anything
-      }
-    , cmd
+updateWith : (subModel -> Example) -> (subMsg -> Msg) -> Model -> ( subModel, Cmd subMsg ) -> ( Model, Cmd Msg )
+updateWith toExample toMsg model ( subModel, cmd ) =
+    ( { model | example = toExample subModel }
+    , Cmd.map toMsg cmd
     )
 
 
@@ -210,6 +122,74 @@ updatePhoenix model ( phoenix, phoenixCmd ) =
       }
     , Cmd.map GotPhoenixMsg phoenixCmd
     )
+
+
+updateExample : String -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+updateExample selectedExample ( model, cmd ) =
+    let
+        example_ =
+            case selectedExample of
+                "Push One Event" ->
+                    PushOneEvent <|
+                        PushOneEvent.init
+                            (Session.device model.session)
+                            (Session.phoenix model.session)
+
+                "Push Multiple Events" ->
+                    PushMultipleEvents <|
+                        PushMultipleEvents.init
+                            (Session.device model.session)
+                            (Session.phoenix model.session)
+
+                "Receive Events" ->
+                    ReceiveEvents <|
+                        ReceiveEvents.init
+                            (Session.device model.session)
+                            (Session.phoenix model.session)
+
+                _ ->
+                    PushOneEvent <|
+                        PushOneEvent.init
+                            (Session.device model.session)
+                            (Session.phoenix model.session)
+    in
+    ( { model
+        | example = example_
+      }
+    , cmd
+    )
+
+
+
+{- Subscriptions -}
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    let
+        exampleSub =
+            case model.example of
+                PushOneEvent subModel ->
+                    Sub.map GotPushOneEventMsg <|
+                        PushOneEvent.subscriptions subModel
+
+                PushMultipleEvents subModel ->
+                    Sub.map GotPushMultipleEventsMsg <|
+                        PushMultipleEvents.subscriptions subModel
+
+                ReceiveEvents subModel ->
+                    Sub.map GotReceiveEventsMsg <|
+                        ReceiveEvents.subscriptions subModel
+    in
+    Sub.batch
+        [ exampleSub
+        , Sub.map GotPhoenixMsg <|
+            Phoenix.subscriptions (Session.phoenix model.session)
+        ]
+
+
+
+{- Session -}
 
 
 toSession : Model -> Session
@@ -223,16 +203,6 @@ updateSession session model =
 
 
 
-{- Subscriptions -}
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.map GotPhoenixMsg <|
-        Phoenix.subscriptions (Session.phoenix model.session)
-
-
-
 {- View -}
 
 
@@ -241,23 +211,18 @@ view model =
     let
         device =
             Session.device model.session
-
-        phoenix =
-            Session.phoenix model.session
     in
-    { title = "Send and Receive"
+    { title = "Send And Receive"
     , content =
         Layout.init
             |> Layout.homeMsg (Just GotHomeBtnClick)
-            |> Layout.title "Send and Receive"
+            |> Layout.title "Send And Receive"
             |> Layout.body
-                (Example.init
-                    |> Example.introduction introduction
-                    |> Example.menu (menu device model)
-                    |> Example.description (description model)
-                    |> Example.controls (controls device phoenix model)
-                    |> Example.feedback (feedback device phoenix model)
-                    |> Example.view device
+                (ExamplePage.init
+                    |> ExamplePage.introduction introduction
+                    |> ExamplePage.menu (menu device model)
+                    |> ExamplePage.example (viewExample model)
+                    |> ExamplePage.view device
                 )
             |> Layout.view device
     }
@@ -284,251 +249,51 @@ introduction =
 
 menu : Device -> Model -> Element Msg
 menu device { example } =
+    let
+        selected =
+            case example of
+                PushOneEvent _ ->
+                    "Push One event"
+
+                PushMultipleEvents _ ->
+                    "Push Multiple Events"
+
+                ReceiveEvents _ ->
+                    "Receive Events"
+    in
     Menu.init
         |> Menu.options
-            [ Example.toString PushOneEvent
-            , Example.toString PushMultipleEvents
-            , Example.toString ReceiveEvents
+            [ "Push One Event"
+            , "Push Multiple Events"
+            , "Receive Events"
             ]
-        |> Menu.selected (Example.toString <| Example.toFunc example)
+        |> Menu.selected selected
+        |> Menu.onClick (Just GotMenuItem)
+        |> Menu.group
+            (Group.init
+                |> Group.layouts
+                    [ ( Phone, Landscape, [ 1, 2 ] )
+                    , ( Tablet, Portrait, [ 1, 2 ] )
+                    ]
+            )
         |> Menu.view device
 
 
 
-{- Description -}
+{- Example -}
 
 
-description : Model -> List (Element Msg)
-description { example } =
+viewExample : Model -> Element Msg
+viewExample { example } =
     case example of
-        PushOneEvent _ ->
-            [ UI.paragraph
-                [ El.text "Push an event to the Channel with no need to connect to the socket, or join the channel first." ]
-            ]
+        PushOneEvent subModel ->
+            PushOneEvent.view subModel
+                |> El.map GotPushOneEventMsg
 
-        PushMultipleEvents _ ->
-            [ UI.paragraph
-                [ El.text "Push multiple events to the Channel with no need to connect to the socket, or join the channel first. "
-                , El.text "This example will make 3 simultaneous pushes."
-                ]
-            ]
+        PushMultipleEvents subModel ->
+            PushMultipleEvents.view subModel
+                |> El.map GotPushMultipleEventsMsg
 
-        ReceiveEvents _ ->
-            [ UI.paragraph
-                [ El.text "Receive multiple events from the Channel after pushing an event to the Channel. "
-                , El.text "This example will receive two events in return from a "
-                , UI.code "push"
-                , El.text ". The first is "
-                , UI.code "push"
-                , El.text "'ed from the server to the client, the second is "
-                , UI.code "broadcast"
-                , El.text "ed to all connected clients."
-                ]
-            ]
-
-        _ ->
-            []
-
-
-
-{- Controls -}
-
-
-controls : Device -> Phoenix.Model -> Model -> Element Msg
-controls device phoenix model =
-    ExampleControls.init
-        |> ExampleControls.elements (buttons device phoenix model)
-        |> ExampleControls.view device
-
-
-buttons : Device -> Phoenix.Model -> Model -> List (Element Msg)
-buttons device phoenix { example } =
-    case example of
-        PushOneEvent _ ->
-            [ push PushOneEvent device
-            , leave PushOneEvent device (Phoenix.channelJoined "example:send_and_receive" phoenix)
-            ]
-
-        PushMultipleEvents _ ->
-            [ push PushMultipleEvents device
-            , leave PushMultipleEvents device (Phoenix.channelJoined "example:send_and_receive" phoenix)
-            ]
-
-        ReceiveEvents _ ->
-            [ push ReceiveEvents device
-            , leave ReceiveEvents device (Phoenix.channelJoined "example:send_and_receive" phoenix)
-            ]
-
-        _ ->
-            []
-
-
-push : (Action -> Example) -> Device -> Element Msg
-push example device =
-    Button.init
-        |> Button.label "Push Event"
-        |> Button.onPress (Just (GotControlClick (example Push)))
-        |> Button.enabled True
-        |> Button.view device
-
-
-leave : (Action -> Example) -> Device -> Bool -> Element Msg
-leave example device enabled =
-    Button.init
-        |> Button.label "Leave"
-        |> Button.onPress (Just (GotControlClick (example Leave)))
-        |> Button.enabled enabled
-        |> Button.view device
-
-
-
-{- Feedback -}
-
-
-feedback : Device -> Phoenix.Model -> Model -> Element Msg
-feedback device phoenix { example, info } =
-    Feedback.init
-        |> Feedback.elements
-            [ FeedbackPanel.init
-                |> FeedbackPanel.title "Info"
-                |> FeedbackPanel.scrollable (infoView device info)
-                |> FeedbackPanel.view device
-            , FeedbackPanel.init
-                |> FeedbackPanel.title "Applicable Functions"
-                |> FeedbackPanel.scrollable [ applicableFunctions device example ]
-                |> FeedbackPanel.view device
-            , FeedbackPanel.init
-                |> FeedbackPanel.title "Useful Functions"
-                |> FeedbackPanel.scrollable [ usefulFunctions device phoenix example ]
-                |> FeedbackPanel.view device
-            ]
-        |> Feedback.group
-            (Group.init
-                |> Group.layouts [ ( Tablet, Portrait, [ 1, 2 ] ) ]
-            )
-        |> Feedback.view device
-
-
-infoView : Device -> List Info -> List (Element Msg)
-infoView device info =
-    List.map
-        (\item ->
-            case item of
-                Response response ->
-                    channelResponse device response
-
-                Event event ->
-                    channelEvent device event
-        )
-        info
-
-
-channelResponse : Device -> Phoenix.ChannelResponse -> Element Msg
-channelResponse device response =
-    case response of
-        Phoenix.JoinOk topic payload ->
-            FeedbackContent.init
-                |> FeedbackContent.title (Just "ChannelResponse")
-                |> FeedbackContent.label "JoinOk"
-                |> FeedbackContent.element
-                    (FeedbackInfo.init
-                        |> FeedbackInfo.topic topic
-                        |> FeedbackInfo.payload payload
-                        |> FeedbackInfo.view device
-                    )
-                |> FeedbackContent.view device
-
-        Phoenix.LeaveOk topic ->
-            FeedbackContent.init
-                |> FeedbackContent.title (Just "ChannelResponse")
-                |> FeedbackContent.label "LeaveOk"
-                |> FeedbackContent.element
-                    (FeedbackInfo.init
-                        |> FeedbackInfo.topic topic
-                        |> FeedbackInfo.view device
-                    )
-                |> FeedbackContent.view device
-
-        Phoenix.PushOk topic event ref payload ->
-            FeedbackContent.init
-                |> FeedbackContent.title (Just "ChannelResponse")
-                |> FeedbackContent.label "PushOk"
-                |> FeedbackContent.element
-                    (FeedbackInfo.init
-                        |> FeedbackInfo.topic topic
-                        |> FeedbackInfo.event event
-                        |> FeedbackInfo.ref ref
-                        |> FeedbackInfo.payload payload
-                        |> FeedbackInfo.view device
-                    )
-                |> FeedbackContent.view device
-
-        _ ->
-            El.none
-
-
-channelEvent : Device -> { topic : String, event : String, payload : Value } -> Element Msg
-channelEvent device { topic, event, payload } =
-    FeedbackContent.init
-        |> FeedbackContent.title (Just "ChannelEvent")
-        |> FeedbackContent.element
-            (FeedbackInfo.init
-                |> FeedbackInfo.topic topic
-                |> FeedbackInfo.event event
-                |> FeedbackInfo.payload payload
-                |> FeedbackInfo.view device
-            )
-        |> FeedbackContent.view device
-
-
-applicableFunctions : Device -> Example -> Element Msg
-applicableFunctions device example =
-    ApplicableFunctions.init
-        |> ApplicableFunctions.functions
-            (case example of
-                PushOneEvent _ ->
-                    [ "Phoenix.push"
-                    , "Phoenix.leave"
-                    ]
-
-                PushMultipleEvents _ ->
-                    [ "Phoenix.pushAll"
-                    , "Phoenix.leave"
-                    ]
-
-                ReceiveEvents _ ->
-                    [ "Phoenix.setJoinConfig"
-                    , "Phoenix.push"
-                    , "Phoenix.leave"
-                    ]
-
-                _ ->
-                    []
-            )
-        |> ApplicableFunctions.view device
-
-
-usefulFunctions : Device -> Phoenix.Model -> Example -> Element Msg
-usefulFunctions device phoenix example =
-    UsefulFunctions.init
-        |> UsefulFunctions.functions
-            (case example of
-                PushOneEvent _ ->
-                    [ ( "Phoenix.channelJoined", Phoenix.channelJoined "example:send_and_receive" phoenix |> String.printBool )
-                    , ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList )
-                    ]
-
-                PushMultipleEvents _ ->
-                    [ ( "Phoenix.channelJoined", Phoenix.channelJoined "example:send_and_receive" phoenix |> String.printBool )
-                    , ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList )
-                    ]
-
-                ReceiveEvents _ ->
-                    [ ( "Phoenix.channelJoined", Phoenix.channelJoined "example:send_and_receive" phoenix |> String.printBool )
-                    , ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList )
-                    ]
-
-                _ ->
-                    []
-            )
-        |> UsefulFunctions.view device
+        ReceiveEvents subModel ->
+            ReceiveEvents.view subModel
+                |> El.map GotReceiveEventsMsg
