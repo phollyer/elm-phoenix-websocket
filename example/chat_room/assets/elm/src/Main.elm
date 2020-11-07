@@ -283,19 +283,19 @@ view model =
             Page.view device NotFound.view
 
         Home subModel ->
-            viewPage device GotHomeMsg (Home.view subModel)
+            viewPage device GotHomeMsg (Home.view device subModel)
 
         ControlTheSocketConnection subModel ->
-            viewPage device GotControlTheSocketConnectionMsg (ControlTheSocketConnection.view subModel)
+            viewPage device GotControlTheSocketConnectionMsg (ControlTheSocketConnection.view device subModel)
 
         HandleSocketMessages subModel ->
-            viewPage device GotHandleSocketMessagesMsg (HandleSocketMessages.view subModel)
+            viewPage device GotHandleSocketMessagesMsg (HandleSocketMessages.view device subModel)
 
         JoinAndLeaveChannels subModel ->
-            viewPage device GotJoinAndLeaveChannelsMsg (JoinAndLeaveChannels.view subModel)
+            viewPage device GotJoinAndLeaveChannelsMsg (JoinAndLeaveChannels.view device subModel)
 
         SendAndReceive subModel ->
-            viewPage device GotSendAndReceiveMsg (SendAndReceive.view subModel)
+            viewPage device GotSendAndReceiveMsg (SendAndReceive.view device subModel)
 
 
 viewPage : Device -> (msg -> Msg) -> { title : String, content : Element msg } -> Document Msg

@@ -222,12 +222,8 @@ updateSession session model =
 {- View -}
 
 
-view : Model -> { title : String, content : Element Msg }
-view model =
-    let
-        device =
-            Session.device model.session
-    in
+view : Device -> Model -> { title : String, content : Element Msg }
+view device model =
     { title = "Join And Leave Channels"
     , content =
         Layout.init

@@ -63,11 +63,6 @@ toSession model =
     model
 
 
-toDevice : Model -> Device
-toDevice model =
-    Session.device model
-
-
 updateSession : Session -> Model
 updateSession session =
     session
@@ -80,12 +75,8 @@ subscriptions model =
             (Session.phoenix model)
 
 
-view : Model -> { title : String, content : Element Msg }
-view model =
-    let
-        device =
-            toDevice model
-    in
+view : Device -> Model -> { title : String, content : Element Msg }
+view device model =
     { title = "Home"
     , content =
         Layout.init

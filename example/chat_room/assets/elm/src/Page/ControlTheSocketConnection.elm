@@ -206,12 +206,8 @@ updateSession session model =
 {- View -}
 
 
-view : Model -> { title : String, content : Element Msg }
-view model =
-    let
-        device =
-            Session.device model.session
-    in
+view : Device -> Model -> { title : String, content : Element Msg }
+view device model =
     { title = "Control The Socket Connection"
     , content =
         Layout.init
