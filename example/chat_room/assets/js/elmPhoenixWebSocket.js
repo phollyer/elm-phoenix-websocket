@@ -174,7 +174,7 @@ let ElmPhoenixWebSocket = {
 
         // Ensure this is set to false before trying to connect.
         this.allowReconnect = false
-
+        this.socketSend("Connecting", {})
         this.socket.connect()
     },
 
@@ -227,6 +227,7 @@ let ElmPhoenixWebSocket = {
         Disconnect from the socket.
     */
     disconnect( params ) {
+        this.socketSend("Disconnecting", {})
         this.socket.disconnect( () => {}, params.code)
     },
 

@@ -349,6 +349,8 @@ type InternalError
 type Msg
     = Opened
     | Closed ClosedInfo
+    | Connecting
+    | Disconnecting
     | Error String
     | Channel ChannelMessage
     | Presence PresenceMessage
@@ -407,6 +409,12 @@ handleMessage toMsg { msg, payload } =
 
         "Closed" ->
             decodeClosed toMsg payload
+
+        "Connecting" ->
+            toMsg Connecting
+
+        "Disconnecting" ->
+            toMsg Disconnecting
 
         "Channel" ->
             decodeMessage toMsg Channel channelDecoder payload

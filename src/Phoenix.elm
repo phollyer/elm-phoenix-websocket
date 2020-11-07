@@ -1371,6 +1371,20 @@ update msg (Model model) =
                         |> batchList
                             [ ( join, queuedChannels (Model model) ) ]
 
+                Socket.Connecting ->
+                    ( Model model
+                        |> updateSocketState Connecting
+                        |> updatePhoenixMsg (StateChanged Connecting)
+                    , Cmd.none
+                    )
+
+                Socket.Disconnecting ->
+                    ( Model model
+                        |> updateSocketState Disconnecting
+                        |> updatePhoenixMsg (StateChanged Disconnecting)
+                    , Cmd.none
+                    )
+
                 Socket.Error reason ->
                     ( updatePhoenixMsg (Error (Socket reason)) (Model model)
                     , Cmd.none

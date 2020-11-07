@@ -18,6 +18,7 @@ import View.Button as Button
 import View.Example as Example
 import View.ExampleControls as ExampleControls
 import View.Feedback as Feedback
+import View.FeedbackContent as FeedbackContent
 import View.FeedbackPanel as FeedbackPanel
 import View.Group as Group
 import View.UsefulFunctions as UsefulFunctions
@@ -31,6 +32,7 @@ init : Device -> Phoenix.Model -> Model
 init device phoenix =
     { device = device
     , phoenix = phoenix
+    , responses = []
     }
 
 
@@ -41,6 +43,7 @@ init device phoenix =
 type alias Model =
     { device : Device
     , phoenix : Phoenix.Model
+    , responses : List Phoenix.SocketState
     }
 
 
@@ -78,8 +81,19 @@ update msg model =
                         |> updatePhoenixWith GotPhoenixMsg model
 
         GotPhoenixMsg subMsg ->
-            Phoenix.update subMsg model.phoenix
-                |> updatePhoenixWith GotPhoenixMsg model
+            let
+                ( newModel, cmd ) =
+                    Phoenix.update subMsg model.phoenix
+                        |> updatePhoenixWith GotPhoenixMsg model
+            in
+            case Phoenix.phoenixMsg newModel.phoenix of
+                Phoenix.StateChanged response ->
+                    ( { newModel | responses = response :: newModel.responses }
+                    , cmd
+                    )
+
+                _ ->
+                    ( newModel, cmd )
 
 
 
@@ -165,10 +179,14 @@ disconnect device phoenix =
 
 
 feedback : Model -> Element Msg
-feedback { device, phoenix } =
+feedback { device, phoenix, responses } =
     Feedback.init
         |> Feedback.elements
             [ FeedbackPanel.init
+                |> FeedbackPanel.title "Info"
+                |> FeedbackPanel.scrollable (info device responses)
+                |> FeedbackPanel.view device
+            , FeedbackPanel.init
                 |> FeedbackPanel.title "Applicable Functions"
                 |> FeedbackPanel.scrollable [ applicableFunctions device ]
                 |> FeedbackPanel.view device
@@ -178,6 +196,34 @@ feedback { device, phoenix } =
                 |> FeedbackPanel.view device
             ]
         |> Feedback.view device
+
+
+info : Device -> List Phoenix.SocketState -> List (Element Msg)
+info device responses =
+    List.map
+        (\state ->
+            FeedbackContent.init
+                |> FeedbackContent.title (Just "StateChanged")
+                |> FeedbackContent.element (El.text (stateToString state))
+                |> FeedbackContent.view device
+        )
+        responses
+
+
+stateToString : Phoenix.SocketState -> String
+stateToString state =
+    case state of
+        Phoenix.Connected ->
+            "Connected"
+
+        Phoenix.Disconnected _ ->
+            "Disconnected"
+
+        Phoenix.Connecting ->
+            "Connecting"
+
+        Phoenix.Disconnecting ->
+            "Disconnecting"
 
 
 applicableFunctions : Device -> Element Msg
