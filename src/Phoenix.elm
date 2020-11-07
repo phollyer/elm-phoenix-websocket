@@ -714,8 +714,8 @@ Channel.
 
   - `topic` - The channel topic id, for example: `"topic:subTopic"`.
 
-  - `timeout` - Optional timeout, in ms, before retrying to join if the previous
-    attempt failed. Defaults to `Nothing`.
+  - `timeout` - Optional timeout, in ms, before retrying to leave if the
+    previous attempt failed. Defaults to `Nothing`.
 
 If a `LeaveConfig` is not set prior to leaving a Channel, the defaults will be used.
 
