@@ -226,6 +226,12 @@ toDevice model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     case model of
+        Redirect _ ->
+            onResize WindowResized
+
+        NotFound _ ->
+            onResize WindowResized
+
         Home subModel ->
             Sub.batch
                 [ Sub.map GotHomeMsg <|
@@ -260,9 +266,6 @@ subscriptions model =
                     SendAndReceive.subscriptions subModel
                 , onResize WindowResized
                 ]
-
-        _ ->
-            onResize WindowResized
 
 
 
