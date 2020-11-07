@@ -33,7 +33,6 @@ init session =
       , example =
             SimpleConnect <|
                 SimpleConnect.init
-                    (Session.device session)
                     (Session.phoenix session)
       }
     , Cmd.none
@@ -132,25 +131,21 @@ updateExample selectedExample ( model, cmd ) =
                 "Simple Connect" ->
                     SimpleConnect <|
                         SimpleConnect.init
-                            (Session.device model.session)
                             (Session.phoenix model.session)
 
                 "Connect With Good Params" ->
                     ConnectWithGoodParams <|
                         ConnectWithGoodParams.init
-                            (Session.device model.session)
                             (Session.phoenix model.session)
 
                 "Connect With Bad Params" ->
                     ConnectWithBadParams <|
                         ConnectWithBadParams.init
-                            (Session.device model.session)
                             (Session.phoenix model.session)
 
                 _ ->
                     SimpleConnect <|
                         SimpleConnect.init
-                            (Session.device model.session)
                             (Session.phoenix model.session)
     in
     ( { model

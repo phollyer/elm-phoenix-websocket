@@ -26,11 +26,9 @@ import View.UsefulFunctions as UsefulFunctions
 {- Init -}
 
 
-init : Device -> Phoenix.Model -> Model
-init device phoenix =
-    { device = device
-    , phoenix = phoenix
-    }
+init : Phoenix.Model -> Model
+init phoenix =
+    { phoenix = phoenix }
 
 
 
@@ -38,9 +36,7 @@ init device phoenix =
 
 
 type alias Model =
-    { device : Device
-    , phoenix : Phoenix.Model
-    }
+    { phoenix : Phoenix.Model }
 
 
 type Action
