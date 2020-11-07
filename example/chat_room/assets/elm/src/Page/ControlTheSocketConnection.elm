@@ -217,7 +217,7 @@ view device model =
                 (ExamplePage.init
                     |> ExamplePage.introduction introduction
                     |> ExamplePage.menu (menu device model)
-                    |> ExamplePage.example (viewExample model)
+                    |> ExamplePage.example (viewExample device model)
                     |> ExamplePage.view device
                 )
             |> Layout.view device
@@ -275,17 +275,17 @@ menu device { example } =
 {- Example -}
 
 
-viewExample : Model -> Element Msg
-viewExample { example } =
+viewExample : Device -> Model -> Element Msg
+viewExample device { example } =
     case example of
         SimpleConnect subModel ->
-            SimpleConnect.view subModel
+            SimpleConnect.view device subModel
                 |> El.map GotSimpleConnectMsg
 
         ConnectWithGoodParams subModel ->
-            ConnectWithGoodParams.view subModel
+            ConnectWithGoodParams.view device subModel
                 |> El.map GotConnectWithGoodParamsMsg
 
         ConnectWithBadParams subModel ->
-            ConnectWithBadParams.view subModel
+            ConnectWithBadParams.view device subModel
                 |> El.map GotConnectWithBadParamsMsg

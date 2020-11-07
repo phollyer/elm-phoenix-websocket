@@ -89,13 +89,13 @@ subscriptions model =
 {- View -}
 
 
-view : Model -> Element Msg
-view model =
+view : Device -> Model -> Element Msg
+view device model =
     Example.init
         |> Example.description description
-        |> Example.controls (controls model)
-        |> Example.feedback (feedback model)
-        |> Example.view model.device
+        |> Example.controls (controls device model)
+        |> Example.feedback (feedback device model)
+        |> Example.view device
 
 
 
@@ -113,8 +113,8 @@ description =
 {- Controls -}
 
 
-controls : Model -> Element Msg
-controls { device, phoenix } =
+controls : Device -> Model -> Element Msg
+controls device { phoenix } =
     ExampleControls.init
         |> ExampleControls.elements
             [ connect device phoenix
@@ -157,8 +157,8 @@ disconnect device phoenix =
 {- Feedback -}
 
 
-feedback : Model -> Element Msg
-feedback { device, phoenix } =
+feedback : Device -> Model -> Element Msg
+feedback device { phoenix } =
     Feedback.init
         |> Feedback.elements
             [ FeedbackPanel.init
