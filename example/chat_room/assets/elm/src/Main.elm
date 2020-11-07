@@ -63,74 +63,6 @@ changeRouteTo maybeRoute model =
 
 
 
-{- Session -}
-
-
-toSession : Model -> Session
-toSession model =
-    case model of
-        Redirect session ->
-            session
-
-        NotFound session ->
-            session
-
-        Home subModel ->
-            Home.toSession subModel
-
-        ControlTheSocketConnection subModel ->
-            ControlTheSocketConnection.toSession subModel
-
-        HandleSocketMessages subModel ->
-            HandleSocketMessages.toSession subModel
-
-        JoinAndLeaveChannels subModel ->
-            JoinAndLeaveChannels.toSession subModel
-
-        SendAndReceive subModel ->
-            SendAndReceive.toSession subModel
-
-
-updateSession : Session -> Model -> Model
-updateSession session model =
-    case model of
-        Redirect _ ->
-            Redirect session
-
-        NotFound _ ->
-            NotFound session
-
-        Home _ ->
-            Home <|
-                Home.updateSession session
-
-        ControlTheSocketConnection subModel ->
-            ControlTheSocketConnection <|
-                ControlTheSocketConnection.updateSession session subModel
-
-        HandleSocketMessages subModel ->
-            HandleSocketMessages <|
-                HandleSocketMessages.updateSession session subModel
-
-        JoinAndLeaveChannels subModel ->
-            JoinAndLeaveChannels <|
-                JoinAndLeaveChannels.updateSession session subModel
-
-        SendAndReceive subModel ->
-            SendAndReceive <|
-                SendAndReceive.updateSession session subModel
-
-
-
-{- Device -}
-
-
-toDevice : Model -> Device
-toDevice model =
-    Session.device (toSession model)
-
-
-
 {- Model -}
 
 
@@ -217,6 +149,74 @@ updateWith toModel toMsg ( subModel, subCmd ) =
     ( toModel subModel
     , Cmd.map toMsg subCmd
     )
+
+
+
+{- Session -}
+
+
+toSession : Model -> Session
+toSession model =
+    case model of
+        Redirect session ->
+            session
+
+        NotFound session ->
+            session
+
+        Home subModel ->
+            Home.toSession subModel
+
+        ControlTheSocketConnection subModel ->
+            ControlTheSocketConnection.toSession subModel
+
+        HandleSocketMessages subModel ->
+            HandleSocketMessages.toSession subModel
+
+        JoinAndLeaveChannels subModel ->
+            JoinAndLeaveChannels.toSession subModel
+
+        SendAndReceive subModel ->
+            SendAndReceive.toSession subModel
+
+
+updateSession : Session -> Model -> Model
+updateSession session model =
+    case model of
+        Redirect _ ->
+            Redirect session
+
+        NotFound _ ->
+            NotFound session
+
+        Home _ ->
+            Home <|
+                Home.updateSession session
+
+        ControlTheSocketConnection subModel ->
+            ControlTheSocketConnection <|
+                ControlTheSocketConnection.updateSession session subModel
+
+        HandleSocketMessages subModel ->
+            HandleSocketMessages <|
+                HandleSocketMessages.updateSession session subModel
+
+        JoinAndLeaveChannels subModel ->
+            JoinAndLeaveChannels <|
+                JoinAndLeaveChannels.updateSession session subModel
+
+        SendAndReceive subModel ->
+            SendAndReceive <|
+                SendAndReceive.updateSession session subModel
+
+
+
+{- Device -}
+
+
+toDevice : Model -> Device
+toDevice model =
+    Session.device (toSession model)
 
 
 
