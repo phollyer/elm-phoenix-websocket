@@ -8,6 +8,7 @@ module Example.ConnectWithGoodParams exposing
     )
 
 import Element as El exposing (Device, Element)
+import Example.Utils exposing (updatePhoenixWith)
 import Extra.String as String
 import Json.Encode as JE
 import Phoenix
@@ -68,23 +69,16 @@ update msg model =
                                 [ ( "good_params", JE.bool True ) ]
                             )
                         |> Phoenix.connect
-                        |> updatePhoenix model
+                        |> updatePhoenixWith GotPhoenixMsg model
 
                 Disconnect ->
                     model.phoenix
                         |> Phoenix.disconnect Nothing
-                        |> updatePhoenix model
+                        |> updatePhoenixWith GotPhoenixMsg model
 
         GotPhoenixMsg subMsg ->
             Phoenix.update subMsg model.phoenix
-                |> updatePhoenix model
-
-
-updatePhoenix : Model -> ( Phoenix.Model, Cmd Phoenix.Msg ) -> ( Model, Cmd Msg )
-updatePhoenix model ( phoenix, phoenixMsg ) =
-    ( { model | phoenix = phoenix }
-    , Cmd.map GotPhoenixMsg phoenixMsg
-    )
+                |> updatePhoenixWith GotPhoenixMsg model
 
 
 
