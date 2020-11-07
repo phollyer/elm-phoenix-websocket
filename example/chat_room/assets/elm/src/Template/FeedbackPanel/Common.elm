@@ -32,6 +32,8 @@ containerAttrs =
     , El.padding 10
     , El.height <|
         El.maximum 350 El.fill
+    , El.width <|
+        El.maximum 500 El.fill
     ]
 
 
