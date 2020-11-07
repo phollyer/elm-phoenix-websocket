@@ -18,7 +18,9 @@ import View.Button as Button
 import View.Example as Example
 import View.ExampleControls as ExampleControls
 import View.Feedback as Feedback
+import View.FeedbackContent as FeedbackContent
 import View.FeedbackPanel as FeedbackPanel
+import View.LabelAndValue as LabelAndValue
 import View.UsefulFunctions as UsefulFunctions
 
 
@@ -30,6 +32,7 @@ init : Device -> Phoenix.Model -> Model
 init device phoenix =
     { device = device
     , phoenix = phoenix
+    , errors = []
     }
 
 
@@ -40,6 +43,7 @@ init device phoenix =
 type alias Model =
     { device : Device
     , phoenix : Phoenix.Model
+    , errors : List String
     }
 
 
@@ -77,8 +81,19 @@ update msg model =
                         |> updatePhoenixWith GotPhoenixMsg model
 
         GotPhoenixMsg subMsg ->
-            Phoenix.update subMsg model.phoenix
-                |> updatePhoenixWith GotPhoenixMsg model
+            let
+                ( newModel, cmd ) =
+                    Phoenix.update subMsg model.phoenix
+                        |> updatePhoenixWith GotPhoenixMsg model
+            in
+            case Phoenix.phoenixMsg newModel.phoenix of
+                Phoenix.Error (Phoenix.Socket error) ->
+                    ( { newModel | errors = error :: newModel.errors }
+                    , cmd
+                    )
+
+                _ ->
+                    ( newModel, cmd )
 
 
 
@@ -159,10 +174,14 @@ disconnect device phoenix =
 
 
 feedback : Model -> Element Msg
-feedback { device, phoenix } =
+feedback { device, phoenix, errors } =
     Feedback.init
         |> Feedback.elements
             [ FeedbackPanel.init
+                |> FeedbackPanel.title "Info"
+                |> FeedbackPanel.scrollable (info device errors)
+                |> FeedbackPanel.view device
+            , FeedbackPanel.init
                 |> FeedbackPanel.title "Applicable Functions"
                 |> FeedbackPanel.scrollable [ applicableFunctions device ]
                 |> FeedbackPanel.view device
@@ -172,6 +191,24 @@ feedback { device, phoenix } =
                 |> FeedbackPanel.view device
             ]
         |> Feedback.view device
+
+
+info : Device -> List String -> List (Element Msg)
+info device errors =
+    List.filterMap
+        (\error ->
+            if error == "" then
+                Nothing
+
+            else
+                FeedbackContent.init
+                    |> FeedbackContent.title (Just "Error")
+                    |> FeedbackContent.label "Socket"
+                    |> FeedbackContent.element (El.text error)
+                    |> FeedbackContent.view device
+                    |> Just
+        )
+        errors
 
 
 applicableFunctions : Device -> Element Msg

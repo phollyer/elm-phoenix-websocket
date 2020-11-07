@@ -127,34 +127,34 @@ updatePhoenix model ( phoenix, phoenixCmd ) =
 updateExample : String -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 updateExample selectedExample ( model, cmd ) =
     let
-        ( example_, subModel ) =
+        example_ =
             case selectedExample of
                 "Simple Connect" ->
-                    ( SimpleConnect
-                    , SimpleConnect.init
-                    )
+                    SimpleConnect <|
+                        SimpleConnect.init
+                            (Session.device model.session)
+                            (Session.phoenix model.session)
 
                 "Connect With Good Params" ->
-                    ( ConnectWithGoodParams
-                    , ConnectWithGoodParams.init
-                    )
+                    ConnectWithGoodParams <|
+                        ConnectWithGoodParams.init
+                            (Session.device model.session)
+                            (Session.phoenix model.session)
 
                 "Connect With Bad Params" ->
-                    ( ConnectWithBadParams
-                    , ConnectWithBadParams.init
-                    )
+                    ConnectWithBadParams <|
+                        ConnectWithBadParams.init
+                            (Session.device model.session)
+                            (Session.phoenix model.session)
 
                 _ ->
-                    ( SimpleConnect
-                    , SimpleConnect.init
-                    )
+                    SimpleConnect <|
+                        SimpleConnect.init
+                            (Session.device model.session)
+                            (Session.phoenix model.session)
     in
     ( { model
-        | example =
-            example_ <|
-                subModel
-                    (Session.device model.session)
-                    (Session.phoenix model.session)
+        | example = example_
       }
     , cmd
     )
