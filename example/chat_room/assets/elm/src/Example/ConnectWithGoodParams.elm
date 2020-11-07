@@ -213,17 +213,17 @@ info device responses =
 stateToString : Phoenix.SocketState -> String
 stateToString state =
     case state of
-        Phoenix.Connected ->
-            "Connected"
-
-        Phoenix.Disconnected _ ->
-            "Disconnected"
-
         Phoenix.Connecting ->
             "Connecting"
 
+        Phoenix.Connected ->
+            "Connected"
+
         Phoenix.Disconnecting ->
             "Disconnecting"
+
+        Phoenix.Disconnected _ ->
+            "Disconnected"
 
 
 applicableFunctions : Device -> Element Msg
