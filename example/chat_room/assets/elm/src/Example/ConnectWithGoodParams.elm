@@ -7,7 +7,7 @@ module Example.ConnectWithGoodParams exposing
     , view
     )
 
-import Element as El exposing (Device, Element)
+import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Example.Utils exposing (updatePhoenixWith)
 import Extra.String as String
 import Json.Encode as JE
@@ -19,6 +19,7 @@ import View.Example as Example
 import View.ExampleControls as ExampleControls
 import View.Feedback as Feedback
 import View.FeedbackPanel as FeedbackPanel
+import View.Group as Group
 import View.UsefulFunctions as UsefulFunctions
 
 
@@ -126,6 +127,11 @@ controls { device, phoenix } =
             [ connect device phoenix
             , disconnect device phoenix
             ]
+        |> ExampleControls.group
+            (Group.init
+                |> Group.layouts
+                    [ ( Phone, Portrait, [ 2 ] ) ]
+            )
         |> ExampleControls.view device
 
 

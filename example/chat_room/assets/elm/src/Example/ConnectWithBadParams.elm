@@ -138,9 +138,7 @@ controls : Model -> Element Msg
 controls { device, phoenix } =
     ExampleControls.init
         |> ExampleControls.elements
-            [ connect device phoenix
-            , disconnect device phoenix
-            ]
+            [ connect device phoenix ]
         |> ExampleControls.view device
 
 
@@ -157,15 +155,6 @@ connect device phoenix =
                 _ ->
                     False
             )
-        |> Button.view device
-
-
-disconnect : Device -> Phoenix.Model -> Element Msg
-disconnect device phoenix =
-    Button.init
-        |> Button.label "Disconnect"
-        |> Button.onPress (Just (GotControlClick Disconnect))
-        |> Button.enabled (Phoenix.socketState phoenix == Phoenix.Connected)
         |> Button.view device
 
 
