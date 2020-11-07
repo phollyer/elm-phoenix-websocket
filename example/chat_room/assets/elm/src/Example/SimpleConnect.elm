@@ -8,6 +8,7 @@ module Example.SimpleConnect exposing
     )
 
 import Element as El exposing (Device, Element)
+import Example.Utils exposing (updatePhoenixWith)
 import Extra.String as String
 import Json.Encode as JE
 import Phoenix
@@ -62,26 +63,16 @@ update msg model =
         GotControlClick action ->
             case action of
                 Connect ->
-                    model.phoenix
-                        |> Phoenix.setConnectParams JE.null
-                        |> Phoenix.connect
-                        |> updatePhoenix model
+                    Phoenix.connect model.phoenix
+                        |> updatePhoenixWith GotPhoenixMsg model
 
                 Disconnect ->
-                    model.phoenix
-                        |> Phoenix.disconnect Nothing
-                        |> updatePhoenix model
+                    Phoenix.disconnect Nothing model.phoenix
+                        |> updatePhoenixWith GotPhoenixMsg model
 
         GotPhoenixMsg subMsg ->
             Phoenix.update subMsg model.phoenix
-                |> updatePhoenix model
-
-
-updatePhoenix : Model -> ( Phoenix.Model, Cmd Phoenix.Msg ) -> ( Model, Cmd Msg )
-updatePhoenix model ( phoenix, phoenixMsg ) =
-    ( { model | phoenix = phoenix }
-    , Cmd.map GotPhoenixMsg phoenixMsg
-    )
+                |> updatePhoenixWith GotPhoenixMsg model
 
 
 
