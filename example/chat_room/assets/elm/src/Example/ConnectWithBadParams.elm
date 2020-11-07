@@ -20,7 +20,6 @@ import View.ExampleControls as ExampleControls
 import View.Feedback as Feedback
 import View.FeedbackContent as FeedbackContent
 import View.FeedbackPanel as FeedbackPanel
-import View.LabelAndValue as LabelAndValue
 import View.UsefulFunctions as UsefulFunctions
 
 
@@ -49,7 +48,6 @@ type alias Model =
 
 type Action
     = Connect
-    | Disconnect
 
 
 
@@ -73,11 +71,6 @@ update msg model =
                                 [ ( "good_params", JE.bool False ) ]
                             )
                         |> Phoenix.connect
-                        |> updatePhoenixWith GotPhoenixMsg model
-
-                Disconnect ->
-                    model.phoenix
-                        |> Phoenix.disconnect Nothing
                         |> updatePhoenixWith GotPhoenixMsg model
 
         GotPhoenixMsg subMsg ->

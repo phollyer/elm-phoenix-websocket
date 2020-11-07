@@ -75,8 +75,8 @@ subscriptions model =
             (Session.phoenix model)
 
 
-view : Device -> Model -> { title : String, content : Element Msg }
-view device model =
+view : Device -> { title : String, content : Element Msg }
+view device =
     { title = "Home"
     , content =
         Layout.init

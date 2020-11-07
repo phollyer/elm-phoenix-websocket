@@ -10,7 +10,6 @@ module Example.SimpleConnect exposing
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Example.Utils exposing (updatePhoenixWith)
 import Extra.String as String
-import Json.Encode as JE
 import Phoenix
 import UI
 import View.ApplicableFunctions as ApplicableFunctions

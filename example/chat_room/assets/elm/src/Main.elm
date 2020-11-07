@@ -285,8 +285,8 @@ view model =
         NotFound _ ->
             Page.view device NotFound.view
 
-        Home subModel ->
-            viewPage device GotHomeMsg (Home.view device subModel)
+        Home _ ->
+            viewPage device GotHomeMsg (Home.view device)
 
         ControlTheSocketConnection subModel ->
             viewPage device GotControlTheSocketConnectionMsg (ControlTheSocketConnection.view device subModel)
