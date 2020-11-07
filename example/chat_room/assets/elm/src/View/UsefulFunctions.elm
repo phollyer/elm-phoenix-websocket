@@ -5,7 +5,6 @@ module View.UsefulFunctions exposing
     )
 
 import Element exposing (Device, DeviceClass(..), Element, Orientation(..))
-import Template.UsefulFunctions.PhoneLandscape as PhoneLandscape
 import Template.UsefulFunctions.PhonePortrait as PhonePortrait
 import Template.UsefulFunctions.Tablet as Tablet
 
@@ -24,9 +23,6 @@ view { class, orientation } (Config config) =
     case ( class, orientation ) of
         ( Phone, Portrait ) ->
             PhonePortrait.view config
-
-        ( Phone, Landscape ) ->
-            PhoneLandscape.view config
 
         _ ->
             Tablet.view config

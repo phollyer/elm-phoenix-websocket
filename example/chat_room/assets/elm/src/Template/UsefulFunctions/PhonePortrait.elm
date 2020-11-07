@@ -11,7 +11,30 @@ view functions =
         (El.spacing 5
             :: Common.containerAttrs
         )
-        (List.map
-            (\( func, _ ) -> UI.functionLink func)
-            functions
+    <|
+        El.wrappedRow
+            Common.headingAttrs
+            [ El.el
+                []
+                (El.text "Function")
+            , El.el
+                [ El.alignRight ]
+                (El.text "Current Value")
+            ]
+            :: toRows functions
+
+
+toRows : List ( String, String ) -> List (Element msg)
+toRows rows =
+    List.map toRow rows
+
+
+toRow : ( String, String ) -> Element msg
+toRow ( function, currentValue ) =
+    El.wrappedRow
+        (El.spacing 10
+            :: Common.rowAttrs
         )
+        [ El.el [ El.alignTop ] (UI.functionLink function)
+        , El.el [ El.alignRight ] (El.text currentValue)
+        ]
