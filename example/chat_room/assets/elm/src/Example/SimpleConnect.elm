@@ -28,7 +28,7 @@ import View.UsefulFunctions as UsefulFunctions
 
 init : Phoenix.Model -> Model
 init phoenix =
-    { phoenix = phoenix }
+    phoenix
 
 
 
@@ -36,7 +36,7 @@ init phoenix =
 
 
 type alias Model =
-    { phoenix : Phoenix.Model }
+    Phoenix.Model
 
 
 type Action
@@ -59,16 +59,23 @@ update msg model =
         GotControlClick action ->
             case action of
                 Connect ->
-                    Phoenix.connect model.phoenix
-                        |> updatePhoenixWith GotPhoenixMsg model
+                    Phoenix.connect model
+                        |> updateWith GotPhoenixMsg
 
                 Disconnect ->
-                    Phoenix.disconnect Nothing model.phoenix
-                        |> updatePhoenixWith GotPhoenixMsg model
+                    Phoenix.disconnect Nothing model
+                        |> updateWith GotPhoenixMsg
 
         GotPhoenixMsg subMsg ->
-            Phoenix.update subMsg model.phoenix
-                |> updatePhoenixWith GotPhoenixMsg model
+            Phoenix.update subMsg model
+                |> updateWith GotPhoenixMsg
+
+
+updateWith : (Phoenix.Msg -> Msg) -> ( Phoenix.Model, Cmd Phoenix.Msg ) -> ( Model, Cmd Msg )
+updateWith toMsg ( phoenix, phoenixCmd ) =
+    ( phoenix
+    , Cmd.map toMsg phoenixCmd
+    )
 
 
 
@@ -78,7 +85,7 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.map GotPhoenixMsg <|
-        Phoenix.subscriptions model.phoenix
+        Phoenix.subscriptions model
 
 
 
@@ -110,7 +117,7 @@ description =
 
 
 controls : Device -> Model -> Element Msg
-controls device { phoenix } =
+controls device phoenix =
     ExampleControls.init
         |> ExampleControls.elements
             [ connect device phoenix
@@ -154,7 +161,7 @@ disconnect device phoenix =
 
 
 feedback : Device -> Model -> Element Msg
-feedback device { phoenix } =
+feedback device phoenix =
     Feedback.init
         |> Feedback.elements
             [ FeedbackPanel.init
