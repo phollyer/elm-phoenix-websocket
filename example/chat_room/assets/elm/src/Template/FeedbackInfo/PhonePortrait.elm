@@ -3,7 +3,7 @@ module Template.FeedbackInfo.PhonePortrait exposing (view)
 import Element as El exposing (Element)
 import Element.Font as Font
 import Json.Encode as JE
-import Template.FeedbackInfo.Common as Common
+import Template.FeedbackInfo.Common as Common exposing (maybe)
 
 
 view : Common.Config c -> Element msg
@@ -13,10 +13,10 @@ view config =
             :: Common.containerAttrs
         )
         [ field "Topic: " config.topic
-        , field "Event: " config.event
+        , maybe field "Event: " config.event
         , field "Payload: " (JE.encode 2 config.payload)
-        , maybe "Join Ref: " config.joinRef
-        , maybe "Ref: " config.ref
+        , maybe field "Join Ref: " config.joinRef
+        , maybe field "Ref: " config.ref
         ]
 
 
@@ -38,13 +38,3 @@ field label topic_ =
             )
             (El.text topic_)
         ]
-
-
-maybe : String -> Maybe String -> Element msg
-maybe label maybeValue =
-    case maybeValue of
-        Just value ->
-            field label value
-
-        Nothing ->
-            El.none

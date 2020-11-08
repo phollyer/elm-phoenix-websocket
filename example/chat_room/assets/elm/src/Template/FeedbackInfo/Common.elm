@@ -3,11 +3,12 @@ module Template.FeedbackInfo.Common exposing
     , containerAttrs
     , fieldAttrs
     , labelAttrs
+    , maybe
     , valueAttrs
     )
 
 import Colors.Opaque as Color
-import Element as El exposing (Attribute)
+import Element as El exposing (Attribute, Element)
 import Element.Font as Font
 import Json.Encode exposing (Value)
 
@@ -15,7 +16,7 @@ import Json.Encode exposing (Value)
 type alias Config c =
     { c
         | topic : String
-        , event : String
+        , event : Maybe String
         , payload : Value
         , joinRef : Maybe String
         , ref : Maybe String
@@ -51,3 +52,13 @@ labelAttrs =
 valueAttrs : List (Attribute msg)
 valueAttrs =
     [ Font.color Color.black ]
+
+
+maybe : (String -> String -> Element msg) -> String -> Maybe String -> Element msg
+maybe field label maybeValue =
+    case maybeValue of
+        Just value ->
+            field label value
+
+        Nothing ->
+            El.none

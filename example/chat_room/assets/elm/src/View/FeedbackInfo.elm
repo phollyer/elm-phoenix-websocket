@@ -18,7 +18,7 @@ import Template.FeedbackInfo.PhonePortrait as PhonePortrait
 type Config msg
     = Config
         { topic : String
-        , event : String
+        , event : Maybe String
         , payload : Value
         , joinRef : Maybe String
         , ref : Maybe String
@@ -29,7 +29,7 @@ init : Config msg
 init =
     Config
         { topic = ""
-        , event = ""
+        , event = Nothing
         , payload = JE.null
         , joinRef = Nothing
         , ref = Nothing
@@ -53,7 +53,15 @@ topic topic_ (Config config) =
 
 event : String -> Config msg -> Config msg
 event event_ (Config config) =
-    Config { config | event = event_ }
+    Config
+        { config
+            | event =
+                if event_ == "" then
+                    Nothing
+
+                else
+                    Just event_
+        }
 
 
 payload : Value -> Config msg -> Config msg
