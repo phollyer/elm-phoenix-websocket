@@ -206,8 +206,12 @@ updateSession session model =
 {- View -}
 
 
-view : Device -> Model -> { title : String, content : Element Msg }
-view device model =
+view : Model -> { title : String, content : Element Msg }
+view model =
+    let
+        device =
+            Session.device model.session
+    in
     { title = "Send And Receive"
     , content =
         Layout.init
