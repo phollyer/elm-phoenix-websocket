@@ -35,4 +35,7 @@ headingAttrs =
 
 rowAttrs : List (Attribute msg)
 rowAttrs =
-    [ El.width El.fill ]
+    [ El.width El.fill
+    , El.clipX
+    , El.scrollbarX
+    ]

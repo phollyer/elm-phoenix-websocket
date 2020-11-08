@@ -46,8 +46,8 @@ contentAttrs =
 
 scrollableAttrs : List (Attribute msg)
 scrollableAttrs =
-    [ El.clip
-    , El.scrollbars
+    [ El.clipY
+    , El.scrollbarY
     , El.height El.fill
     , El.paddingXY 0 10
     , Border.widthEach
