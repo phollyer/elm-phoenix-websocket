@@ -9,7 +9,8 @@ view : Common.Config msg c -> Element msg
 view config =
     case config.layout of
         Nothing ->
-            toRow config.selected config.onClick config.options
+            El.el attrs <|
+                toRow config.selected config.onClick config.options
 
         Just layout ->
             El.column attrs <|
