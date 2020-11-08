@@ -80,7 +80,7 @@ update msg model =
                     model.phoenix
                         |> Phoenix.setJoinConfig
                             { topic = "example:send_and_receive"
-                            , events = [ "receive_push", "receive_broadcast" ]
+                            , events = [ "receive_event_1", "receive_event_2" ]
                             , payload = JE.null
                             , timeout = Nothing
                             }
@@ -160,14 +160,9 @@ view model =
 description : List (Element msg)
 description =
     [ UI.paragraph
-        [ El.text "Receive multiple events from the Channel after pushing an event to the Channel. "
-        , El.text "This example will receive two events in return from a "
+        [ El.text "Receive two events from the Channel after a "
         , UI.code "push"
-        , El.text ". The first is "
-        , UI.code "push"
-        , El.text "'ed from the server to the client, the second is "
-        , UI.code "broadcast"
-        , El.text "ed to all connected clients."
+        , El.text "."
         ]
     ]
 

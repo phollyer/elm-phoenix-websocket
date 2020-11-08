@@ -11,9 +11,8 @@ defmodule ChatRoomWeb.SendAndReceiveChannel do
   end
 
   def handle_in("receive_events", _, socket) do
-    push( socket, "receive_push", %{"event" => "push"} )
-
-    broadcast( socket, "receive_broadcast", %{"event" => "broadcast"} )
+    push( socket, "receive_event_1", %{"event" => "1"} )
+    push( socket, "receive_event_2", %{"event" => "2"} )
 
     {:reply, :ok, socket}
   end
