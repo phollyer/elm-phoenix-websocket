@@ -85,7 +85,7 @@ view device =
                 (Home.init
                     |> Home.socket (socketExamples device)
                     |> Home.channels (channelsExamples device)
-                    |> Home.presence presenceExamples
+                    |> Home.presence (presenceExamples device)
                     |> Home.view device
                 )
             |> Layout.view device
@@ -126,6 +126,12 @@ channelsExamples device =
     ]
 
 
-presenceExamples : List (Element msg)
-presenceExamples =
-    []
+presenceExamples : Device -> List (Element Msg)
+presenceExamples device =
+    [ Panel.init
+        |> Panel.title "Multi-room Chat"
+        |> Panel.description
+            [ "Join multiple rooms at the same time and chat in each of them." ]
+        |> Panel.onClick (Just (NavigateTo ChatRooms))
+        |> Panel.view device
+    ]

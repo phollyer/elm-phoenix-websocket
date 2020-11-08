@@ -7,6 +7,7 @@ import Element as El exposing (Device, Element)
 import Html
 import Page
 import Page.Blank as Blank
+import Page.ChatRooms as ChatRooms
 import Page.ControlTheSocketConnection as ControlTheSocketConnection
 import Page.HandleSocketMessages as HandleSocketMessages
 import Page.Home as Home
@@ -45,6 +46,10 @@ changeRouteTo maybeRoute model =
             Home.init session
                 |> updateWith Home GotHomeMsg
 
+        Just Route.ChatRooms ->
+            ChatRooms.init session
+                |> updateWith ChatRooms GotChatRoomsMsg
+
         Just Route.ControlTheSocketConnection ->
             ControlTheSocketConnection.init session
                 |> updateWith ControlTheSocketConnection GotControlTheSocketConnectionMsg
@@ -70,6 +75,7 @@ type Model
     = Redirect Session
     | NotFound Session
     | Home Home.Model
+    | ChatRooms ChatRooms.Model
     | ControlTheSocketConnection ControlTheSocketConnection.Model
     | HandleSocketMessages HandleSocketMessages.Model
     | JoinAndLeaveChannels JoinAndLeaveChannels.Model
@@ -85,6 +91,7 @@ type Msg
     | ClickedLink Browser.UrlRequest
     | WindowResized Int Int
     | GotHomeMsg Home.Msg
+    | GotChatRoomsMsg ChatRooms.Msg
     | GotControlTheSocketConnectionMsg ControlTheSocketConnection.Msg
     | GotHandleSocketMessagesMsg HandleSocketMessages.Msg
     | GotJoinAndLeaveChannelsMsg JoinAndLeaveChannels.Msg
@@ -167,6 +174,9 @@ toSession model =
         Home subModel ->
             Home.toSession subModel
 
+        ChatRooms subModel ->
+            ChatRooms.toSession subModel
+
         ControlTheSocketConnection subModel ->
             ControlTheSocketConnection.toSession subModel
 
@@ -192,6 +202,10 @@ updateSession session model =
         Home _ ->
             Home <|
                 Home.updateSession session
+
+        ChatRooms subModel ->
+            ChatRooms <|
+                ChatRooms.updateSession session subModel
 
         ControlTheSocketConnection subModel ->
             ControlTheSocketConnection <|
@@ -236,6 +250,13 @@ subscriptions model =
             Sub.batch
                 [ Sub.map GotHomeMsg <|
                     Home.subscriptions subModel
+                , onResize WindowResized
+                ]
+
+        ChatRooms subModel ->
+            Sub.batch
+                [ Sub.map GotChatRoomsMsg <|
+                    ChatRooms.subscriptions subModel
                 , onResize WindowResized
                 ]
 
@@ -287,6 +308,9 @@ view model =
 
         Home _ ->
             viewPage device GotHomeMsg (Home.view device)
+
+        ChatRooms subModel ->
+            viewPage device GotChatRoomsMsg (ChatRooms.view subModel)
 
         ControlTheSocketConnection subModel ->
             viewPage device GotControlTheSocketConnectionMsg (ControlTheSocketConnection.view subModel)

@@ -13,6 +13,7 @@ import Url.Parser as Parser exposing (Parser, oneOf, s)
 type Route
     = Home
     | Root
+    | ChatRooms
     | ControlTheSocketConnection
     | HandleSocketMessages
     | JoinAndLeaveChannels
@@ -23,6 +24,7 @@ parser : Parser (Route -> a) a
 parser =
     oneOf
         [ Parser.map Home Parser.top
+        , Parser.map ChatRooms (s "ChatRooms")
         , Parser.map ControlTheSocketConnection (s "ControlTheSocketConnection")
         , Parser.map HandleSocketMessages (s "HandleSocketMessages")
         , Parser.map JoinAndLeaveChannels (s "JoinAndLeaveChannels")
@@ -53,6 +55,9 @@ routeToString route =
 
         Root ->
             "/"
+
+        ChatRooms ->
+            "/ChatRooms"
 
         ControlTheSocketConnection ->
             "/ControlTheSocketConnection"

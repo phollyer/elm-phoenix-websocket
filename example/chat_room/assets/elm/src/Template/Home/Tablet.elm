@@ -65,7 +65,7 @@ presenceExamples examplePanels =
             (Font.size 30
                 :: Common.headingAttrs
             )
-            (El.text "Presence Examples")
+            (El.text "Presence Example")
         , El.row
             (El.spacing 20
                 :: Common.examplesAttrs
