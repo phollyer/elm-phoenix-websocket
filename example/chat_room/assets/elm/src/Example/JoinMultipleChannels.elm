@@ -203,7 +203,7 @@ channelResponse device response =
     case response of
         Phoenix.JoinOk topic payload ->
             FeedbackContent.init
-                |> FeedbackContent.title (Just "Channel Response")
+                |> FeedbackContent.title (Just "ChannelResponse")
                 |> FeedbackContent.label "JoinOk"
                 |> FeedbackContent.element
                     (FeedbackInfo.init
@@ -215,7 +215,7 @@ channelResponse device response =
 
         Phoenix.LeaveOk topic ->
             FeedbackContent.init
-                |> FeedbackContent.title (Just "Channel Response")
+                |> FeedbackContent.title (Just "ChannelResponse")
                 |> FeedbackContent.label "LeaveOk"
                 |> FeedbackContent.element
                     (FeedbackInfo.init
