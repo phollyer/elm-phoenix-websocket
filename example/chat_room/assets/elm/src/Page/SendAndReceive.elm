@@ -253,7 +253,7 @@ menu device { example } =
         selected =
             case example of
                 PushOneEvent _ ->
-                    "Push One event"
+                    "Push One Event"
 
                 PushMultipleEvents _ ->
                     "Push Multiple Events"
