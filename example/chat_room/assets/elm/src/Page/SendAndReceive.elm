@@ -33,7 +33,6 @@ init session =
       , example =
             PushOneEvent <|
                 PushOneEvent.init
-                    (Session.device session)
                     (Session.phoenix session)
       }
     , Cmd.none
@@ -132,25 +131,21 @@ updateExample selectedExample ( model, cmd ) =
                 "Push One Event" ->
                     PushOneEvent <|
                         PushOneEvent.init
-                            (Session.device model.session)
                             (Session.phoenix model.session)
 
                 "Push Multiple Events" ->
                     PushMultipleEvents <|
                         PushMultipleEvents.init
-                            (Session.device model.session)
                             (Session.phoenix model.session)
 
                 "Receive Events" ->
                     ReceiveEvents <|
                         ReceiveEvents.init
-                            (Session.device model.session)
                             (Session.phoenix model.session)
 
                 _ ->
                     PushOneEvent <|
                         PushOneEvent.init
-                            (Session.device model.session)
                             (Session.phoenix model.session)
     in
     ( { model
@@ -221,7 +216,7 @@ view model =
                 (ExamplePage.init
                     |> ExamplePage.introduction introduction
                     |> ExamplePage.menu (menu device model)
-                    |> ExamplePage.example (viewExample model)
+                    |> ExamplePage.example (viewExample device model)
                     |> ExamplePage.view device
                 )
             |> Layout.view device
@@ -283,17 +278,17 @@ menu device { example } =
 {- Example -}
 
 
-viewExample : Model -> Element Msg
-viewExample { example } =
+viewExample : Device -> Model -> Element Msg
+viewExample device { example } =
     case example of
         PushOneEvent subModel ->
-            PushOneEvent.view subModel
+            PushOneEvent.view device subModel
                 |> El.map GotPushOneEventMsg
 
         PushMultipleEvents subModel ->
-            PushMultipleEvents.view subModel
+            PushMultipleEvents.view device subModel
                 |> El.map GotPushMultipleEventsMsg
 
         ReceiveEvents subModel ->
-            ReceiveEvents.view subModel
+            ReceiveEvents.view device subModel
                 |> El.map GotReceiveEventsMsg

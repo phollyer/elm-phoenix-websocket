@@ -31,14 +31,13 @@ import View.UsefulFunctions as UsefulFunctions
 {- Init -}
 
 
-init : Device -> Phoenix.Model -> ( Model, Cmd Msg )
-init device phoenix =
+init : Phoenix.Model -> ( Model, Cmd Msg )
+init phoenix =
     let
         ( phx, phxCmd ) =
             Phoenix.join "example:manage_presence_messages" phoenix
     in
-    ( { device = device
-      , phoenix = phx
+    ( { phoenix = phx
       , messages = []
       , receiveMessages = True
       , maybeExampleId = Nothing
@@ -53,8 +52,7 @@ init device phoenix =
 
 
 type alias Model =
-    { device : Device
-    , phoenix : Phoenix.Model
+    { phoenix : Phoenix.Model
     , messages : List PresenceInfo
     , receiveMessages : Bool
     , maybeExampleId : Maybe ID
@@ -224,14 +222,14 @@ subscriptions model =
 {- View -}
 
 
-view : Model -> Element Msg
-view model =
+view : Device -> Model -> Element Msg
+view device model =
     Example.init
         |> Example.id model.maybeExampleId
         |> Example.description description
-        |> Example.controls (controls model)
-        |> Example.feedback (feedback model)
-        |> Example.view model.device
+        |> Example.controls (controls device model)
+        |> Example.feedback (feedback device model)
+        |> Example.view device
 
 
 
@@ -249,8 +247,8 @@ description =
 {- Controls -}
 
 
-controls : Model -> Element Msg
-controls { device, phoenix, maybeUserId, maybeExampleId, receiveMessages } =
+controls : Device -> Model -> Element Msg
+controls device { phoenix, maybeUserId, maybeExampleId, receiveMessages } =
     let
         joinedChannel =
             Phoenix.channelJoined (controllerTopic maybeExampleId) phoenix
@@ -313,8 +311,8 @@ off device enabled =
 {- Feedback -}
 
 
-feedback : Model -> Element Msg
-feedback { device, phoenix, maybeExampleId, messages } =
+feedback : Device -> Model -> Element Msg
+feedback device { phoenix, maybeExampleId, messages } =
     Feedback.init
         |> Feedback.elements
             [ FeedbackPanel.init

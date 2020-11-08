@@ -34,7 +34,6 @@ init session =
       , example =
             SimpleJoinAndLeave <|
                 SimpleJoinAndLeave.init
-                    (Session.device session)
                     (Session.phoenix session)
       }
     , Cmd.none
@@ -165,7 +164,6 @@ updateExample selectedExample ( model, cmd ) =
         | example =
             example_ <|
                 subModel
-                    (Session.device model.session)
                     (Session.phoenix model.session)
       }
     , cmd
@@ -237,7 +235,7 @@ view model =
                 (ExamplePage.init
                     |> ExamplePage.introduction introduction
                     |> ExamplePage.menu (menu device model)
-                    |> ExamplePage.example (viewExample model)
+                    |> ExamplePage.example (viewExample device model)
                     |> ExamplePage.view device
                 )
             |> Layout.view device
@@ -299,21 +297,21 @@ menu device { example } =
 {- Example -}
 
 
-viewExample : Model -> Element Msg
-viewExample { example } =
+viewExample : Device -> Model -> Element Msg
+viewExample device { example } =
     case example of
         SimpleJoinAndLeave subModel ->
-            SimpleJoinAndLeave.view subModel
+            SimpleJoinAndLeave.view device subModel
                 |> El.map GotSimpleJoinAndLeaveMsg
 
         JoinWithGoodParams subModel ->
-            JoinWithGoodParams.view subModel
+            JoinWithGoodParams.view device subModel
                 |> El.map GotJoinWithGoodParamsMsg
 
         JoinWithBadParams subModel ->
-            JoinWithBadParams.view subModel
+            JoinWithBadParams.view device subModel
                 |> El.map GotJoinWithBadParamsMsg
 
         JoinMultipleChannels subModel ->
-            JoinMultipleChannels.view subModel
+            JoinMultipleChannels.view device subModel
                 |> El.map GotJoinMultipleChannelsMsg

@@ -32,7 +32,6 @@ init session =
     let
         ( subModel, subCmd ) =
             ManageSocketHeartbeat.init
-                (Session.device session)
                 (Session.phoenix session)
     in
     ( { session = Session.updatePhoenix subModel.phoenix session
@@ -135,7 +134,6 @@ updateExample selectedExample ( model, cmd ) =
                     let
                         ( subModel, subCmd ) =
                             ManageSocketHeartbeat.init
-                                (Session.device model.session)
                                 (Session.phoenix model.session)
                     in
                     ( ManageSocketHeartbeat subModel
@@ -146,7 +144,6 @@ updateExample selectedExample ( model, cmd ) =
                     let
                         ( subModel, subCmd ) =
                             ManageChannelMessages.init
-                                (Session.device model.session)
                                 (Session.phoenix model.session)
                     in
                     ( ManageChannelMessages subModel
@@ -157,7 +154,6 @@ updateExample selectedExample ( model, cmd ) =
                     let
                         ( subModel, subCmd ) =
                             ManagePresenceMessages.init
-                                (Session.device model.session)
                                 (Session.phoenix model.session)
                     in
                     ( ManagePresenceMessages subModel
@@ -168,7 +164,6 @@ updateExample selectedExample ( model, cmd ) =
                     let
                         ( subModel, subCmd ) =
                             ManageSocketHeartbeat.init
-                                (Session.device model.session)
                                 (Session.phoenix model.session)
                     in
                     ( ManageSocketHeartbeat subModel
@@ -243,7 +238,7 @@ view model =
                 (ExamplePage.init
                     |> ExamplePage.introduction introduction
                     |> ExamplePage.menu (menu device model)
-                    |> ExamplePage.example (viewExample model)
+                    |> ExamplePage.example (viewExample device model)
                     |> ExamplePage.view device
                 )
             |> Layout.view device
@@ -304,17 +299,17 @@ menu device { example } =
 {- Example -}
 
 
-viewExample : Model -> Element Msg
-viewExample { example } =
+viewExample : Device -> Model -> Element Msg
+viewExample device { example } =
     case example of
         ManageSocketHeartbeat subModel ->
-            ManageSocketHeartbeat.view subModel
+            ManageSocketHeartbeat.view device subModel
                 |> El.map GotManageSocketHeartbeatMsg
 
         ManageChannelMessages subModel ->
-            ManageChannelMessages.view subModel
+            ManageChannelMessages.view device subModel
                 |> El.map GotManageChannelMessagesMsg
 
         ManagePresenceMessages subModel ->
-            ManagePresenceMessages.view subModel
+            ManagePresenceMessages.view device subModel
                 |> El.map GotManagePresenceMessagesMsg

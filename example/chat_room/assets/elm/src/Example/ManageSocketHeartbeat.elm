@@ -30,8 +30,8 @@ import View.UsefulFunctions as UsefulFunctions
 {- Init -}
 
 
-init : Device -> Phoenix.Model -> ( Model, Cmd Msg )
-init device phoenix =
+init : Phoenix.Model -> ( Model, Cmd Msg )
+init phoenix =
     let
         ( phx, phxCmd ) =
             phoenix
@@ -39,8 +39,7 @@ init device phoenix =
                     [ HeartbeatIntervalMillis 1000 ]
                 |> Phoenix.connect
     in
-    ( { device = device
-      , phoenix = phx
+    ( { phoenix = phx
       , messages = []
       , receiveMessages = True
       }
@@ -53,8 +52,7 @@ init device phoenix =
 
 
 type alias Model =
-    { device : Device
-    , phoenix : Phoenix.Model
+    { phoenix : Phoenix.Model
     , messages : List HeartbeatInfo
     , receiveMessages : Bool
     }
@@ -138,13 +136,13 @@ subscriptions model =
 {- View -}
 
 
-view : Model -> Element Msg
-view model =
+view : Device -> Model -> Element Msg
+view device model =
     Example.init
         |> Example.description description
-        |> Example.controls (controls model)
-        |> Example.feedback (feedback model)
-        |> Example.view model.device
+        |> Example.controls (controls device model)
+        |> Example.feedback (feedback device model)
+        |> Example.view device
 
 
 
@@ -162,8 +160,8 @@ description =
 {- Controls -}
 
 
-controls : Model -> Element Msg
-controls { device, receiveMessages } =
+controls : Device -> Model -> Element Msg
+controls device { receiveMessages } =
     ExampleControls.init
         |> ExampleControls.elements
             [ on device receiveMessages
@@ -194,8 +192,8 @@ off device state =
 {- Feedback -}
 
 
-feedback : Model -> Element Msg
-feedback { device, phoenix, messages } =
+feedback : Device -> Model -> Element Msg
+feedback device { phoenix, messages } =
     Feedback.init
         |> Feedback.elements
             [ FeedbackPanel.init

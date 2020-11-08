@@ -29,10 +29,9 @@ import View.UsefulFunctions as UsefulFunctions
 {- Init -}
 
 
-init : Device -> Phoenix.Model -> Model
-init device phoenix =
-    { device = device
-    , phoenix = phoenix
+init : Phoenix.Model -> Model
+init phoenix =
+    { phoenix = phoenix
     , info = []
     }
 
@@ -42,8 +41,7 @@ init device phoenix =
 
 
 type alias Model =
-    { device : Device
-    , phoenix : Phoenix.Model
+    { phoenix : Phoenix.Model
     , info : List Info
     }
 
@@ -138,13 +136,13 @@ subscriptions model =
 {- View -}
 
 
-view : Model -> Element Msg
-view model =
+view : Device -> Model -> Element Msg
+view device model =
     Example.init
         |> Example.description description
-        |> Example.controls (controls model)
-        |> Example.feedback (feedback model)
-        |> Example.view model.device
+        |> Example.controls (controls device model)
+        |> Example.feedback (feedback device model)
+        |> Example.view device
 
 
 
@@ -162,8 +160,8 @@ description =
 {- Controls -}
 
 
-controls : Model -> Element Msg
-controls { device, phoenix } =
+controls : Device -> Model -> Element Msg
+controls device { phoenix } =
     ExampleControls.init
         |> ExampleControls.elements (buttons device phoenix)
         |> ExampleControls.view device
@@ -198,8 +196,8 @@ leave device enabled =
 {- Feedback -}
 
 
-feedback : Model -> Element Msg
-feedback { device, phoenix, info } =
+feedback : Device -> Model -> Element Msg
+feedback device { phoenix, info } =
     Feedback.init
         |> Feedback.elements
             [ FeedbackPanel.init
