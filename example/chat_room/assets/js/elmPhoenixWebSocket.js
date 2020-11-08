@@ -459,8 +459,6 @@ let ElmPhoenixWebSocket = {
 
         this.allOn(params)
 
-        this.allOn({topic: params.topic, events: this.events[params.topic]})
-
         return channel
     },
 
