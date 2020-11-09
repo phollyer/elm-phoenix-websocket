@@ -10,6 +10,8 @@ type alias Config msg c =
     { c
         | introduction : List (List (Element msg))
         , form : Element msg
+        , username : String
+        , userId : Maybe String
     }
 
 
@@ -20,25 +22,53 @@ view config =
         , El.width El.fill
         , El.spacing 15
         ]
-        [ El.column
-            [ El.width El.fill
-            , El.spacing 10
-            ]
-          <|
-            List.map
-                (\paragraph ->
-                    El.paragraph
-                        [ El.width El.fill
-                        , El.spacing 2
-                        ]
-                        paragraph
-                )
-                config.introduction
-        , El.el
-            [ Border.rounded 10
-            , Background.color Color.steelblue
-            , El.padding 20
-            , El.width El.fill
-            ]
-            config.form
-        ]
+    <|
+        case config.userId of
+            Nothing ->
+                [ El.column
+                    [ El.width El.fill
+                    , El.spacing 10
+                    ]
+                  <|
+                    List.map
+                        (\paragraph ->
+                            El.paragraph
+                                [ El.width El.fill
+                                , El.spacing 2
+                                ]
+                                paragraph
+                        )
+                        config.introduction
+                , El.el
+                    [ Border.rounded 10
+                    , Background.color Color.steelblue
+                    , El.padding 20
+                    , El.width El.fill
+                    ]
+                    config.form
+                ]
+
+            Just id ->
+                [ El.row
+                    [ El.centerX
+                    , El.spacing 10
+                    ]
+                    [ El.el
+                        []
+                        (El.text "Username:")
+                    , El.el
+                        []
+                        (El.text config.username)
+                    ]
+                , El.row
+                    [ El.centerX
+                    , El.spacing 10
+                    ]
+                    [ El.el
+                        []
+                        (El.text "User ID:")
+                    , El.el
+                        []
+                        (El.text id)
+                    ]
+                ]

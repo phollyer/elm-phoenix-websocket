@@ -2,6 +2,8 @@ module View.Lobby exposing
     ( form
     , init
     , introduction
+    , userId
+    , username
     , view
     )
 
@@ -17,6 +19,8 @@ type Config msg
     = Config
         { introduction : List (List (Element msg))
         , form : Element msg
+        , username : String
+        , userId : Maybe String
         }
 
 
@@ -29,6 +33,8 @@ init =
     Config
         { introduction = []
         , form = El.none
+        , username = ""
+        , userId = Nothing
         }
 
 
@@ -49,3 +55,13 @@ form inputElement (Config config) =
 introduction : List (List (Element msg)) -> Config msg -> Config msg
 introduction elements (Config config) =
     Config { config | introduction = elements }
+
+
+username : String -> Config msg -> Config msg
+username name (Config config) =
+    Config { config | username = name }
+
+
+userId : String -> Config msg -> Config msg
+userId id (Config config) =
+    Config { config | userId = Just id }

@@ -192,5 +192,8 @@ view device model =
                     )
                 |> Lobby.view device
 
-        _ ->
-            El.none
+        InLobby (Registered user) ->
+            Lobby.init
+                |> Lobby.username user.username
+                |> Lobby.userId user.id
+                |> Lobby.view device
