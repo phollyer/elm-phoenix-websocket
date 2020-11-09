@@ -149,10 +149,9 @@ view device model =
 {- Description -}
 
 
-description : List (Element msg)
+description : List (List (Element msg))
 description =
-    [ UI.paragraph
-        [ El.text "Choose whether to receive the heartbeat as an incoming Socket message. For this example, the heartbeat interval is set at 1 second." ]
+    [ [ El.text "Choose whether to receive the heartbeat as an incoming Socket message. For this example, the heartbeat interval is set at 1 second." ]
     ]
 
 

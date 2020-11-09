@@ -236,10 +236,9 @@ view device model =
 {- Description -}
 
 
-description : List (Element msg)
+description : List (List (Element msg))
 description =
-    [ UI.paragraph
-        [ El.text "Choose whether to receive Presence messages as an incoming Socket message." ]
+    [ [ El.text "Choose whether to receive Presence messages as an incoming Socket message." ]
     ]
 
 

@@ -149,11 +149,9 @@ view device model =
 {- Description -}
 
 
-description : List (Element msg)
+description : List (List (Element msg))
 description =
-    [ UI.paragraph
-        [ El.text "Push an event to the Channel with no need to connect to the socket, or join the channel first." ]
-    ]
+    [ [ El.text "Push an event to the Channel with no need to connect to the socket, or join the channel first." ] ]
 
 
 

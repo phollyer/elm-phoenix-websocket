@@ -155,13 +155,12 @@ view device model =
 {- Description -}
 
 
-description : List (Element msg)
+description : List (List (Element msg))
 description =
-    [ UI.paragraph
-        [ El.text "Receive two events from the Channel after a "
-        , UI.code "push"
-        , El.text "."
-        ]
+    [ [ El.text "Receive two events from the Channel after a "
+      , UI.code "push"
+      , El.text "."
+      ]
     ]
 
 

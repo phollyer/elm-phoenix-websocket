@@ -17,7 +17,7 @@ import Element.Font as Font
 type alias Config msg c =
     { c
         | id : Maybe String
-        , introduction : List (Element msg)
+        , introduction : List (List (Element msg))
         , menu : Element msg
         , example : Element msg
     }

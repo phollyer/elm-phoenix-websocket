@@ -155,12 +155,11 @@ view device model =
 {- Description -}
 
 
-description : List (Element msg)
+description : List (List (Element msg))
 description =
-    [ UI.paragraph
-        [ El.text "Push multiple events to the Channel with no need to connect to the socket, or join the channel first. "
-        , El.text "This example will make 3 simultaneous pushes."
-        ]
+    [ [ El.text "Push multiple events to the Channel with no need to connect to the socket, or join the channel first. "
+      , El.text "This example will make 3 simultaneous pushes."
+      ]
     ]
 
 

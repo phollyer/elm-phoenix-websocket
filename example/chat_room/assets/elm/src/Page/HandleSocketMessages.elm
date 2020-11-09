@@ -247,17 +247,15 @@ view model =
 
 {-| Introudction
 -}
-introduction : List (Element msg)
+introduction : List (List (Element Msg))
 introduction =
-    [ UI.paragraph
-        [ El.text "By default, the PhoenixJS "
-        , UI.code "onMessage"
-        , El.text " handler for the Socket is setup to send all Socket messages through the incoming "
-        , UI.code "port"
-        , El.text ". These examples demonstrate controlling the types of messages that are allowed through."
-        ]
-    , UI.paragraph
-        [ El.text "Clicking on a function will take you to its documentation." ]
+    [ [ El.text "By default, the PhoenixJS "
+      , UI.code "onMessage"
+      , El.text " handler for the Socket is setup to send all Socket messages through the incoming "
+      , UI.code "port"
+      , El.text ". These examples demonstrate controlling the types of messages that are allowed through."
+      ]
+    , [ El.text "Clicking on a function will take you to its documentation." ]
     ]
 
 

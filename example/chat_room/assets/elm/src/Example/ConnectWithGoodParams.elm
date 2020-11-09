@@ -121,10 +121,9 @@ view device model =
 {- Description -}
 
 
-description : List (Element msg)
+description : List (List (Element msg))
 description =
-    [ UI.paragraph
-        [ El.text "Connect to the Socket with authentication params that are accepted." ]
+    [ [ El.text "Connect to the Socket with authentication params that are accepted." ]
     ]
 
 

@@ -128,10 +128,9 @@ view device model =
 {- Description -}
 
 
-description : List (Element msg)
+description : List (List (Element msg))
 description =
-    [ UI.paragraph
-        [ El.text "Join multiple Channels with a single command." ]
+    [ [ El.text "Join multiple Channels with a single command." ]
     ]
 
 

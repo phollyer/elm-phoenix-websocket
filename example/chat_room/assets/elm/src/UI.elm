@@ -1,7 +1,6 @@
 module UI exposing
     ( code
     , functionLink
-    , paragraph
     )
 
 import Colors.Opaque as Color
@@ -24,13 +23,6 @@ code text =
         , Font.color Color.black
         ]
         (El.text text)
-
-
-paragraph : List (Element msg) -> Element msg
-paragraph content =
-    El.paragraph
-        [ El.spacing 10 ]
-        content
 
 
 {-| A fomratted link to a functions docs.

@@ -123,11 +123,9 @@ view device model =
 {- Description -}
 
 
-description : List (Element msg)
+description : List (List (Element msg))
 description =
-    [ UI.paragraph
-        [ El.text "A simple Join to a Channel without sending any params." ]
-    ]
+    [ [ El.text "A simple Join to a Channel without sending any params." ] ]
 
 
 

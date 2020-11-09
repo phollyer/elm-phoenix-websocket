@@ -52,13 +52,20 @@ menu menu_ =
 {- Description -}
 
 
-description : List (Element msg) -> Element msg
+description : List (List (Element msg)) -> Element msg
 description content =
     El.column
         (Font.size 16
             :: Common.descriptionAttrs
         )
-        content
+    <|
+        List.map
+            (\paragraph ->
+                El.paragraph
+                    [ El.width El.fill ]
+                    paragraph
+            )
+            content
 
 
 

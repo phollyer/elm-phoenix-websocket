@@ -105,11 +105,9 @@ view device model =
 {- Description -}
 
 
-description : List (Element msg)
+description : List (List (Element msg))
 description =
-    [ UI.paragraph
-        [ El.text "A simple connection to the Socket without sending any params or setting any connect options." ]
-    ]
+    [ [ El.text "A simple connection to the Socket without sending any params or setting any connect options." ] ]
 
 
 

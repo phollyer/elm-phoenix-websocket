@@ -20,7 +20,7 @@ view config =
 {- Introduction -}
 
 
-introduction : List (Element msg) -> Element msg
+introduction : List (List (Element msg)) -> Element msg
 introduction intro =
     El.column
         (List.append
@@ -29,7 +29,14 @@ introduction intro =
             ]
             Common.introductionAttrs
         )
-        intro
+    <|
+        List.map
+            (\paragraph ->
+                El.paragraph
+                    [ El.width El.fill ]
+                    paragraph
+            )
+            intro
 
 
 

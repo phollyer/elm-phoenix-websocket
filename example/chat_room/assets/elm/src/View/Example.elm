@@ -28,7 +28,7 @@ type Config msg
         { id : Maybe String
         , introduction : List (Element msg)
         , menu : Element msg
-        , description : List (Element msg)
+        , description : List (List (Element msg))
         , controls : Element msg
         , remoteControls : List (Element msg)
         , feedback : Element msg
@@ -72,7 +72,7 @@ controls cntrls (Config config) =
 
 
 {-| -}
-description : List (Element msg) -> Config msg -> Config msg
+description : List (List (Element msg)) -> Config msg -> Config msg
 description desc (Config config) =
     Config { config | description = desc }
 

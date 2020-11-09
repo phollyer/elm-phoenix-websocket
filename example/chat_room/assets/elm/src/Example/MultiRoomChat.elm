@@ -74,10 +74,8 @@ view device model =
         InLobby ->
             Lobby.init
                 |> Lobby.introduction
-                    [ UI.paragraph
-                        [ El.text "Welcome, to the Lobby." ]
-                    , UI.paragraph
-                        [ El.text "Enter a username in order to join or create a room." ]
+                    [ [ El.text "Welcome, to the Lobby." ]
+                    , [ El.text "Enter a username in order to join or create a room." ]
                     ]
                 |> Lobby.form
                     (LobbyForm.init

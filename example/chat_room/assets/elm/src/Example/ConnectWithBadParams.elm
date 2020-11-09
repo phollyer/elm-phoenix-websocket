@@ -114,10 +114,9 @@ view device model =
 {- Description -}
 
 
-description : List (Element msg)
+description : List (List (Element msg))
 description =
-    [ UI.paragraph
-        [ El.text "Try to connect to the Socket with authentication params that are not accepted, causing the connection to be denied." ]
+    [ [ El.text "Try to connect to the Socket with authentication params that are not accepted, causing the connection to be denied." ]
     ]
 
 

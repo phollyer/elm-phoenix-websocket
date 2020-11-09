@@ -26,7 +26,7 @@ import Template.ExamplePage.Tablet as Tablet
 type Config msg
     = Config
         { id : Maybe String
-        , introduction : List (Element msg)
+        , introduction : List (List (Element msg))
         , menu : Element msg
         , example : Element msg
         }
@@ -64,7 +64,7 @@ id maybeId (Config config) =
 
 
 {-| -}
-introduction : List (Element msg) -> Config msg -> Config msg
+introduction : List (List (Element msg)) -> Config msg -> Config msg
 introduction list (Config config) =
     Config { config | introduction = list }
 

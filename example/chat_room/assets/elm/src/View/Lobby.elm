@@ -15,7 +15,7 @@ import Template.Lobby.PhonePortrait as PhonePortrait
 
 type Config msg
     = Config
-        { introduction : List (Element msg)
+        { introduction : List (List (Element msg))
         , form : Element msg
         }
 
@@ -46,6 +46,6 @@ form inputElement (Config config) =
     Config { config | form = inputElement }
 
 
-introduction : List (Element msg) -> Config msg -> Config msg
+introduction : List (List (Element msg)) -> Config msg -> Config msg
 introduction elements (Config config) =
     Config { config | introduction = elements }

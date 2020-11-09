@@ -21,7 +21,7 @@ type alias Config msg c =
         | id : Maybe String
         , introduction : List (Element msg)
         , menu : Element msg
-        , description : List (Element msg)
+        , description : List (List (Element msg))
         , controls : Element msg
         , remoteControls : List (Element msg)
         , feedback : Element msg

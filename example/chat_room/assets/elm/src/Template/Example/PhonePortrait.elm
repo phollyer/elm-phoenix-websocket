@@ -1,6 +1,6 @@
 module Template.Example.PhonePortrait exposing (view)
 
-import Element as El exposing (Element)
+import Element as El exposing (Element, paragraph)
 import Element.Font as Font
 import Template.Example.Common as Common
 
@@ -52,13 +52,20 @@ menu menu_ =
 {- Description -}
 
 
-description : List (Element msg) -> Element msg
+description : List (List (Element msg)) -> Element msg
 description content =
     El.column
         (Font.size 14
             :: Common.descriptionAttrs
         )
-        content
+    <|
+        List.map
+            (\paragraph ->
+                El.paragraph
+                    [ El.width El.fill ]
+                    paragraph
+            )
+            content
 
 
 

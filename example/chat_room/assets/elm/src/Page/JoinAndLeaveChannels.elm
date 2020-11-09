@@ -244,14 +244,12 @@ view model =
 
 {-| Introduction
 -}
-introduction : List (Element msg)
+introduction : List (List (Element Msg))
 introduction =
-    [ UI.paragraph
-        [ El.text "Joining a Channel is taken care of automatically when the first push to the Channel is made, "
-        , El.text "however, if you want to take manual control, here's a few examples."
-        ]
-    , UI.paragraph
-        [ El.text "Clicking on a function will take you to its documentation." ]
+    [ [ El.text "Joining a Channel is taken care of automatically when the first push to the Channel is made, "
+      , El.text "however, if you want to take manual control, here's a few examples."
+      ]
+    , [ El.text "Clicking on a function will take you to its documentation." ]
     ]
 
 

@@ -127,10 +127,9 @@ view device model =
 {- Description -}
 
 
-description : List (Element msg)
+description : List (List (Element msg))
 description =
-    [ UI.paragraph
-        [ El.text "Join a Channel, providing auth params that are accepted." ]
+    [ [ El.text "Join a Channel, providing auth params that are accepted." ]
     ]
 
 
