@@ -4,6 +4,7 @@ import Colors.Opaque as Color
 import Element as El exposing (Element, paragraph)
 import Element.Background as Background
 import Element.Border as Border
+import Element.Font as Font
 
 
 type alias Config msg c =
@@ -49,26 +50,35 @@ view config =
                 ]
 
             Just id ->
-                [ El.row
-                    [ El.centerX
+                [ El.column
+                    [ Border.rounded 10
+                    , Background.color Color.steelblue
+                    , El.padding 20
                     , El.spacing 10
+                    , El.width El.fill
+                    , Font.color Color.skyblue
                     ]
-                    [ El.el
-                        []
-                        (El.text "Username:")
-                    , El.el
-                        []
-                        (El.text config.username)
-                    ]
-                , El.row
-                    [ El.centerX
-                    , El.spacing 10
-                    ]
-                    [ El.el
-                        []
-                        (El.text "User ID:")
-                    , El.el
-                        []
-                        (El.text id)
+                    [ El.row
+                        [ El.centerX
+                        , El.spacing 10
+                        ]
+                        [ El.el
+                            [ Font.bold ]
+                            (El.text "Username:")
+                        , El.el
+                            []
+                            (El.text config.username)
+                        ]
+                    , El.row
+                        [ El.centerX
+                        , El.spacing 10
+                        ]
+                        [ El.el
+                            [ Font.bold ]
+                            (El.text "User ID:")
+                        , El.el
+                            []
+                            (El.text id)
+                        ]
                     ]
                 ]
