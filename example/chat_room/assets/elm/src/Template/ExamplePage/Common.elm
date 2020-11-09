@@ -58,6 +58,7 @@ exampleAttrs =
     , Font.justify
     , Font.family
         [ Font.typeface "Varela Round" ]
+    , El.height El.fill
     , El.width El.fill
     ]
 

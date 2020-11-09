@@ -131,6 +131,10 @@ update msg model =
             Home.update subMsg subModel
                 |> updateWith Home GotHomeMsg
 
+        ( GotChatRoomsMsg subMsg, ChatRooms subModel ) ->
+            ChatRooms.update subMsg subModel
+                |> updateWith ChatRooms GotChatRoomsMsg
+
         ( GotControlTheSocketConnectionMsg subMsg, ControlTheSocketConnection subModel ) ->
             ControlTheSocketConnection.update subMsg subModel
                 |> updateWith ControlTheSocketConnection GotControlTheSocketConnectionMsg
