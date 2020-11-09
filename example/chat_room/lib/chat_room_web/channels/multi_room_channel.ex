@@ -4,7 +4,7 @@ defmodule ChatRoomWeb.MultiRoomChannel do
   alias ChatRoomWeb.Presence
 
   def join("example:lobby", %{"username" => username}, socket) do
-    user = %{username: username, id: System.system_time(:millisecond)}
+    user = %{username: username, id: inspect (rem System.system_time(:millisecond), 1_000_000)}
 
     send(self(), :after_join)
 

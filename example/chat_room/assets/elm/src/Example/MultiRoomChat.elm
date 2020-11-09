@@ -9,7 +9,9 @@ module Example.MultiRoomChat exposing
 
 import Element as El exposing (Device, Element)
 import Example.Utils exposing (updatePhoenixWith)
-import Json.Encode as JE
+import Json.Decode as JD
+import Json.Decode.Extra exposing (andMap)
+import Json.Encode as JE exposing (Value)
 import Phoenix
 import UI
 import View.Button as Button
@@ -25,7 +27,7 @@ import View.Username as Username
 init : Phoenix.Model -> Model
 init phoenix =
     { phoenix = phoenix
-    , state = InLobby
+    , state = InLobby Unregistered
     , username = ""
     }
 
@@ -42,7 +44,27 @@ type alias Model =
 
 
 type State
-    = InLobby
+    = InLobby LobbyState
+
+
+type LobbyState
+    = Unregistered
+    | Registered User
+
+
+type alias User =
+    { id : String
+    , username : String
+    }
+
+
+joinConfig : Phoenix.JoinConfig
+joinConfig =
+    { topic = ""
+    , events = []
+    , payload = JE.null
+    , timeout = Nothing
+    }
 
 
 
@@ -64,21 +86,68 @@ update msg model =
             )
 
         GotSubmitUsername ->
-            model.phoenix
-                |> Phoenix.setJoinConfig
-                    { topic = "example:lobby"
-                    , payload =
-                        JE.object
-                            [ ( "username", JE.string model.username ) ]
-                    , events = []
-                    , timeout = Nothing
-                    }
-                |> Phoenix.join "example:lobby"
+            joinLobby model
                 |> updatePhoenixWith PhoenixMsg model
 
         PhoenixMsg subMsg ->
-            Phoenix.update subMsg model.phoenix
-                |> updatePhoenixWith PhoenixMsg model
+            let
+                ( newModel, cmd ) =
+                    Phoenix.update subMsg model.phoenix
+                        |> updatePhoenixWith PhoenixMsg model
+            in
+            case Phoenix.phoenixMsg newModel.phoenix of
+                Phoenix.ChannelResponse (Phoenix.JoinOk topic payload) ->
+                    case topic of
+                        "example:lobby" ->
+                            case decodeUser payload of
+                                Ok user ->
+                                    ( userRegisteredOk user newModel
+                                    , cmd
+                                    )
+
+                                Err _ ->
+                                    ( newModel, cmd )
+
+                        _ ->
+                            ( newModel, cmd )
+
+                _ ->
+                    ( newModel, cmd )
+
+
+userRegisteredOk : User -> Model -> Model
+userRegisteredOk user model =
+    { model | state = InLobby (Registered user) }
+
+
+joinLobby : Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
+joinLobby model =
+    model.phoenix
+        |> Phoenix.setJoinConfig
+            { joinConfig
+                | topic = "example:lobby"
+                , payload =
+                    JE.object
+                        [ ( "username", JE.string (String.trim model.username) ) ]
+            }
+        |> Phoenix.join "example:lobby"
+
+
+
+{- Decoders -}
+
+
+decodeUser : Value -> Result JD.Error User
+decodeUser payload =
+    JD.decodeValue userDecoder payload
+
+
+userDecoder : JD.Decoder User
+userDecoder =
+    JD.succeed
+        User
+        |> andMap (JD.field "id" JD.string)
+        |> andMap (JD.field "username" JD.string)
 
 
 
@@ -98,7 +167,7 @@ subscriptions model =
 view : Device -> Model -> Element Msg
 view device model =
     case model.state of
-        InLobby ->
+        InLobby Unregistered ->
             Lobby.init
                 |> Lobby.introduction
                     [ [ El.text "Welcome, to the Lobby." ]
@@ -122,3 +191,6 @@ view device model =
                         |> LobbyForm.view device
                     )
                 |> Lobby.view device
+
+        _ ->
+            El.none
