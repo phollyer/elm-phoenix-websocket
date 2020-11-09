@@ -117,9 +117,15 @@ updateSession session model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map GotPhoenixMsg <|
-        Phoenix.subscriptions
-            (Session.phoenix model.session)
+    case model.example of
+        MultiRoom subModel ->
+            Sub.batch
+                [ Sub.map GotPhoenixMsg <|
+                    Phoenix.subscriptions
+                        (Session.phoenix model.session)
+                , Sub.map GotMultiRoomMsg <|
+                    MultiRoomChat.subscriptions subModel
+                ]
 
 
 

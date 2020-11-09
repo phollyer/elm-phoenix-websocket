@@ -18,14 +18,19 @@ view config =
     El.column
         [ El.height El.fill
         , El.width El.fill
+        , El.spacing 15
         ]
         [ El.column
-            [ El.width El.fill ]
+            [ El.width El.fill
+            , El.spacing 10
+            ]
           <|
             List.map
                 (\paragraph ->
                     El.paragraph
-                        [ El.width El.fill ]
+                        [ El.width El.fill
+                        , El.spacing 2
+                        ]
                         paragraph
                 )
                 config.introduction

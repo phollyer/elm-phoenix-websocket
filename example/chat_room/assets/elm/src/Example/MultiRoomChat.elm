@@ -2,11 +2,14 @@ module Example.MultiRoomChat exposing
     ( Model
     , Msg
     , init
+    , subscriptions
     , update
     , view
     )
 
 import Element as El exposing (Device, Element)
+import Example.Utils exposing (updatePhoenixWith)
+import Json.Encode as JE
 import Phoenix
 import UI
 import View.Button as Button
@@ -60,8 +63,32 @@ update msg model =
             , Cmd.none
             )
 
-        _ ->
-            ( model, Cmd.none )
+        GotSubmitUsername ->
+            model.phoenix
+                |> Phoenix.setJoinConfig
+                    { topic = "example:lobby"
+                    , payload =
+                        JE.object
+                            [ ( "username", JE.string model.username ) ]
+                    , events = []
+                    , timeout = Nothing
+                    }
+                |> Phoenix.join "example:lobby"
+                |> updatePhoenixWith PhoenixMsg model
+
+        PhoenixMsg subMsg ->
+            Phoenix.update subMsg model.phoenix
+                |> updatePhoenixWith PhoenixMsg model
+
+
+
+{- Subscriptions -}
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.map PhoenixMsg <|
+        Phoenix.subscriptions model.phoenix
 
 
 

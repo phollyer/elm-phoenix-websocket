@@ -2,6 +2,7 @@ defmodule ChatRoomWeb.UserSocket do
   use Phoenix.Socket
 
   ## Channels
+  channel "example:lobby", ChatRoomWeb.MultiRoomChannel
   channel "example:manage_channel_messages", ChatRoomWeb.ManageChannelMessagesChannel
   channel "example:manage_presence_messages", ChatRoomWeb.ManagePresenceMessagesChannel
   channel "example:manage_presence_messages_*", ChatRoomWeb.ManagePresenceMessagesChannel

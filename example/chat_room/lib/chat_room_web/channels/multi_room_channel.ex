@@ -1,20 +1,20 @@
-defmodule ChatRoomWeb.RoomChannel do
+defmodule ChatRoomWeb.MultiRoomChannel do
   use Phoenix.Channel
 
   alias ChatRoomWeb.Presence
 
-  def join("room:public", %{"username" => username}, socket) do
-    user = %{username: username, id: username <> ":" <> "#{System.system_time(:millisecond)}"}
+  def join("example:lobby", %{"username" => username}, socket) do
+    user = %{username: username, id: System.system_time(:millisecond)}
 
     send(self(), :after_join)
 
-    {:ok, user, assign(socket, user)}
+    {:ok, user, assign(socket, %{user: user})}
   end
 
   def handle_info(:after_join, socket) do
-    {:ok, _} = Presence.track(socket, socket.assigns.id, %{
+    {:ok, _} = Presence.track(socket, socket.assigns.user.id, %{
       online_at: inspect(System.system_time(:second)),
-      username: socket.assigns.username
+      username: socket.assigns.user.username
     })
 
     push(socket, "presence_state", Presence.list(socket))
