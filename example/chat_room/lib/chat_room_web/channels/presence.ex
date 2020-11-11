@@ -3,10 +3,11 @@ defmodule ChatRoomWeb.Presence do
     otp_app: :chat_room,
     pubsub_server: ChatRoom.PubSub
 
+  alias ChatRoom.User
 
   def fetch("example:lobby", presences) do
     for {key, %{metas: metas}} <- presences, into: %{} do
-      case find_user(key) do
+      case User.find(key) do
         {:ok, user} ->
           {key, %{metas: metas, user: user}}
 
@@ -19,16 +20,6 @@ defmodule ChatRoomWeb.Presence do
   def fetch(_topic, presences) do
     for {key, %{metas: metas}} <- presences, into: %{} do
       {key, %{metas: metas}}
-    end
-  end
-
-  defp find_user(id) do
-    case :ets.lookup(:users_table, id) do
-      [{_, user} | _] ->
-        {:ok, user}
-
-      [] ->
-        :not_found
     end
   end
 end

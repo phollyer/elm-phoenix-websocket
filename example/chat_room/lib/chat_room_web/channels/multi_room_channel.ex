@@ -1,10 +1,15 @@
 defmodule ChatRoomWeb.MultiRoomChannel do
   use Phoenix.Channel
 
+  alias ChatRoom.User
   alias ChatRoomWeb.Presence
 
   def join("example:lobby", %{"username" => username}, socket) do
-    user = %{username: username, id: inspect (rem System.system_time(:millisecond), 1_000_000)}
+    user =
+      %{id: inspect(rem System.system_time(:millisecond), 1_000_000),
+        username: username,
+        rooms: []
+      }
 
     :ets.insert(:users_table, {user.id, user})
 
@@ -15,7 +20,8 @@ defmodule ChatRoomWeb.MultiRoomChannel do
 
   def handle_info(:after_join, socket) do
     {:ok, presence} = Presence.track(socket, socket.assigns.user.id, %{
-      rooms: []
+      online_at: System.system_time(:millisecond),
+      device: ""
     })
 
     push(socket, "presence_state", Presence.list(socket))
@@ -27,8 +33,24 @@ defmodule ChatRoomWeb.MultiRoomChannel do
     :ets.delete(:users_table, socket.assigns.user.id)
   end
 
-  def handle_in("create_room", %{"user_id" => user_id}, socket) do
-    broadcast(socket, "new_room", %{id: user_id})
+  def handle_in("create_room", _, socket) do
+    room_id = inspect System.system_time(:millisecond)
+
+    {:ok, user} = User.find(socket.assigns.user.id)
+
+    room =
+      %{id: room_id,
+        owner: %{id: user.id, username: user.username},
+        messages: []
+      }
+
+    user =
+      Map.update(user, :rooms, [room.id], &([room.id | &1]))
+
+    :ets.insert(:rooms_table, {room.id, room})
+    :ets.insert(:users_table, {user.id, user})
+
+    broadcast(socket, "new_room", room)
 
     {:reply, :ok, socket}
   end

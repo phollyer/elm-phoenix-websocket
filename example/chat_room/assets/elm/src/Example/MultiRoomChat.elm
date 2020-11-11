@@ -88,6 +88,17 @@ joinConfig =
     }
 
 
+pushConfig : Phoenix.Push
+pushConfig =
+    { topic = ""
+    , event = ""
+    , payload = JE.null
+    , retryStrategy = Phoenix.Drop
+    , timeout = Nothing
+    , ref = Nothing
+    }
+
+
 
 {- Update -}
 
@@ -112,7 +123,13 @@ update msg model =
                 |> updatePhoenixWith PhoenixMsg model
 
         GotNewRoomBtnClick ->
-            ( model, Cmd.none )
+            Phoenix.push
+                { pushConfig
+                    | topic = "example:lobby"
+                    , event = "create_room"
+                }
+                model.phoenix
+                |> updatePhoenixWith PhoenixMsg model
 
         PhoenixMsg subMsg ->
             let

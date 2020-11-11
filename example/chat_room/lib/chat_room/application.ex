@@ -6,6 +6,7 @@ defmodule ChatRoom.Application do
   use Application
 
   def start(_type, _args) do
+    :ets.new(:rooms_table, [:named_table, :public])
     :ets.new(:users_table, [:named_table, :public])
 
     children = [
