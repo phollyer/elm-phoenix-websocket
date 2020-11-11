@@ -23,6 +23,10 @@ defmodule ChatRoomWeb.MultiRoomChannel do
     {:noreply, socket}
   end
 
+  def terminate(_reason, socket) do
+    :ets.delete(:users_table, socket.assigns.user.id)
+  end
+
   def handle_in("create_room", %{"user_id" => user_id}, socket) do
     broadcast(socket, "new_room", %{id: user_id})
 
