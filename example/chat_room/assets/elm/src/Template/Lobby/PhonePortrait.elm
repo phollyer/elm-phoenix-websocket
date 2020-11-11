@@ -11,20 +11,19 @@ type alias Config msg c =
     { c
         | introduction : List (List (Element msg))
         , form : Element msg
-        , username : String
-        , userId : Maybe String
+        , user : Maybe (Element msg)
+        , members : Element msg
     }
 
 
 view : Config msg c -> Element msg
 view config =
     El.column
-        [ El.height El.fill
-        , El.width El.fill
+        [ El.width El.fill
         , El.spacing 15
         ]
     <|
-        case config.userId of
+        case config.user of
             Nothing ->
                 [ El.column
                     [ El.width El.fill
@@ -49,8 +48,8 @@ view config =
                     config.form
                 ]
 
-            Just id ->
-                [ El.column
+            Just user ->
+                [ El.el
                     [ Border.rounded 10
                     , Background.color Color.steelblue
                     , El.padding 20
@@ -58,27 +57,25 @@ view config =
                     , El.width El.fill
                     , Font.color Color.skyblue
                     ]
-                    [ El.row
-                        [ El.centerX
-                        , El.spacing 10
-                        ]
-                        [ El.el
-                            [ Font.bold ]
-                            (El.text "Username:")
-                        , El.el
-                            []
-                            (El.text config.username)
-                        ]
-                    , El.row
-                        [ El.centerX
-                        , El.spacing 10
-                        ]
-                        [ El.el
-                            [ Font.bold ]
-                            (El.text "User ID:")
-                        , El.el
-                            []
-                            (El.text id)
-                        ]
+                    user
+                , El.column
+                    [ Border.rounded 10
+                    , Background.color Color.steelblue
+                    , El.paddingEach
+                        { left = 20
+                        , top = 20
+                        , right = 20
+                        , bottom = 0
+                        }
+                    , El.spacing 10
+                    , El.width El.fill
+                    , El.height <|
+                        El.maximum 300 El.fill
+                    , Font.color Color.skyblue
+                    ]
+                    [ El.el
+                        [ El.centerX ]
+                        (El.text "Members")
+                    , config.members
                     ]
                 ]

@@ -17,6 +17,8 @@ import UI
 import View.Button as Button
 import View.Lobby as Lobby
 import View.LobbyForm as LobbyForm
+import View.LobbyMembers as LobbyMembers
+import View.LobbyUser as LobbyUser
 import View.Username as Username
 
 
@@ -41,7 +43,7 @@ type alias Model =
     { phoenix : Phoenix.Model
     , state : State
     , username : String
-    , presences : List PresenceState
+    , presences : List Presence
     }
 
 
@@ -60,14 +62,17 @@ type alias User =
     }
 
 
-type alias PresenceState =
+type alias Presence =
     { id : String
     , metas : List Meta
+    , user : User
     }
 
 
-type Meta
-    = List RoomID
+type alias Meta =
+    { online_at : String
+    , device : String
+    }
 
 
 type alias RoomID =
@@ -133,22 +138,13 @@ update msg model =
                 Phoenix.PresenceEvent (Phoenix.State topic state) ->
                     case topic of
                         "example:lobby" ->
-                            let
-                                _ =
-                                    Debug.log "" (state |> List.map (\p -> JE.encode 2 p.user))
-                            in
-                            ( newModel, cmd )
+                            ( { newModel | presences = toPresences state }, cmd )
 
                         _ ->
                             ( newModel, cmd )
 
                 _ ->
                     ( newModel, cmd )
-
-
-userRegisteredOk : User -> Model -> Model
-userRegisteredOk user model =
-    { model | state = InLobby (Registered user) }
 
 
 joinLobby : Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
@@ -162,6 +158,27 @@ joinLobby model =
                         [ ( "username", JE.string (String.trim model.username) ) ]
             }
         |> Phoenix.join "example:lobby"
+
+
+userRegisteredOk : User -> Model -> Model
+userRegisteredOk user model =
+    { model | state = InLobby (Registered user) }
+
+
+toPresences : List Phoenix.Presence -> List Presence
+toPresences presences =
+    List.map
+        (\presence ->
+            { id = presence.id
+            , metas = decodeMetas presence.metas
+            , user =
+                decodeUser presence.user
+                    |> Result.toMaybe
+                    |> Maybe.withDefault
+                        (User "" "")
+            }
+        )
+        presences
 
 
 retrieveRoomList : Phoenix.Model -> Cmd Msg
@@ -184,6 +201,25 @@ userDecoder =
         User
         |> andMap (JD.field "id" JD.string)
         |> andMap (JD.field "username" JD.string)
+
+
+decodeMetas : List Value -> List Meta
+decodeMetas metas =
+    List.map
+        (\meta ->
+            JD.decodeValue metaDecoder meta
+                |> Result.toMaybe
+                |> Maybe.withDefault (Meta "" "")
+        )
+        metas
+
+
+metaDecoder : JD.Decoder Meta
+metaDecoder =
+    JD.succeed
+        Meta
+        |> andMap (JD.field "online_at" JD.string)
+        |> andMap (JD.field "device" JD.string)
 
 
 
@@ -230,6 +266,22 @@ view device model =
 
         InLobby (Registered user) ->
             Lobby.init
-                |> Lobby.username user.username
-                |> Lobby.userId user.id
+                |> Lobby.user
+                    (LobbyUser.init
+                        |> LobbyUser.username user.username
+                        |> LobbyUser.userId user.id
+                        |> LobbyUser.view device
+                    )
+                |> Lobby.members
+                    (LobbyMembers.init
+                        |> LobbyMembers.members
+                            (toUsers model.presences)
+                        |> LobbyMembers.view device
+                    )
                 |> Lobby.view device
+
+
+toUsers : List Presence -> List User
+toUsers presences =
+    List.map .user presences
+        |> List.sortBy .username
