@@ -6,9 +6,6 @@ module Template.Example.Common exposing
     , idAttrs
     , idLabelAttrs
     , idValueAttrs
-    , introductionAttrs
-    , menuAttrs
-    , remoteControlAttrs
     )
 
 import Colors.Opaque as Color
@@ -19,11 +16,8 @@ import Element.Font as Font
 type alias Config msg c =
     { c
         | id : Maybe String
-        , introduction : List (Element msg)
-        , menu : Element msg
         , description : List (List (Element msg))
         , controls : Element msg
-        , remoteControls : List (Element msg)
         , feedback : Element msg
     }
 
@@ -42,20 +36,6 @@ containerAttrs =
     ]
 
 
-introductionAttrs : List (Attribute msg)
-introductionAttrs =
-    [ Font.color Color.darkslateblue
-    , Font.justify
-    , Font.family
-        [ Font.typeface "Piedra" ]
-    ]
-
-
-menuAttrs : List (Attribute msg)
-menuAttrs =
-    [ El.width El.fill ]
-
-
 descriptionAttrs : List (Attribute msg)
 descriptionAttrs =
     [ El.spacing 12
@@ -69,11 +49,6 @@ descriptionAttrs =
 
 controlsAttrs : List (Attribute msg)
 controlsAttrs =
-    [ El.width El.fill ]
-
-
-remoteControlAttrs : List (Attribute msg)
-remoteControlAttrs =
     [ El.width El.fill ]
 
 

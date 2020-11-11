@@ -16,6 +16,12 @@ defmodule ChatRoomWeb.Presence do
     end
   end
 
+  def fetch(_topic, presences) do
+    for {key, %{metas: metas}} <- presences, into: %{} do
+      {key, %{metas: metas}}
+    end
+  end
+
   defp find_user(id) do
     case :ets.lookup(:users_table, id) do
       [{_, user} | _] ->

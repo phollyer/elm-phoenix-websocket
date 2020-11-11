@@ -9,43 +9,11 @@ view : Common.Config msg c -> Element msg
 view config =
     El.column
         Common.containerAttrs
-        [ introduction config.introduction
-        , menu config.menu
-        , description config.description
+        [ description config.description
         , maybeId config.id
         , controls config.controls
-        , remoteControls config.remoteControls
         , config.feedback
         ]
-
-
-
-{- Introduction -}
-
-
-introduction : List (Element msg) -> Element msg
-introduction intro =
-    El.column
-        (List.append
-            [ Font.size 16
-            , El.spacing 18
-            ]
-            Common.introductionAttrs
-        )
-        intro
-
-
-
-{- Menu -}
-
-
-menu : Element msg -> Element msg
-menu menu_ =
-    El.el
-        (Font.size 16
-            :: Common.menuAttrs
-        )
-        menu_
 
 
 
@@ -99,19 +67,3 @@ controls controls_ =
             :: Common.controlsAttrs
         )
         controls_
-
-
-
-{- Remote Controls -}
-
-
-remoteControls : List (Element msg) -> Element msg
-remoteControls cntrls =
-    El.column
-        (List.append
-            [ El.spacing 10
-            , Font.size 16
-            ]
-            Common.remoteControlAttrs
-        )
-        cntrls

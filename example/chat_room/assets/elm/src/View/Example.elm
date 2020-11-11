@@ -1,7 +1,7 @@
 module View.Example exposing
     ( Config, init
     , view
-    , id, introduction, menu, description, controls, remoteControls, feedback, info
+    , id, description, controls, feedback
     )
 
 {-| This module is intended to enable building up an example with pipelines and
@@ -26,13 +26,9 @@ import Template.Example.Tablet as Tablet
 type Config msg
     = Config
         { id : Maybe String
-        , introduction : List (Element msg)
-        , menu : Element msg
         , description : List (List (Element msg))
         , controls : Element msg
-        , remoteControls : List (Element msg)
         , feedback : Element msg
-        , info : List (Element msg)
         }
 
 
@@ -41,13 +37,9 @@ init : Config msg
 init =
     Config
         { id = Nothing
-        , introduction = []
-        , menu = El.none
         , description = []
         , controls = El.none
-        , remoteControls = []
         , feedback = El.none
-        , info = []
         }
 
 
@@ -87,27 +79,3 @@ feedback feedback_ (Config config) =
 id : Maybe String -> Config msg -> Config msg
 id maybeId (Config config) =
     Config { config | id = maybeId }
-
-
-{-| -}
-info : List (Element msg) -> Config msg -> Config msg
-info content (Config config) =
-    Config { config | info = content }
-
-
-{-| -}
-introduction : List (Element msg) -> Config msg -> Config msg
-introduction list (Config config) =
-    Config { config | introduction = list }
-
-
-{-| -}
-menu : Element msg -> Config msg -> Config msg
-menu menu_ (Config config) =
-    Config { config | menu = menu_ }
-
-
-{-| -}
-remoteControls : List (Element msg) -> Config msg -> Config msg
-remoteControls list (Config config) =
-    Config { config | remoteControls = list }
