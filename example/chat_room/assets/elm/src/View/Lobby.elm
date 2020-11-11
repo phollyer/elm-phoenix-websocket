@@ -3,6 +3,7 @@ module View.Lobby exposing
     , init
     , introduction
     , members
+    , newRoomBtn
     , user
     , view
     )
@@ -21,6 +22,7 @@ type Config msg
         , form : Element msg
         , user : Maybe (Element msg)
         , members : Element msg
+        , newRoomBtn : Element msg
         }
 
 
@@ -35,6 +37,7 @@ init =
         , form = El.none
         , user = Nothing
         , members = El.none
+        , newRoomBtn = El.none
         }
 
 
@@ -60,6 +63,11 @@ introduction elements (Config config) =
 members : Element msg -> Config msg -> Config msg
 members element (Config config) =
     Config { config | members = element }
+
+
+newRoomBtn : Element msg -> Config msg -> Config msg
+newRoomBtn btn (Config config) =
+    Config { config | newRoomBtn = btn }
 
 
 user : Element msg -> Config msg -> Config msg

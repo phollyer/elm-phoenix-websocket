@@ -95,6 +95,7 @@ joinConfig =
 type Msg
     = GotUsernameChange String
     | GotSubmitUsername
+    | GotNewRoomBtnClick
     | PhoenixMsg Phoenix.Msg
 
 
@@ -109,6 +110,9 @@ update msg model =
         GotSubmitUsername ->
             joinLobby model
                 |> updatePhoenixWith PhoenixMsg model
+
+        GotNewRoomBtnClick ->
+            ( model, Cmd.none )
 
         PhoenixMsg subMsg ->
             let
@@ -271,6 +275,13 @@ view device model =
                         |> LobbyUser.username user.username
                         |> LobbyUser.userId user.id
                         |> LobbyUser.view device
+                    )
+                |> Lobby.newRoomBtn
+                    (Button.init
+                        |> Button.label "New Room"
+                        |> Button.onPress (Just GotNewRoomBtnClick)
+                        |> Button.enabled True
+                        |> Button.view device
                     )
                 |> Lobby.members
                     (LobbyMembers.init
