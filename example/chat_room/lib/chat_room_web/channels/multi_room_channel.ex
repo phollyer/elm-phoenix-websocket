@@ -1,17 +1,14 @@
 defmodule ChatRoomWeb.MultiRoomChannel do
   use Phoenix.Channel
 
+  alias ChatRoom.Room
   alias ChatRoom.User
   alias ChatRoomWeb.Presence
 
   def join("example:lobby", %{"username" => username}, socket) do
-    user =
-      %{id: inspect(rem System.system_time(:millisecond), 1_000_000),
-        username: username,
-        rooms: []
-      }
-
-    :ets.insert(:users_table, {user.id, user})
+    {:ok, user} =
+      User.create(username)
+      |> User.update()
 
     send(self(), :after_join)
 
@@ -30,25 +27,18 @@ defmodule ChatRoomWeb.MultiRoomChannel do
   end
 
   def terminate(_reason, socket) do
-    :ets.delete(:users_table, socket.assigns.user.id)
+    User.delete(socket.assigns.user)
   end
 
   def handle_in("create_room", _, socket) do
-    room_id = inspect System.system_time(:millisecond)
-
     {:ok, user} = User.find(socket.assigns.user.id)
 
-    room =
-      %{id: room_id,
-        owner: %{id: user.id, username: user.username},
-        messages: []
-      }
+    {:ok, room} =
+      Room.create(user)
+      |> Room.update()
 
-    user =
-      Map.update(user, :rooms, [room.id], &([room.id | &1]))
-
-    :ets.insert(:rooms_table, {room.id, room})
-    :ets.insert(:users_table, {user.id, user})
+    User.new_room(user, room.id)
+    |> User.update()
 
     broadcast(socket, "new_room", room)
 
