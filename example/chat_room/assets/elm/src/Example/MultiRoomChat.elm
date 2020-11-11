@@ -29,6 +29,7 @@ init phoenix =
     { phoenix = phoenix
     , state = InLobby Unregistered
     , username = ""
+    , presences = []
     }
 
 
@@ -40,6 +41,7 @@ type alias Model =
     { phoenix : Phoenix.Model
     , state : State
     , username : String
+    , presences : List PresenceState
     }
 
 
@@ -56,6 +58,20 @@ type alias User =
     { id : String
     , username : String
     }
+
+
+type alias PresenceState =
+    { id : String
+    , metas : List Meta
+    }
+
+
+type Meta
+    = List RoomID
+
+
+type alias RoomID =
+    String
 
 
 joinConfig : Phoenix.JoinConfig
@@ -102,11 +118,26 @@ update msg model =
                             case decodeUser payload of
                                 Ok user ->
                                     ( userRegisteredOk user newModel
-                                    , cmd
+                                    , Cmd.batch
+                                        [ cmd
+                                        , retrieveRoomList newModel.phoenix
+                                        ]
                                     )
 
                                 Err _ ->
                                     ( newModel, cmd )
+
+                        _ ->
+                            ( newModel, cmd )
+
+                Phoenix.PresenceEvent (Phoenix.State topic state) ->
+                    case topic of
+                        "example:lobby" ->
+                            let
+                                _ =
+                                    Debug.log "" (state |> List.map (\p -> JE.encode 2 p.user))
+                            in
+                            ( newModel, cmd )
 
                         _ ->
                             ( newModel, cmd )
@@ -131,6 +162,11 @@ joinLobby model =
                         [ ( "username", JE.string (String.trim model.username) ) ]
             }
         |> Phoenix.join "example:lobby"
+
+
+retrieveRoomList : Phoenix.Model -> Cmd Msg
+retrieveRoomList phoenix =
+    Cmd.none
 
 
 

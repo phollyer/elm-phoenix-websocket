@@ -6,6 +6,8 @@ defmodule ChatRoom.Application do
   use Application
 
   def start(_type, _args) do
+    :ets.new(:users_table, [:named_table, :public])
+
     children = [
       # Start the Telemetry supervisor
       ChatRoomWeb.Telemetry,
