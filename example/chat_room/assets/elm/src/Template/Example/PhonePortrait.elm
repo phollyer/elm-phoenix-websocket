@@ -9,9 +9,7 @@ view : Common.Config msg c -> Element msg
 view config =
     El.column
         Common.containerAttrs
-        [ introduction config.introduction
-        , menu config.menu
-        , description config.description
+        [ description config.description
         , maybeId config.id
         , controls config.controls
         , remoteControls config.remoteControls
@@ -25,14 +23,19 @@ view config =
 
 introduction : List (Element msg) -> Element msg
 introduction intro =
-    El.column
-        (List.append
-            [ Font.size 14
-            , El.spacing 16
-            ]
-            Common.introductionAttrs
-        )
-        intro
+    case intro of
+        [] ->
+            El.none
+
+        _ ->
+            El.column
+                (List.append
+                    [ Font.size 14
+                    , El.spacing 16
+                    ]
+                    Common.introductionAttrs
+                )
+                intro
 
 
 
