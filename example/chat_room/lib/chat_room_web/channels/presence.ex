@@ -5,20 +5,20 @@ defmodule ChatRoomWeb.Presence do
 
 
   def fetch("example:lobby", presences) do
-    get_id =
-      Map.keys(presences)
-      |> Enum.fetch(0)
+    IO.puts "*****************"
+    IO.inspect presences
+    IO.puts "*****************"
 
     [{_, user} | _] =
-      case get_id do
-        {:ok, id} ->
-          :ets.lookup(:users_table, id)
-        :error ->
-          [{"", %{}}]
-      end
+      Map.keys(presences)
+      |> Enum.fetch(0)
+      |> find_user()
 
     for {key, %{metas: metas}} <- presences, into: %{} do
       {key, %{metas: metas, user: user}}
     end
   end
+
+  defp find_user({:ok, id}), do: :ets.lookup(:users_table, id)
+  defp find_user(:error), do: [{"", %{}}]
 end

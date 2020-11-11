@@ -6,10 +6,7 @@ defmodule ChatRoomWeb.MultiRoomChannel do
   def join("example:lobby", %{"username" => username}, socket) do
     user = %{username: username, id: inspect (rem System.system_time(:millisecond), 1_000_000)}
 
-    :ets.delete_all_objects(:users_table)
     :ets.insert(:users_table, {user.id, %{username: username, id: user.id}})
-
-    IO.inspect(:ets.lookup(:users_table,user.id))
 
     send(self(), :after_join)
 
