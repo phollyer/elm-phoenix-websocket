@@ -13,7 +13,7 @@ type alias Config msg c =
         , form : Element msg
         , user : Maybe (Element msg)
         , members : Element msg
-        , newRoomBtn : Element msg
+        , createRoomBtn : Element msg
         , rooms : Element msg
     }
 
@@ -60,7 +60,7 @@ view config =
                     , Font.color Color.skyblue
                     ]
                     [ user
-                    , config.newRoomBtn
+                    , config.createRoomBtn
                     ]
                 , El.column
                     [ Border.rounded 10

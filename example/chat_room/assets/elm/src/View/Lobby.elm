@@ -1,9 +1,9 @@
 module View.Lobby exposing
-    ( form
+    ( createRoomBtn
+    , form
     , init
     , introduction
     , members
-    , newRoomBtn
     , rooms
     , user
     , view
@@ -23,7 +23,7 @@ type Config msg
         , form : Element msg
         , user : Maybe (Element msg)
         , members : Element msg
-        , newRoomBtn : Element msg
+        , createRoomBtn : Element msg
         , rooms : Element msg
         }
 
@@ -39,7 +39,7 @@ init =
         , form = El.none
         , user = Nothing
         , members = El.none
-        , newRoomBtn = El.none
+        , createRoomBtn = El.none
         , rooms = El.none
         }
 
@@ -68,9 +68,9 @@ members element (Config config) =
     Config { config | members = element }
 
 
-newRoomBtn : Element msg -> Config msg -> Config msg
-newRoomBtn btn (Config config) =
-    Config { config | newRoomBtn = btn }
+createRoomBtn : Element msg -> Config msg -> Config msg
+createRoomBtn btn (Config config) =
+    Config { config | createRoomBtn = btn }
 
 
 rooms : Element msg -> Config msg -> Config msg

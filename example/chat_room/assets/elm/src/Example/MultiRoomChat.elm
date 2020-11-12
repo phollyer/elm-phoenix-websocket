@@ -80,8 +80,8 @@ type alias Meta =
 
 type Msg
     = GotUsernameChange String
-    | GotSubmitUsername
-    | GotNewRoomBtnClick
+    | GotJoinLobby
+    | GotCreateRoom
     | PhoenixMsg Phoenix.Msg
 
 
@@ -89,21 +89,14 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         GotUsernameChange name ->
-            ( { model | username = name }
-            , Cmd.none
-            )
+            ( { model | username = name }, Cmd.none )
 
-        GotSubmitUsername ->
-            joinLobby model
+        GotJoinLobby ->
+            joinLobby model.username model.phoenix
                 |> updatePhoenixWith PhoenixMsg model
 
-        GotNewRoomBtnClick ->
-            Phoenix.push
-                { pushConfig
-                    | topic = "example:lobby"
-                    , event = "create_room"
-                }
-                model.phoenix
+        GotCreateRoom ->
+            createRoom model.phoenix
                 |> updatePhoenixWith PhoenixMsg model
 
         PhoenixMsg subMsg ->
@@ -113,62 +106,51 @@ update msg model =
                         |> updatePhoenixWith PhoenixMsg model
             in
             case Phoenix.phoenixMsg newModel.phoenix of
-                Phoenix.ChannelResponse (Phoenix.JoinOk topic payload) ->
-                    case topic of
-                        "example:lobby" ->
-                            case decodeUser payload of
-                                Ok user ->
-                                    ( userRegisteredOk user newModel, cmd )
+                Phoenix.ChannelResponse (Phoenix.JoinOk "example:lobby" payload) ->
+                    case decodeUser payload of
+                        Ok user ->
+                            ( { newModel | state = InLobby (Registered user) }, cmd )
 
-                                Err _ ->
-                                    ( newModel, cmd )
-
-                        _ ->
+                        Err _ ->
                             ( newModel, cmd )
 
-                Phoenix.ChannelEvent topic event payload ->
-                    case ( topic, event ) of
-                        ( "example:lobby", "room_list" ) ->
-                            case decodeRooms payload of
-                                Ok rooms ->
-                                    ( { newModel | rooms = rooms }, cmd )
+                Phoenix.ChannelEvent "example:lobby" "room_list" payload ->
+                    case decodeRooms payload of
+                        Ok rooms ->
+                            ( { newModel | rooms = rooms }, cmd )
 
-                                Err _ ->
-                                    ( newModel, cmd )
-
-                        _ ->
+                        Err _ ->
                             ( newModel, cmd )
 
-                Phoenix.PresenceEvent (Phoenix.State topic state) ->
-                    case topic of
-                        "example:lobby" ->
-                            ( { newModel | presences = toPresences state }, cmd )
-
-                        _ ->
-                            ( newModel, cmd )
+                Phoenix.PresenceEvent (Phoenix.State "example:lobby" state) ->
+                    ( { newModel | presences = toPresences state }, cmd )
 
                 _ ->
                     ( newModel, cmd )
 
 
-joinLobby : Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
-joinLobby model =
-    model.phoenix
+joinLobby : String -> Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
+joinLobby username phoenix =
+    phoenix
         |> Phoenix.setJoinConfig
             { joinConfig
                 | topic = "example:lobby"
-                , events =
-                    [ "room_list" ]
+                , events = [ "room_list" ]
                 , payload =
                     JE.object
-                        [ ( "username", JE.string (String.trim model.username) ) ]
+                        [ ( "username", JE.string (String.trim username) ) ]
             }
         |> Phoenix.join "example:lobby"
 
 
-userRegisteredOk : User -> Model -> Model
-userRegisteredOk user model =
-    { model | state = InLobby (Registered user) }
+createRoom : Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
+createRoom phoenix =
+    Phoenix.push
+        { pushConfig
+            | topic = "example:lobby"
+            , event = "create_room"
+        }
+        phoenix
 
 
 toPresences : List Phoenix.Presence -> List Presence
@@ -229,59 +211,101 @@ view device model =
     case model.state of
         InLobby Unregistered ->
             Lobby.init
-                |> Lobby.introduction
-                    [ [ El.text "Welcome, to the Lobby." ]
-                    , [ El.text "Enter a username in order to join or create a room." ]
-                    ]
-                |> Lobby.form
-                    (LobbyForm.init
-                        |> LobbyForm.usernameInput
-                            (Username.init
-                                |> Username.value model.username
-                                |> Username.onChange GotUsernameChange
-                                |> Username.view device
-                            )
-                        |> LobbyForm.submitBtn
-                            (Button.init
-                                |> Button.label "Submit"
-                                |> Button.onPress (Just GotSubmitUsername)
-                                |> Button.enabled (String.trim model.username /= "")
-                                |> Button.view device
-                            )
-                        |> LobbyForm.view device
-                    )
+                |> Lobby.introduction introduction
+                |> Lobby.form (lobbyForm device model.username)
                 |> Lobby.view device
 
         InLobby (Registered user) ->
             Lobby.init
-                |> Lobby.user
-                    (LobbyUser.init
-                        |> LobbyUser.username user.username
-                        |> LobbyUser.userId user.id
-                        |> LobbyUser.view device
-                    )
-                |> Lobby.newRoomBtn
-                    (Button.init
-                        |> Button.label "New Room"
-                        |> Button.onPress (Just GotNewRoomBtnClick)
-                        |> Button.enabled True
-                        |> Button.view device
-                    )
-                |> Lobby.members
-                    (LobbyMembers.init
-                        |> LobbyMembers.members
-                            (toUsers model.presences)
-                        |> LobbyMembers.view device
-                    )
-                |> Lobby.rooms
-                    (Rooms.init
-                        |> Rooms.list model.rooms
-                        |> Rooms.view device
-                    )
+                |> Lobby.user (lobbyUser device user)
+                |> Lobby.createRoomBtn (createRoomBtn device)
+                |> Lobby.members (lobbyMembers device model.presences)
+                |> Lobby.rooms (lobbyRooms device model.rooms)
                 |> Lobby.view device
+
+
+
+{- Introduction -}
+
+
+introduction : List (List (Element Msg))
+introduction =
+    [ [ El.text "Welcome," ]
+    , [ El.text "Please enter a username in order to join the Lobby." ]
+    ]
+
+
+
+{- Lobby Form -}
+
+
+lobbyForm : Device -> String -> Element Msg
+lobbyForm device username =
+    LobbyForm.init
+        |> LobbyForm.usernameInput
+            (Username.init
+                |> Username.value username
+                |> Username.onChange GotUsernameChange
+                |> Username.view device
+            )
+        |> LobbyForm.submitBtn
+            (Button.init
+                |> Button.label "Join The Lobby"
+                |> Button.onPress (Just GotJoinLobby)
+                |> Button.enabled (String.trim username /= "")
+                |> Button.view device
+            )
+        |> LobbyForm.view device
+
+
+
+{- Lobby User -}
+
+
+lobbyUser : Device -> User -> Element Msg
+lobbyUser device user =
+    LobbyUser.init
+        |> LobbyUser.username user.username
+        |> LobbyUser.userId user.id
+        |> LobbyUser.view device
+
+
+
+{- Create Room Button -}
+
+
+createRoomBtn : Device -> Element Msg
+createRoomBtn device =
+    Button.init
+        |> Button.label "Create A Room"
+        |> Button.onPress (Just GotCreateRoom)
+        |> Button.enabled True
+        |> Button.view device
+
+
+
+{- Lobby Members -}
+
+
+lobbyMembers : Device -> List Presence -> Element Msg
+lobbyMembers device presences =
+    LobbyMembers.init
+        |> LobbyMembers.members (toUsers presences)
+        |> LobbyMembers.view device
 
 
 toUsers : List Presence -> List User
 toUsers presences =
     List.map .user presences
         |> List.sortBy .username
+
+
+
+{- Lobby Rooms -}
+
+
+lobbyRooms : Device -> List Room -> Element Msg
+lobbyRooms device rooms =
+    Rooms.init
+        |> Rooms.list rooms
+        |> Rooms.view device
