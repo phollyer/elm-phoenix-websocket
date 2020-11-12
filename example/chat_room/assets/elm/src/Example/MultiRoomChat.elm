@@ -19,6 +19,7 @@ import View.Lobby as Lobby
 import View.LobbyForm as LobbyForm
 import View.LobbyMembers as LobbyMembers
 import View.LobbyUser as LobbyUser
+import View.Rooms as Rooms
 import View.Username as Username
 
 
@@ -32,6 +33,7 @@ init phoenix =
     , state = InLobby Unregistered
     , username = ""
     , presences = []
+    , rooms = []
     }
 
 
@@ -44,6 +46,7 @@ type alias Model =
     , state : State
     , username : String
     , presences : List Presence
+    , rooms : List Room
     }
 
 
@@ -75,8 +78,18 @@ type alias Meta =
     }
 
 
-type alias RoomID =
-    String
+type alias Room =
+    { id : String
+    , owner : User
+    , messages : List Message
+    }
+
+
+type alias Message =
+    { id : String
+    , text : String
+    , owner : User
+    }
 
 
 joinConfig : Phoenix.JoinConfig
@@ -143,12 +156,28 @@ update msg model =
                         "example:lobby" ->
                             case decodeUser payload of
                                 Ok user ->
-                                    ( userRegisteredOk user newModel
-                                    , Cmd.batch
-                                        [ cmd
-                                        , retrieveRoomList newModel.phoenix
-                                        ]
-                                    )
+                                    ( userRegisteredOk user newModel, cmd )
+
+                                Err _ ->
+                                    ( newModel, cmd )
+
+                        _ ->
+                            ( newModel, cmd )
+
+                Phoenix.ChannelEvent topic event payload ->
+                    case ( topic, event ) of
+                        ( "example:lobby", "room_list" ) ->
+                            case decodeRooms payload of
+                                Ok rooms ->
+                                    ( { newModel | rooms = rooms }, cmd )
+
+                                Err _ ->
+                                    ( newModel, cmd )
+
+                        ( "example:lobby", "new_room_created" ) ->
+                            case decodeRoom payload of
+                                Ok room ->
+                                    ( { newModel | rooms = room :: model.rooms }, cmd )
 
                                 Err _ ->
                                     ( newModel, cmd )
@@ -174,6 +203,10 @@ joinLobby model =
         |> Phoenix.setJoinConfig
             { joinConfig
                 | topic = "example:lobby"
+                , events =
+                    [ "room_list"
+                    , "new_room_created"
+                    ]
                 , payload =
                     JE.object
                         [ ( "username", JE.string (String.trim model.username) ) ]
@@ -200,11 +233,6 @@ toPresences presences =
             }
         )
         presences
-
-
-retrieveRoomList : Phoenix.Model -> Cmd Msg
-retrieveRoomList phoenix =
-    Cmd.none
 
 
 
@@ -241,6 +269,46 @@ metaDecoder =
         Meta
         |> andMap (JD.field "online_at" JD.string)
         |> andMap (JD.field "device" JD.string)
+
+
+decodeMessage : Value -> Result JD.Error Message
+decodeMessage payload =
+    JD.decodeValue messageDecoder payload
+
+
+messageDecoder : JD.Decoder Message
+messageDecoder =
+    JD.succeed
+        Message
+        |> andMap (JD.field "id" JD.string)
+        |> andMap (JD.field "text" JD.string)
+        |> andMap (JD.field "owner" userDecoder)
+
+
+decodeRooms : Value -> Result JD.Error (List Room)
+decodeRooms payload =
+    JD.decodeValue roomsDecoder payload
+
+
+roomsDecoder : JD.Decoder (List Room)
+roomsDecoder =
+    JD.succeed
+        identity
+        |> andMap (JD.field "rooms" (JD.list roomDecoder))
+
+
+decodeRoom : Value -> Result JD.Error Room
+decodeRoom payload =
+    JD.decodeValue roomDecoder payload
+
+
+roomDecoder : JD.Decoder Room
+roomDecoder =
+    JD.succeed
+        Room
+        |> andMap (JD.field "id" JD.string)
+        |> andMap (JD.field "owner" userDecoder)
+        |> andMap (JD.field "messages" (JD.list messageDecoder))
 
 
 
@@ -305,6 +373,11 @@ view device model =
                         |> LobbyMembers.members
                             (toUsers model.presences)
                         |> LobbyMembers.view device
+                    )
+                |> Lobby.rooms
+                    (Rooms.init
+                        |> Rooms.list model.rooms
+                        |> Rooms.view device
                     )
                 |> Lobby.view device
 

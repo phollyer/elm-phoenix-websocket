@@ -25,5 +25,11 @@ defmodule ChatRoom.Room do
     end
   end
 
+  def all() do
+   :ets.match(:rooms_table, :"$1")
+   |> Enum.concat
+   |> Enum.map(fn {_, room} -> room end)
+ end
+
   def create_id(), do: inspect System.system_time(:millisecond)
 end

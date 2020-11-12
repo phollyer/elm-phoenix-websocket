@@ -23,6 +23,8 @@ defmodule ChatRoomWeb.MultiRoomChannel do
 
     push(socket, "presence_state", Presence.list(socket))
 
+    push(socket, "room_list", %{rooms: Room.all()})
+
     {:noreply, socket}
   end
 
@@ -40,7 +42,7 @@ defmodule ChatRoomWeb.MultiRoomChannel do
     User.new_room(user, room.id)
     |> User.update()
 
-    broadcast(socket, "new_room", room)
+    broadcast(socket, "new_room_created", room)
 
     {:reply, :ok, socket}
   end

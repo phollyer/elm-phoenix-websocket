@@ -14,6 +14,7 @@ type alias Config msg c =
         , user : Maybe (Element msg)
         , members : Element msg
         , newRoomBtn : Element msg
+        , rooms : Element msg
     }
 
 
@@ -80,5 +81,25 @@ view config =
                         [ El.centerX ]
                         (El.text "Members")
                     , config.members
+                    ]
+                , El.column
+                    [ Border.rounded 10
+                    , Background.color Color.steelblue
+                    , El.paddingEach
+                        { left = 20
+                        , top = 20
+                        , right = 20
+                        , bottom = 0
+                        }
+                    , El.spacing 10
+                    , El.width El.fill
+                    , El.height <|
+                        El.maximum 300 El.fill
+                    , Font.color Color.skyblue
+                    ]
+                    [ El.el
+                        [ El.centerX ]
+                        (El.text "Rooms")
+                    , config.rooms
                     ]
                 ]
