@@ -32,38 +32,17 @@ defmodule ChatRoomWeb.MultiRoomChannel do
     {:ok, user} = User.find(socket.assigns.user.id)
 
     User.delete(user)
+
+    broadcast(socket, "room_list", %{rooms: Room.all()})
   end
 
   def handle_in("create_room", _, socket) do
     {:ok, user} = User.find(socket.assigns.user.id)
 
-    {:ok, room} =
-      Room.create(user)
-      |> Room.update()
+    User.create_room(user)
 
-    User.new_room(user, room.id)
-    |> User.update()
-
-    broadcast(socket, "new_room_created", room)
+    broadcast(socket, "room_list", %{rooms: Room.all()})
 
     {:reply, :ok, socket}
-  end
-
-  def handle_in("new_msg", %{"msg" => msg, "id" => id}, socket) do
-    broadcast(socket, "new_msg", %{id: id, text: msg})
-
-    {:reply, :ok, socket}
-  end
-
-  def handle_in("is_typing", %{"id" => id}, socket) do
-    broadcast(socket, "is_typing", %{id: id})
-
-    {:noreply, socket}
-  end
-
-  def handle_in("stopped_typing", %{"id" => id}, socket) do
-    broadcast(socket, "stopped_typing", %{id: id})
-
-    {:noreply, socket}
   end
 end

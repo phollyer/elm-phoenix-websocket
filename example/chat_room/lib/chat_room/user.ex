@@ -33,7 +33,14 @@ defmodule ChatRoom.User do
    :ets.delete(:users_table, user.id)
   end
 
-  def new_room(user, room_id), do: Map.update(user, :rooms, [room_id], &([room_id | &1]))
+  def create_room(user) do
+    {:ok, room} =
+      Room.create(user)
+      |> Room.update()
+
+    Map.update(user, :rooms, [room.id], &([room.id | &1]))
+    |> update()
+  end
 
   def create_id(), do: inspect(rem System.system_time(:millisecond), 1_000_000)
 end
