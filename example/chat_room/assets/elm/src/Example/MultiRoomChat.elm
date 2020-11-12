@@ -174,14 +174,6 @@ update msg model =
                                 Err _ ->
                                     ( newModel, cmd )
 
-                        ( "example:lobby", "new_room_created" ) ->
-                            case decodeRoom payload of
-                                Ok room ->
-                                    ( { newModel | rooms = room :: model.rooms }, cmd )
-
-                                Err _ ->
-                                    ( newModel, cmd )
-
                         _ ->
                             ( newModel, cmd )
 
@@ -204,9 +196,7 @@ joinLobby model =
             { joinConfig
                 | topic = "example:lobby"
                 , events =
-                    [ "room_list"
-                    , "new_room_created"
-                    ]
+                    [ "room_list" ]
                 , payload =
                     JE.object
                         [ ( "username", JE.string (String.trim model.username) ) ]
@@ -295,11 +285,6 @@ roomsDecoder =
     JD.succeed
         identity
         |> andMap (JD.field "rooms" (JD.list roomDecoder))
-
-
-decodeRoom : Value -> Result JD.Error Room
-decodeRoom payload =
-    JD.decodeValue roomDecoder payload
 
 
 roomDecoder : JD.Decoder Room
