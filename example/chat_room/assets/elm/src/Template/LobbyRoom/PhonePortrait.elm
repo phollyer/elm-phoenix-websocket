@@ -1,50 +1,20 @@
-module Template.Rooms.PhonePortrait exposing (view)
+module Template.LobbyRoom.PhonePortrait exposing (view)
 
 import Colors.Opaque as Color
 import Element as El exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
+import Types exposing (Room)
 
 
 type alias Config c =
     { c
-        | list : List Room
-    }
-
-
-type alias Room =
-    { id : String
-    , owner : User
-    , members : List User
-    , messages : List Message
-    }
-
-
-type alias Message =
-    { id : String
-    , text : String
-    , owner : User
-    }
-
-
-type alias User =
-    { id : String
-    , username : String
+        | room : Room
     }
 
 
 view : Config c -> Element msg
 view config =
-    El.column
-        [ El.width El.fill
-        , El.spacing 10
-        ]
-    <|
-        List.map roomView config.list
-
-
-roomView : Room -> Element msg
-roomView room =
     El.el
         [ Background.color Color.aliceblue
         , Border.rounded 10
@@ -63,7 +33,7 @@ roomView room =
                 , El.clipX
                 ]
                 [ El.text "Owner:"
-                , El.text room.owner.username
+                , El.text config.room.owner.username
                 ]
             , El.column
                 [ El.width El.fill ]
@@ -72,7 +42,7 @@ roomView room =
                         (\member ->
                             El.text member.username
                         )
-                        room.members
+                        config.room.members
                 )
             ]
         )

@@ -82,24 +82,5 @@ view config =
                         (El.text "Members")
                     , config.members
                     ]
-                , El.column
-                    [ Border.rounded 10
-                    , Background.color Color.steelblue
-                    , El.paddingEach
-                        { left = 10
-                        , top = 10
-                        , right = 10
-                        , bottom = 0
-                        }
-                    , El.spacing 10
-                    , El.width El.fill
-                    , El.height <|
-                        El.maximum 300 El.fill
-                    , Font.color Color.skyblue
-                    ]
-                    [ El.el
-                        [ El.centerX ]
-                        (El.text "Rooms")
-                    , config.rooms
-                    ]
+                , config.rooms
                 ]

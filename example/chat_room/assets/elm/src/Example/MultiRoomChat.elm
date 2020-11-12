@@ -20,8 +20,9 @@ import View.Button as Button
 import View.Lobby as Lobby
 import View.LobbyForm as LobbyForm
 import View.LobbyMembers as LobbyMembers
+import View.LobbyRoom as LobbyRoom
+import View.LobbyRooms as LobbyRooms
 import View.LobbyUser as LobbyUser
-import View.Rooms as Rooms
 import View.Username as Username
 
 
@@ -306,6 +307,13 @@ toUsers presences =
 
 lobbyRooms : Device -> List Room -> Element Msg
 lobbyRooms device rooms =
-    Rooms.init
-        |> Rooms.list rooms
-        |> Rooms.view device
+    LobbyRooms.init
+        |> LobbyRooms.elements (List.map (lobbyRoom device) rooms)
+        |> LobbyRooms.view device
+
+
+lobbyRoom : Device -> Room -> Element Msg
+lobbyRoom device room =
+    LobbyRoom.init
+        |> LobbyRoom.room room
+        |> LobbyRoom.view device
