@@ -7,6 +7,7 @@ module Example.JoinWithGoodParams exposing
     , view
     )
 
+import Configs exposing (joinConfig)
 import Element as El exposing (Device, Element)
 import Example.Utils exposing (updatePhoenixWith)
 import Extra.String as String
@@ -56,7 +57,7 @@ type Action
 
 type Msg
     = GotControlClick Action
-    | GotPhoenixMsg Phoenix.Msg
+    | PhoenixMsg Phoenix.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -67,34 +68,30 @@ update msg model =
                 Join ->
                     model.phoenix
                         |> Phoenix.setJoinConfig
-                            { topic = "example:join_and_leave_channels"
-                            , payload =
-                                JE.object
-                                    [ ( "username", JE.string "good" )
-                                    , ( "password", JE.string "good" )
-                                    ]
-                            , events = []
-                            , timeout = Nothing
+                            { joinConfig
+                                | topic = "example:join_and_leave_channels"
+                                , payload =
+                                    JE.object
+                                        [ ( "username", JE.string "good" )
+                                        , ( "password", JE.string "good" )
+                                        ]
                             }
                         |> Phoenix.join "example:join_and_leave_channels"
-                        |> updatePhoenixWith GotPhoenixMsg model
+                        |> updatePhoenixWith PhoenixMsg model
 
                 Leave ->
-                    model.phoenix
-                        |> Phoenix.leave "example:join_and_leave_channels"
-                        |> updatePhoenixWith GotPhoenixMsg model
+                    Phoenix.leave "example:join_and_leave_channels" model.phoenix
+                        |> updatePhoenixWith PhoenixMsg model
 
-        GotPhoenixMsg subMsg ->
+        PhoenixMsg subMsg ->
             let
                 ( newModel, cmd ) =
                     Phoenix.update subMsg model.phoenix
-                        |> updatePhoenixWith GotPhoenixMsg model
+                        |> updatePhoenixWith PhoenixMsg model
             in
             case Phoenix.phoenixMsg newModel.phoenix of
                 Phoenix.ChannelResponse response ->
-                    ( { newModel | responses = response :: newModel.responses }
-                    , cmd
-                    )
+                    ( { newModel | responses = response :: newModel.responses }, cmd )
 
                 _ ->
                     ( newModel, cmd )
@@ -106,7 +103,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map GotPhoenixMsg <|
+    Sub.map PhoenixMsg <|
         Phoenix.subscriptions model.phoenix
 
 
@@ -129,8 +126,7 @@ view device model =
 
 description : List (List (Element msg))
 description =
-    [ [ El.text "Join a Channel, providing auth params that are accepted." ]
-    ]
+    [ [ El.text "Join a Channel, providing auth params that are accepted." ] ]
 
 
 

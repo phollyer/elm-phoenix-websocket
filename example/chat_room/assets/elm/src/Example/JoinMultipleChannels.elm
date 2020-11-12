@@ -55,7 +55,7 @@ type Action
 
 type Msg
     = GotControlClick Action
-    | GotPhoenixMsg Phoenix.Msg
+    | PhoenixMsg Phoenix.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -70,9 +70,8 @@ update msg model =
                                 |> List.map
                                     (\index -> Phoenix.join ("example:join_channel_number_" ++ String.fromInt index))
                     in
-                    model.phoenix
-                        |> Phoenix.batch joins
-                        |> updatePhoenixWith GotPhoenixMsg model
+                    Phoenix.batch joins model.phoenix
+                        |> updatePhoenixWith PhoenixMsg model
 
                 Leave ->
                     let
@@ -81,21 +80,18 @@ update msg model =
                                 |> List.map
                                     (\index -> Phoenix.leave ("example:join_channel_number_" ++ String.fromInt index))
                     in
-                    model.phoenix
-                        |> Phoenix.batch leaves
-                        |> updatePhoenixWith GotPhoenixMsg model
+                    Phoenix.batch leaves model.phoenix
+                        |> updatePhoenixWith PhoenixMsg model
 
-        GotPhoenixMsg subMsg ->
+        PhoenixMsg subMsg ->
             let
                 ( newModel, cmd ) =
                     Phoenix.update subMsg model.phoenix
-                        |> updatePhoenixWith GotPhoenixMsg model
+                        |> updatePhoenixWith PhoenixMsg model
             in
             case Phoenix.phoenixMsg newModel.phoenix of
                 Phoenix.ChannelResponse response ->
-                    ( { newModel | responses = response :: newModel.responses }
-                    , cmd
-                    )
+                    ( { newModel | responses = response :: newModel.responses }, cmd )
 
                 _ ->
                     ( newModel, cmd )
@@ -107,7 +103,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map GotPhoenixMsg <|
+    Sub.map PhoenixMsg <|
         Phoenix.subscriptions model.phoenix
 
 
@@ -130,8 +126,7 @@ view device model =
 
 description : List (List (Element msg))
 description =
-    [ [ El.text "Join multiple Channels with a single command." ]
-    ]
+    [ [ El.text "Join multiple Channels with a single command." ] ]
 
 
 

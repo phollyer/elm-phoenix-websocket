@@ -7,6 +7,7 @@ module Example.ReceiveEvents exposing
     , view
     )
 
+import Configs exposing (joinConfig, pushConfig)
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Example.Utils exposing (updatePhoenixWith)
 import Extra.String as String
@@ -66,7 +67,7 @@ type Info
 
 type Msg
     = GotControlClick Action
-    | GotPhoenixMsg Phoenix.Msg
+    | PhoenixMsg Phoenix.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -77,39 +78,31 @@ update msg model =
                 Push ->
                     model.phoenix
                         |> Phoenix.setJoinConfig
-                            { topic = "example:send_and_receive"
-                            , events = [ "receive_event_1", "receive_event_2" ]
-                            , payload = JE.null
-                            , timeout = Nothing
+                            { joinConfig
+                                | topic = "example:send_and_receive"
+                                , events = [ "receive_event_1", "receive_event_2" ]
                             }
                         |> Phoenix.push
-                            { topic = "example:send_and_receive"
-                            , event = "receive_events"
-                            , payload = JE.null
-                            , timeout = Nothing
-                            , retryStrategy = Phoenix.Drop
-                            , ref = Just "custom_ref"
+                            { pushConfig
+                                | topic = "example:send_and_receive"
+                                , event = "receive_events"
+                                , ref = Just "custom_ref"
                             }
-                        |> updatePhoenixWith GotPhoenixMsg model
+                        |> updatePhoenixWith PhoenixMsg model
 
                 Leave ->
                     Phoenix.leave "example:send_and_receive" model.phoenix
-                        |> updatePhoenixWith GotPhoenixMsg model
+                        |> updatePhoenixWith PhoenixMsg model
 
-        GotPhoenixMsg phxMsg ->
+        PhoenixMsg phxMsg ->
             let
                 ( newModel, cmd ) =
                     Phoenix.update phxMsg model.phoenix
-                        |> updatePhoenixWith GotPhoenixMsg model
+                        |> updatePhoenixWith PhoenixMsg model
             in
             case Phoenix.phoenixMsg newModel.phoenix of
                 Phoenix.ChannelResponse response ->
-                    ( { newModel
-                        | info =
-                            Response response :: newModel.info
-                      }
-                    , cmd
-                    )
+                    ( { newModel | info = Response response :: newModel.info }, cmd )
 
                 Phoenix.ChannelEvent topic event payload ->
                     ( { newModel
@@ -134,7 +127,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map GotPhoenixMsg <|
+    Sub.map PhoenixMsg <|
         Phoenix.subscriptions model.phoenix
 
 

@@ -56,7 +56,7 @@ type Action
 
 type Msg
     = GotControlClick Action
-    | GotPhoenixMsg Phoenix.Msg
+    | PhoenixMsg Phoenix.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -65,32 +65,22 @@ update msg model =
         GotControlClick action ->
             case action of
                 Join ->
-                    model.phoenix
-                        |> Phoenix.setJoinConfig
-                            { topic = "example:join_and_leave_channels"
-                            , payload = JE.null
-                            , events = []
-                            , timeout = Nothing
-                            }
-                        |> Phoenix.join "example:join_and_leave_channels"
-                        |> updatePhoenixWith GotPhoenixMsg model
+                    Phoenix.join "example:join_and_leave_channels" model.phoenix
+                        |> updatePhoenixWith PhoenixMsg model
 
                 Leave ->
-                    model.phoenix
-                        |> Phoenix.leave "example:join_and_leave_channels"
-                        |> updatePhoenixWith GotPhoenixMsg model
+                    Phoenix.leave "example:join_and_leave_channels" model.phoenix
+                        |> updatePhoenixWith PhoenixMsg model
 
-        GotPhoenixMsg subMsg ->
+        PhoenixMsg subMsg ->
             let
                 ( newModel, cmd ) =
                     Phoenix.update subMsg model.phoenix
-                        |> updatePhoenixWith GotPhoenixMsg model
+                        |> updatePhoenixWith PhoenixMsg model
             in
             case Phoenix.phoenixMsg newModel.phoenix of
                 Phoenix.ChannelResponse response ->
-                    ( { newModel | responses = response :: newModel.responses }
-                    , cmd
-                    )
+                    ( { newModel | responses = response :: newModel.responses }, cmd )
 
                 _ ->
                     ( newModel, cmd )
@@ -102,7 +92,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map GotPhoenixMsg <|
+    Sub.map PhoenixMsg <|
         Phoenix.subscriptions model.phoenix
 
 

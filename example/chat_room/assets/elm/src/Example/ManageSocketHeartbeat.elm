@@ -8,6 +8,7 @@ module Example.ManageSocketHeartbeat exposing
     )
 
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
+import Example.Utils exposing (updatePhoenixWith)
 import Extra.String as String
 import Json.Encode exposing (Value)
 import Phoenix
@@ -43,7 +44,7 @@ init phoenix =
       , messages = []
       , receiveMessages = True
       }
-    , Cmd.map GotPhoenixMsg phxCmd
+    , Cmd.map PhoenixMsg phxCmd
     )
 
 
@@ -77,7 +78,7 @@ type Action
 
 type Msg
     = GotControlClick Action
-    | GotPhoenixMsg Phoenix.Msg
+    | PhoenixMsg Phoenix.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -88,38 +89,27 @@ update msg model =
                 On ->
                     ( { model | receiveMessages = True }
                     , Phoenix.heartbeatOn model.phoenix
-                        |> Cmd.map GotPhoenixMsg
+                        |> Cmd.map PhoenixMsg
                     )
 
                 Off ->
                     ( { model | receiveMessages = False }
                     , Phoenix.heartbeatOff model.phoenix
-                        |> Cmd.map GotPhoenixMsg
+                        |> Cmd.map PhoenixMsg
                     )
 
-        GotPhoenixMsg subMsg ->
+        PhoenixMsg subMsg ->
             let
                 ( newModel, cmd ) =
                     Phoenix.update subMsg model.phoenix
-                        |> updatePhoenix model
+                        |> updatePhoenixWith PhoenixMsg model
             in
             case Phoenix.phoenixMsg newModel.phoenix of
-                Phoenix.SocketMessage (Phoenix.Heartbeat info) ->
-                    ( { newModel
-                        | messages = info :: model.messages
-                      }
-                    , cmd
-                    )
+                Phoenix.SocketMessage (Phoenix.Heartbeat message) ->
+                    ( { newModel | messages = message :: model.messages }, cmd )
 
                 _ ->
                     ( newModel, cmd )
-
-
-updatePhoenix : Model -> ( Phoenix.Model, Cmd Phoenix.Msg ) -> ( Model, Cmd Msg )
-updatePhoenix model ( phoenix, phoenixCmd ) =
-    ( { model | phoenix = phoenix }
-    , Cmd.map GotPhoenixMsg phoenixCmd
-    )
 
 
 
@@ -128,7 +118,7 @@ updatePhoenix model ( phoenix, phoenixCmd ) =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map GotPhoenixMsg <|
+    Sub.map PhoenixMsg <|
         Phoenix.subscriptions model.phoenix
 
 
@@ -151,8 +141,7 @@ view device model =
 
 description : List (List (Element msg))
 description =
-    [ [ El.text "Choose whether to receive the heartbeat as an incoming Socket message. For this example, the heartbeat interval is set at 1 second." ]
-    ]
+    [ [ El.text "Choose whether to receive the heartbeat as an incoming Socket message. For this example, the heartbeat interval is set at 1 second." ] ]
 
 
 

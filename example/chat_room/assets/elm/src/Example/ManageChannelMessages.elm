@@ -7,7 +7,9 @@ module Example.ManageChannelMessages exposing
     , view
     )
 
+import Configs exposing (pushConfig)
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
+import Example.Utils exposing (updatePhoenixWith)
 import Extra.String as String
 import Json.Encode as JE exposing (Value)
 import Phoenix
@@ -65,24 +67,13 @@ type Action
     | Off
 
 
-pushConfig : Phoenix.Push
-pushConfig =
-    { topic = ""
-    , event = ""
-    , payload = JE.null
-    , timeout = Nothing
-    , retryStrategy = Phoenix.Drop
-    , ref = Nothing
-    }
-
-
 
 {- Update -}
 
 
 type Msg
     = GotControlClick Action
-    | GotPhoenixMsg Phoenix.Msg
+    | PhoenixMsg Phoenix.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -97,43 +88,32 @@ update msg model =
                                 | topic = "example:manage_channel_messages"
                                 , event = "empty_message"
                             }
-                        |> updatePhoenix model
+                        |> updatePhoenixWith PhoenixMsg model
 
                 On ->
                     ( { model | receiveMessages = True }
                     , Phoenix.socketChannelMessagesOn model.phoenix
-                        |> Cmd.map GotPhoenixMsg
+                        |> Cmd.map PhoenixMsg
                     )
 
                 Off ->
                     ( { model | receiveMessages = False }
                     , Phoenix.socketChannelMessagesOff model.phoenix
-                        |> Cmd.map GotPhoenixMsg
+                        |> Cmd.map PhoenixMsg
                     )
 
-        GotPhoenixMsg subMsg ->
+        PhoenixMsg subMsg ->
             let
                 ( newModel, cmd ) =
                     Phoenix.update subMsg model.phoenix
-                        |> updatePhoenix model
+                        |> updatePhoenixWith PhoenixMsg model
             in
             case Phoenix.phoenixMsg newModel.phoenix of
                 Phoenix.SocketMessage (Phoenix.ChannelMessage info) ->
-                    ( { newModel
-                        | messages = info :: model.messages
-                      }
-                    , cmd
-                    )
+                    ( { newModel | messages = info :: model.messages }, cmd )
 
                 _ ->
                     ( newModel, cmd )
-
-
-updatePhoenix : Model -> ( Phoenix.Model, Cmd Phoenix.Msg ) -> ( Model, Cmd Msg )
-updatePhoenix model ( phoenix, phoenixCmd ) =
-    ( { model | phoenix = phoenix }
-    , Cmd.map GotPhoenixMsg phoenixCmd
-    )
 
 
 
@@ -142,7 +122,7 @@ updatePhoenix model ( phoenix, phoenixCmd ) =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map GotPhoenixMsg <|
+    Sub.map PhoenixMsg <|
         Phoenix.subscriptions model.phoenix
 
 
@@ -165,8 +145,7 @@ view device model =
 
 description : List (List (Element msg))
 description =
-    [ [ El.text "Choose whether to receive Channel messages as an incoming Socket message." ]
-    ]
+    [ [ El.text "Choose whether to receive Channel messages as an incoming Socket message." ] ]
 
 
 

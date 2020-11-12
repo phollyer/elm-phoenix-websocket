@@ -7,12 +7,14 @@ module Example.MultiRoomChat exposing
     , view
     )
 
+import Configs exposing (joinConfig, pushConfig)
 import Element as El exposing (Device, Element)
 import Example.Utils exposing (updatePhoenixWith)
 import Json.Decode as JD
 import Json.Decode.Extra exposing (andMap)
 import Json.Encode as JE exposing (Value)
 import Phoenix
+import Types exposing (Message, Room, User, decodeMessage, decodeRooms, decodeUser)
 import UI
 import View.Button as Button
 import View.Lobby as Lobby
@@ -59,12 +61,6 @@ type LobbyState
     | Registered User
 
 
-type alias User =
-    { id : String
-    , username : String
-    }
-
-
 type alias Presence =
     { id : String
     , metas : List Meta
@@ -75,41 +71,6 @@ type alias Presence =
 type alias Meta =
     { online_at : String
     , device : String
-    }
-
-
-type alias Room =
-    { id : String
-    , owner : User
-    , members : List User
-    , messages : List Message
-    }
-
-
-type alias Message =
-    { id : String
-    , text : String
-    , owner : User
-    }
-
-
-joinConfig : Phoenix.JoinConfig
-joinConfig =
-    { topic = ""
-    , events = []
-    , payload = JE.null
-    , timeout = Nothing
-    }
-
-
-pushConfig : Phoenix.Push
-pushConfig =
-    { topic = ""
-    , event = ""
-    , payload = JE.null
-    , retryStrategy = Phoenix.Drop
-    , timeout = Nothing
-    , ref = Nothing
     }
 
 
@@ -230,19 +191,6 @@ toPresences presences =
 {- Decoders -}
 
 
-decodeUser : Value -> Result JD.Error User
-decodeUser payload =
-    JD.decodeValue userDecoder payload
-
-
-userDecoder : JD.Decoder User
-userDecoder =
-    JD.succeed
-        User
-        |> andMap (JD.field "id" JD.string)
-        |> andMap (JD.field "username" JD.string)
-
-
 decodeMetas : List Value -> List Meta
 decodeMetas metas =
     List.map
@@ -260,42 +208,6 @@ metaDecoder =
         Meta
         |> andMap (JD.field "online_at" JD.string)
         |> andMap (JD.field "device" JD.string)
-
-
-decodeMessage : Value -> Result JD.Error Message
-decodeMessage payload =
-    JD.decodeValue messageDecoder payload
-
-
-messageDecoder : JD.Decoder Message
-messageDecoder =
-    JD.succeed
-        Message
-        |> andMap (JD.field "id" JD.string)
-        |> andMap (JD.field "text" JD.string)
-        |> andMap (JD.field "owner" userDecoder)
-
-
-decodeRooms : Value -> Result JD.Error (List Room)
-decodeRooms payload =
-    JD.decodeValue roomsDecoder payload
-
-
-roomsDecoder : JD.Decoder (List Room)
-roomsDecoder =
-    JD.succeed
-        identity
-        |> andMap (JD.field "rooms" (JD.list roomDecoder))
-
-
-roomDecoder : JD.Decoder Room
-roomDecoder =
-    JD.succeed
-        Room
-        |> andMap (JD.field "id" JD.string)
-        |> andMap (JD.field "owner" userDecoder)
-        |> andMap (JD.field "members" (JD.list userDecoder))
-        |> andMap (JD.field "messages" (JD.list messageDecoder))
 
 
 

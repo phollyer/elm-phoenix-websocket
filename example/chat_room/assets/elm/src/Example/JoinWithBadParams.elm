@@ -7,6 +7,7 @@ module Example.JoinWithBadParams exposing
     , view
     )
 
+import Configs exposing (joinConfig)
 import Element as El exposing (Device, Element)
 import Example.Utils exposing (batch, updatePhoenixWith)
 import Extra.String as String
@@ -51,7 +52,7 @@ type alias Model =
 
 type Msg
     = GotControlClick
-    | GotPhoenixMsg Phoenix.Msg
+    | PhoenixMsg Phoenix.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -60,23 +61,22 @@ update msg model =
         GotControlClick ->
             model.phoenix
                 |> Phoenix.setJoinConfig
-                    { topic = "example:join_and_leave_channels"
-                    , payload =
-                        JE.object
-                            [ ( "username", JE.string "bad" )
-                            , ( "password", JE.string "bad" )
-                            ]
-                    , events = []
-                    , timeout = Nothing
+                    { joinConfig
+                        | topic = "example:join_and_leave_channels"
+                        , payload =
+                            JE.object
+                                [ ( "username", JE.string "bad" )
+                                , ( "password", JE.string "bad" )
+                                ]
                     }
                 |> Phoenix.join "example:join_and_leave_channels"
-                |> updatePhoenixWith GotPhoenixMsg model
+                |> updatePhoenixWith PhoenixMsg model
 
-        GotPhoenixMsg subMsg ->
+        PhoenixMsg subMsg ->
             let
                 ( newModel, cmd ) =
                     Phoenix.update subMsg model.phoenix
-                        |> updatePhoenixWith GotPhoenixMsg model
+                        |> updatePhoenixWith PhoenixMsg model
             in
             case Phoenix.phoenixMsg newModel.phoenix of
                 Phoenix.ChannelResponse response ->
@@ -85,17 +85,12 @@ update msg model =
                             -- Leave the Channel after a JoinError to stop
                             -- PhoenixJS from constantly retrying
                             Phoenix.leave "example:join_and_leave_channels" newModel.phoenix
-                                |> updatePhoenixWith GotPhoenixMsg
-                                    { newModel
-                                        | responses =
-                                            response :: newModel.responses
-                                    }
+                                |> updatePhoenixWith PhoenixMsg
+                                    { newModel | responses = response :: newModel.responses }
                                 |> batch [ cmd ]
 
                         _ ->
-                            ( { newModel | responses = response :: newModel.responses }
-                            , cmd
-                            )
+                            ( { newModel | responses = response :: newModel.responses }, cmd )
 
                 _ ->
                     ( newModel, cmd )
@@ -107,7 +102,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map GotPhoenixMsg <|
+    Sub.map PhoenixMsg <|
         Phoenix.subscriptions model.phoenix
 
 
@@ -130,8 +125,7 @@ view device model =
 
 description : List (List (Element msg))
 description =
-    [ [ El.text "Join a Channel, providing auth params that are not accepted." ]
-    ]
+    [ [ El.text "Join a Channel, providing auth params that are not accepted." ] ]
 
 
 

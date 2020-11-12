@@ -56,7 +56,7 @@ type Action
 
 type Msg
     = GotControlClick Action
-    | GotPhoenixMsg Phoenix.Msg
+    | PhoenixMsg Phoenix.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -71,24 +71,21 @@ update msg model =
                                 [ ( "good_params", JE.bool True ) ]
                             )
                         |> Phoenix.connect
-                        |> updatePhoenixWith GotPhoenixMsg model
+                        |> updatePhoenixWith PhoenixMsg model
 
                 Disconnect ->
-                    model.phoenix
-                        |> Phoenix.disconnect Nothing
-                        |> updatePhoenixWith GotPhoenixMsg model
+                    Phoenix.disconnect Nothing model.phoenix
+                        |> updatePhoenixWith PhoenixMsg model
 
-        GotPhoenixMsg subMsg ->
+        PhoenixMsg subMsg ->
             let
                 ( newModel, cmd ) =
                     Phoenix.update subMsg model.phoenix
-                        |> updatePhoenixWith GotPhoenixMsg model
+                        |> updatePhoenixWith PhoenixMsg model
             in
             case Phoenix.phoenixMsg newModel.phoenix of
                 Phoenix.StateChanged response ->
-                    ( { newModel | responses = response :: newModel.responses }
-                    , cmd
-                    )
+                    ( { newModel | responses = response :: newModel.responses }, cmd )
 
                 _ ->
                     ( newModel, cmd )
@@ -100,7 +97,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map GotPhoenixMsg <|
+    Sub.map PhoenixMsg <|
         Phoenix.subscriptions model.phoenix
 
 
@@ -123,8 +120,7 @@ view device model =
 
 description : List (List (Element msg))
 description =
-    [ [ El.text "Connect to the Socket with authentication params that are accepted." ]
-    ]
+    [ [ El.text "Connect to the Socket with authentication params that are accepted." ] ]
 
 
 

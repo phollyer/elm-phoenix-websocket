@@ -8,6 +8,7 @@ module Example.ManagePresenceMessages exposing
     )
 
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
+import Example.Utils exposing (batch, updatePhoenixWith)
 import Extra.String as String
 import Json.Decode as JD
 import Json.Decode.Extra exposing (andMap)
@@ -43,7 +44,7 @@ init phoenix =
       , maybeExampleId = Nothing
       , maybeUserId = Nothing
       }
-    , Cmd.map GotPhoenixMsg phxCmd
+    , Cmd.map PhoenixMsg phxCmd
     )
 
 
@@ -84,7 +85,7 @@ type Action
 
 type Msg
     = GotControlClick Action
-    | GotPhoenixMsg Phoenix.Msg
+    | PhoenixMsg Phoenix.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -94,33 +95,33 @@ update msg model =
             case action of
                 Join ->
                     Phoenix.join (controllerTopic model.maybeExampleId) model.phoenix
-                        |> updatePhoenix model
+                        |> updatePhoenixWith PhoenixMsg model
 
                 Leave ->
                     Phoenix.leave (controllerTopic model.maybeExampleId) model.phoenix
-                        |> updatePhoenix model
+                        |> updatePhoenixWith PhoenixMsg model
 
                 On ->
                     ( { model | receiveMessages = True }
                     , Phoenix.socketPresenceMessagesOn model.phoenix
-                        |> Cmd.map GotPhoenixMsg
+                        |> Cmd.map PhoenixMsg
                     )
 
                 Off ->
                     ( { model | receiveMessages = False }
                     , Phoenix.socketPresenceMessagesOff model.phoenix
-                        |> Cmd.map GotPhoenixMsg
+                        |> Cmd.map PhoenixMsg
                     )
 
-        GotPhoenixMsg subMsg ->
+        PhoenixMsg subMsg ->
             let
                 ( newModel, cmd ) =
                     Phoenix.update subMsg model.phoenix
-                        |> updatePhoenix model
+                        |> updatePhoenixWith PhoenixMsg model
             in
             case Phoenix.phoenixMsg newModel.phoenix of
-                Phoenix.SocketMessage (Phoenix.PresenceMessage info) ->
-                    updateMessages info ( newModel, cmd )
+                Phoenix.SocketMessage (Phoenix.PresenceMessage message) ->
+                    ( { newModel | messages = message :: model.messages }, cmd )
 
                 Phoenix.SocketMessage (Phoenix.ChannelMessage { topic, event, payload }) ->
                     case ( Phoenix.topicParts topic, event ) of
@@ -128,7 +129,7 @@ update msg model =
                             case decodeExampleId payload of
                                 Ok exampleId ->
                                     Phoenix.leave "example:manage_presence_messages" newModel.phoenix
-                                        |> updatePhoenix { newModel | maybeExampleId = Just exampleId }
+                                        |> updatePhoenixWith PhoenixMsg { newModel | maybeExampleId = Just exampleId }
                                         |> batch [ cmd ]
 
                                 Err _ ->
@@ -137,9 +138,7 @@ update msg model =
                         ( ( "example", _ ), "phx_reply" ) ->
                             case decodeUserId payload of
                                 Ok userId ->
-                                    ( { newModel | maybeUserId = Just userId }
-                                    , cmd
-                                    )
+                                    ( { newModel | maybeUserId = Just userId }, cmd )
 
                                 Err _ ->
                                     ( newModel, cmd )
@@ -159,25 +158,6 @@ controllerTopic maybeId =
 
         Nothing ->
             ""
-
-
-updatePhoenix : Model -> ( Phoenix.Model, Cmd Phoenix.Msg ) -> ( Model, Cmd Msg )
-updatePhoenix model ( phoenix, phoenixCmd ) =
-    ( { model | phoenix = phoenix }
-    , Cmd.map GotPhoenixMsg phoenixCmd
-    )
-
-
-updateMessages : PresenceInfo -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-updateMessages info ( model, cmd ) =
-    ( { model | messages = info :: model.messages }, cmd )
-
-
-batch : List (Cmd Msg) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-batch cmds ( model, cmd ) =
-    ( model
-    , Cmd.batch (cmd :: cmds)
-    )
 
 
 
@@ -214,7 +194,7 @@ userIdDecoder =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map GotPhoenixMsg <|
+    Sub.map PhoenixMsg <|
         Phoenix.subscriptions model.phoenix
 
 
@@ -238,8 +218,7 @@ view device model =
 
 description : List (List (Element msg))
 description =
-    [ [ El.text "Choose whether to receive Presence messages as an incoming Socket message." ]
-    ]
+    [ [ El.text "Choose whether to receive Presence messages as an incoming Socket message." ] ]
 
 
 

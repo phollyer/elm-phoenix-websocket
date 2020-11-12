@@ -54,7 +54,7 @@ type Action
 
 type Msg
     = GotControlClick Action
-    | GotPhoenixMsg Phoenix.Msg
+    | PhoenixMsg Phoenix.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -69,19 +69,17 @@ update msg model =
                                 [ ( "good_params", JE.bool False ) ]
                             )
                         |> Phoenix.connect
-                        |> updatePhoenixWith GotPhoenixMsg model
+                        |> updatePhoenixWith PhoenixMsg model
 
-        GotPhoenixMsg subMsg ->
+        PhoenixMsg subMsg ->
             let
                 ( newModel, cmd ) =
                     Phoenix.update subMsg model.phoenix
-                        |> updatePhoenixWith GotPhoenixMsg model
+                        |> updatePhoenixWith PhoenixMsg model
             in
             case Phoenix.phoenixMsg newModel.phoenix of
                 Phoenix.Error (Phoenix.Socket error) ->
-                    ( { newModel | errors = error :: newModel.errors }
-                    , cmd
-                    )
+                    ( { newModel | errors = error :: newModel.errors }, cmd )
 
                 _ ->
                     ( newModel, cmd )
@@ -93,7 +91,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map GotPhoenixMsg <|
+    Sub.map PhoenixMsg <|
         Phoenix.subscriptions model.phoenix
 
 
@@ -116,8 +114,7 @@ view device model =
 
 description : List (List (Element msg))
 description =
-    [ [ El.text "Try to connect to the Socket with authentication params that are not accepted, causing the connection to be denied." ]
-    ]
+    [ [ El.text "Try to connect to the Socket with authentication params that are not accepted, causing the connection to be denied." ] ]
 
 
 

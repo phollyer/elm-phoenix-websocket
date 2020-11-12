@@ -50,7 +50,7 @@ type Action
 
 type Msg
     = GotControlClick Action
-    | GotPhoenixMsg Phoenix.Msg
+    | PhoenixMsg Phoenix.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -60,15 +60,15 @@ update msg model =
             case action of
                 Connect ->
                     Phoenix.connect model
-                        |> updateWith GotPhoenixMsg
+                        |> updateWith PhoenixMsg
 
                 Disconnect ->
                     Phoenix.disconnect Nothing model
-                        |> updateWith GotPhoenixMsg
+                        |> updateWith PhoenixMsg
 
-        GotPhoenixMsg subMsg ->
+        PhoenixMsg subMsg ->
             Phoenix.update subMsg model
-                |> updateWith GotPhoenixMsg
+                |> updateWith PhoenixMsg
 
 
 updateWith : (Phoenix.Msg -> Msg) -> ( Phoenix.Model, Cmd Phoenix.Msg ) -> ( Model, Cmd Msg )
@@ -84,7 +84,7 @@ updateWith toMsg ( phoenix, phoenixCmd ) =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map GotPhoenixMsg <|
+    Sub.map PhoenixMsg <|
         Phoenix.subscriptions model
 
 
