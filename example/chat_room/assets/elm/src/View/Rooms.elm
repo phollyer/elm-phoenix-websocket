@@ -15,6 +15,7 @@ type Config
 type alias Room =
     { id : String
     , owner : User
+    , members : List User
     , messages : List Message
     }
 

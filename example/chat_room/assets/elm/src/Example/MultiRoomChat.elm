@@ -81,6 +81,7 @@ type alias Meta =
 type alias Room =
     { id : String
     , owner : User
+    , members : List User
     , messages : List Message
     }
 
@@ -293,6 +294,7 @@ roomDecoder =
         Room
         |> andMap (JD.field "id" JD.string)
         |> andMap (JD.field "owner" userDecoder)
+        |> andMap (JD.field "members" (JD.list userDecoder))
         |> andMap (JD.field "messages" (JD.list messageDecoder))
 
 

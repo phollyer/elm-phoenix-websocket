@@ -86,9 +86,9 @@ view config =
                     [ Border.rounded 10
                     , Background.color Color.steelblue
                     , El.paddingEach
-                        { left = 20
-                        , top = 20
-                        , right = 20
+                        { left = 10
+                        , top = 10
+                        , right = 10
                         , bottom = 0
                         }
                     , El.spacing 10

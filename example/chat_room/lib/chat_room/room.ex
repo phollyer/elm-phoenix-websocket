@@ -3,6 +3,7 @@ defmodule ChatRoom.Room do
   def create(user) do
     %{id: create_id(),
       owner: %{id: user.id, username: user.username},
+      members: [],
       messages: []
     }
   end
