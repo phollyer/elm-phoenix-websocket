@@ -1,5 +1,7 @@
 defmodule ChatRoom.User do
 
+  alias ChatRoom.Room
+
   def create(username) do
     %{id: create_id(),
       username: username,
@@ -25,7 +27,11 @@ defmodule ChatRoom.User do
     end
   end
 
-  def delete(user), do: :ets.delete(:users_table, user.id)
+  def delete(user) do
+    Room.delete_list(user.rooms)
+
+   :ets.delete(:users_table, user.id)
+  end
 
   def new_room(user, room_id), do: Map.update(user, :rooms, [room_id], &([room_id | &1]))
 

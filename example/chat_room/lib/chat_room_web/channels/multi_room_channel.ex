@@ -29,7 +29,9 @@ defmodule ChatRoomWeb.MultiRoomChannel do
   end
 
   def terminate(_reason, socket) do
-    User.delete(socket.assigns.user)
+    {:ok, user} = User.find(socket.assigns.user.id)
+
+    User.delete(user)
   end
 
   def handle_in("create_room", _, socket) do

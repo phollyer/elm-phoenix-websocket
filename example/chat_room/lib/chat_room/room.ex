@@ -29,7 +29,9 @@ defmodule ChatRoom.Room do
    :ets.match(:rooms_table, :"$1")
    |> Enum.concat
    |> Enum.map(fn {_, room} -> room end)
- end
+  end
+
+  def delete_list(list), do: Enum.each(list, &(:ets.delete(:rooms_table, &1)))
 
   def create_id(), do: inspect System.system_time(:millisecond)
 end
