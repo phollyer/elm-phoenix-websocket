@@ -89,7 +89,7 @@ type Msg
     | GotJoinLobby
     | GotCreateRoom
     | GotEnterRoom Room
-    | GotMessageChange Room User String
+    | GotMessageChange String
     | GotSendMessage
     | PhoenixMsg Phoenix.Msg
 
@@ -112,7 +112,7 @@ update msg model =
             joinRoom room model.state model.phoenix
                 |> updatePhoenixWith PhoenixMsg (gotoRoom room model)
 
-        GotMessageChange room user message ->
+        GotMessageChange message ->
             ( { model | message = message }, Cmd.none )
 
         GotSendMessage ->
@@ -320,7 +320,7 @@ view device model =
             ChatRoom.init
                 |> ChatRoom.introduction (chatRoomIntroduction room.owner)
                 |> ChatRoom.room room
-                |> ChatRoom.messageForm (messageForm device model)
+                |> ChatRoom.messageForm (messageForm device model.message)
                 |> ChatRoom.view device
 
 
@@ -368,14 +368,14 @@ lobbyForm device username =
         |> LobbyForm.view device
 
 
-messageForm : Device -> Model -> Element Msg
-messageForm device ({ message } as model) =
+messageForm : Device -> String -> Element Msg
+messageForm device message =
     MessageForm.init
         |> MessageForm.inputField
             (InputField.init
                 |> InputField.label "New Message"
                 |> InputField.text message
-                |> InputField.onChange (GotMessageChange (toRoom model) (toUser model))
+                |> InputField.onChange GotMessageChange
                 |> InputField.view device
             )
         |> MessageForm.submitBtn
