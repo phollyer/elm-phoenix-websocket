@@ -25,7 +25,12 @@ view config =
     <|
         List.append
             (introduction config.introduction)
-            [ config.messageForm ]
+            [ El.el
+                [ El.width El.fill
+                , El.alignBottom
+                ]
+                config.messageForm
+            ]
 
 
 introduction : List (List (Element msg)) -> List (Element msg)
