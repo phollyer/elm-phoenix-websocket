@@ -40,6 +40,7 @@ init phoenix =
     , message = ""
     , presences = []
     , rooms = []
+    , membersTyping = []
     }
 
 
@@ -54,6 +55,7 @@ type alias Model =
     , message : String
     , presences : List Presence
     , rooms : List Room
+    , membersTyping : List String
     }
 
 
@@ -121,10 +123,12 @@ update msg model =
             ( model, Cmd.none )
 
         GotMemberStartedTyping user room ->
-            ( model, Cmd.none )
+            memberStartedTyping user room model.phoenix
+                |> updatePhoenixWith PhoenixMsg model
 
         GotMemberStoppedTyping user room ->
-            ( model, Cmd.none )
+            memberStoppedTyping user room model.phoenix
+                |> updatePhoenixWith PhoenixMsg model
 
         PhoenixMsg subMsg ->
             let
@@ -153,6 +157,22 @@ update msg model =
                     case decodeRooms payload of
                         Ok rooms ->
                             ( { newModel | rooms = rooms }, cmd )
+
+                        Err _ ->
+                            ( newModel, cmd )
+
+                Phoenix.ChannelEvent _ "member_started_typing" payload ->
+                    case JD.decodeValue (JD.field "username" JD.string) payload of
+                        Ok username ->
+                            ( addMemberTyping username newModel, cmd )
+
+                        Err _ ->
+                            ( newModel, cmd )
+
+                Phoenix.ChannelEvent _ "member_stopped_typing" payload ->
+                    case JD.decodeValue (JD.field "username" JD.string) payload of
+                        Ok username ->
+                            ( dropMemberTyping username newModel, cmd )
 
                         Err _ ->
                             ( newModel, cmd )
@@ -200,7 +220,11 @@ joinRoom room state phoenix =
                 |> Phoenix.setJoinConfig
                     { joinConfig
                         | topic = topic
-                        , events = [ "message_list" ]
+                        , events =
+                            [ "message_list"
+                            , "member_started_typing"
+                            , "member_stopped_typing"
+                            ]
                         , payload =
                             JE.object
                                 [ ( "id", JE.string (String.trim user.id) ) ]
@@ -211,12 +235,25 @@ joinRoom room state phoenix =
             ( phoenix, Cmd.none )
 
 
-memberIsTyping : User -> Room -> Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
-memberIsTyping user room phoenix =
+memberStartedTyping : User -> Room -> Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
+memberStartedTyping user room phoenix =
     Phoenix.push
         { pushConfig
             | topic = "example:room:" ++ room.id
-            , event = "member_is_typing"
+            , event = "member_started_typing"
+            , payload =
+                JE.object
+                    [ ( "username", JE.string user.username ) ]
+        }
+        phoenix
+
+
+memberStoppedTyping : User -> Room -> Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
+memberStoppedTyping user room phoenix =
+    Phoenix.push
+        { pushConfig
+            | topic = "example:room:" ++ room.id
+            , event = "member_stopped_typing"
             , payload =
                 JE.object
                     [ ( "username", JE.string user.username ) ]
@@ -242,6 +279,27 @@ updateRoom room model =
 
         _ ->
             model
+
+
+addMemberTyping : String -> Model -> Model
+addMemberTyping username model =
+    let
+        user =
+            toUser model
+    in
+    if username /= user.username && (not <| List.member username model.membersTyping) then
+        { model | membersTyping = username :: model.membersTyping }
+
+    else
+        model
+
+
+dropMemberTyping : String -> Model -> Model
+dropMemberTyping username model =
+    { model
+        | membersTyping =
+            List.filter (\username_ -> username /= username) model.membersTyping
+    }
 
 
 toPresences : List Phoenix.Presence -> List Presence
@@ -341,7 +399,7 @@ view device model =
             ChatRoom.init
                 |> ChatRoom.introduction (chatRoomIntroduction room.owner)
                 |> ChatRoom.room room
-                |> ChatRoom.membersTyping []
+                |> ChatRoom.membersTyping model.membersTyping
                 |> ChatRoom.messageForm (messageForm device model)
                 |> ChatRoom.view device
 

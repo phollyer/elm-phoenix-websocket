@@ -80,4 +80,4 @@ onFocus msg (Config config) =
 
 onLoseFocus : msg -> Config msg -> Config msg
 onLoseFocus msg (Config config) =
-    Config { config | onFocus = Just msg }
+    Config { config | onLoseFocus = Just msg }

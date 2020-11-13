@@ -29,4 +29,16 @@ defmodule ChatRoomWeb.ChatRoomChannel do
 
   def terminate(_reason, socket) do
   end
+
+  def handle_in("member_started_typing", user, socket) do
+    broadcast(socket, "member_started_typing", user)
+
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("member_stopped_typing", user, socket) do
+    broadcast(socket, "member_stopped_typing", user)
+
+    {:reply, :ok, socket}
+  end
 end
