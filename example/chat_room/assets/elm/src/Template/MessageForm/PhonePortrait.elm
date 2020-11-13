@@ -6,9 +6,8 @@ import Element.Input as Input
 
 type alias Config msg c =
     { c
-        | text : String
-        , onChange : Maybe (String -> msg)
-        , onSubmit : Element msg
+        | inputField : Element msg
+        , submitBtn : Element msg
     }
 
 
@@ -18,22 +17,6 @@ view config =
         [ El.spacing 10
         , El.width El.fill
         ]
-        [ inputField config
+        [ config.inputField
+        , config.submitBtn
         ]
-
-
-inputField : Config msg c -> Element msg
-inputField config =
-    case config.onChange of
-        Nothing ->
-            El.none
-
-        Just onChange ->
-            Input.multiline
-                [ El.width El.fill ]
-                { onChange = onChange
-                , text = config.text
-                , placeholder = Nothing
-                , label = Input.labelAbove [] (El.text "Message")
-                , spellcheck = True
-                }

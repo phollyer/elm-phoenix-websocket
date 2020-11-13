@@ -37,6 +37,7 @@ init phoenix =
     { phoenix = phoenix
     , state = InLobby Unregistered
     , username = ""
+    , message = ""
     , presences = []
     , rooms = []
     }
@@ -50,6 +51,7 @@ type alias Model =
     { phoenix : Phoenix.Model
     , state : State
     , username : String
+    , message : String
     , presences : List Presence
     , rooms : List Room
     }
@@ -88,6 +90,7 @@ type Msg
     | GotCreateRoom
     | GotEnterRoom Room
     | GotMessageChange Room User String
+    | GotSendMessage
     | PhoenixMsg Phoenix.Msg
 
 
@@ -110,6 +113,9 @@ update msg model =
                 |> updatePhoenixWith PhoenixMsg (gotoRoom room model)
 
         GotMessageChange room user message ->
+            ( { model | message = message }, Cmd.none )
+
+        GotSendMessage ->
             ( model, Cmd.none )
 
         PhoenixMsg subMsg ->
@@ -314,12 +320,7 @@ view device model =
             ChatRoom.init
                 |> ChatRoom.introduction (chatRoomIntroduction room.owner)
                 |> ChatRoom.room room
-                |> ChatRoom.messageForm
-                    (MessageForm.init
-                        |> MessageForm.text ""
-                        |> MessageForm.onChange (GotMessageChange (toRoom model) (toUser model))
-                        |> MessageForm.view device
-                    )
+                |> ChatRoom.messageForm (messageForm device model)
                 |> ChatRoom.view device
 
 
@@ -354,7 +355,7 @@ lobbyForm device username =
             (InputField.init
                 |> InputField.label "Username"
                 |> InputField.text username
-                |> InputField.onChange GotInputFieldChange
+                |> InputField.onChange GotUsernameChange
                 |> InputField.view device
             )
         |> LobbyForm.submitBtn
@@ -365,6 +366,26 @@ lobbyForm device username =
                 |> Button.view device
             )
         |> LobbyForm.view device
+
+
+messageForm : Device -> Model -> Element Msg
+messageForm device ({ message } as model) =
+    MessageForm.init
+        |> MessageForm.inputField
+            (InputField.init
+                |> InputField.label "New Message"
+                |> InputField.text message
+                |> InputField.onChange (GotMessageChange (toRoom model) (toUser model))
+                |> InputField.view device
+            )
+        |> MessageForm.submitBtn
+            (Button.init
+                |> Button.label "Send Message"
+                |> Button.onPress (Just GotSendMessage)
+                |> Button.enabled (String.trim message /= "")
+                |> Button.view device
+            )
+        |> MessageForm.view device
 
 
 
