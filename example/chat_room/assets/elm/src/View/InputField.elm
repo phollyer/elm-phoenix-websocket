@@ -1,6 +1,7 @@
 module View.InputField exposing
     ( init
     , label
+    , multiline
     , onChange
     , text
     , view
@@ -19,6 +20,7 @@ type Config msg
         { label : String
         , onChange : Maybe (String -> msg)
         , text : String
+        , multiline : Bool
         }
 
 
@@ -32,6 +34,7 @@ init =
         { label = ""
         , onChange = Nothing
         , text = ""
+        , multiline = False
         }
 
 
@@ -47,6 +50,11 @@ view device (Config config) =
 label : String -> Config msg -> Config msg
 label label_ (Config config) =
     Config { config | label = label_ }
+
+
+multiline : Bool -> Config msg -> Config msg
+multiline bool (Config config) =
+    Config { config | multiline = bool }
 
 
 onChange : (String -> msg) -> Config msg -> Config msg

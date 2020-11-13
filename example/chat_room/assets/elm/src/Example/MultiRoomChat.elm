@@ -389,6 +389,7 @@ messageForm device message =
                 |> InputField.label "New Message"
                 |> InputField.text message
                 |> InputField.onChange GotMessageChange
+                |> InputField.multiline True
                 |> InputField.view device
             )
         |> MessageForm.submitBtn
