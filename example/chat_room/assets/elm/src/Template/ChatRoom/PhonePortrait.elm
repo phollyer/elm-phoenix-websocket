@@ -30,6 +30,7 @@ view config =
                 [ El.alignBottom
                 , El.spacing 10
                 , El.width El.fill
+                , El.height El.fill
                 ]
                 [ config.messages
                 , membersTypingView config.membersTyping
