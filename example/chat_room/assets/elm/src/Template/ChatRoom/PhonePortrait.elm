@@ -4,6 +4,7 @@ import Colors.Opaque as Color
 import Element as El exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
+import Element.Font as Font
 import Types exposing (Message, Room)
 
 
@@ -12,6 +13,7 @@ type alias Config msg c =
         | room : Room
         , introduction : List (List (Element msg))
         , messageForm : Element msg
+        , membersTyping : List String
     }
 
 
@@ -25,11 +27,14 @@ view config =
     <|
         List.append
             (introduction config.introduction)
-            [ El.el
-                [ El.width El.fill
-                , El.alignBottom
+            [ El.column
+                [ El.alignBottom
+                , El.spacing 10
+                , El.width El.fill
                 ]
-                config.messageForm
+                [ membersTypingView config.membersTyping
+                , config.messageForm
+                ]
             ]
 
 
@@ -56,3 +61,22 @@ roomView room =
 messagesView : List Message -> List (Element msg)
 messagesView messages =
     []
+
+
+membersTypingView : List String -> Element msg
+membersTypingView members =
+    if members == [] then
+        El.none
+
+    else
+        El.paragraph
+            [ El.width El.fill
+            , Font.alignLeft
+            ]
+            [ El.el
+                [ Font.bold ]
+                (El.text "Members Typing: ")
+            , List.intersperse ", " members
+                |> String.concat
+                |> El.text
+            ]

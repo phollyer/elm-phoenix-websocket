@@ -1,6 +1,7 @@
 module View.ChatRoom exposing
     ( init
     , introduction
+    , membersTyping
     , messageForm
     , room
     , view
@@ -16,6 +17,7 @@ type Config msg
         { room : Room
         , introduction : List (List (Element msg))
         , messageForm : Element msg
+        , membersTyping : List String
         }
 
 
@@ -25,6 +27,7 @@ init =
         { room = initRoom
         , introduction = []
         , messageForm = El.none
+        , membersTyping = []
         }
 
 
@@ -46,3 +49,8 @@ room room_ (Config config) =
 messageForm : Element msg -> Config msg -> Config msg
 messageForm form (Config config) =
     Config { config | messageForm = form }
+
+
+membersTyping : List String -> Config msg -> Config msg
+membersTyping members (Config config) =
+    Config { config | membersTyping = members }

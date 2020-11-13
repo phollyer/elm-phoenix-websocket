@@ -333,6 +333,7 @@ view device model =
             ChatRoom.init
                 |> ChatRoom.introduction (chatRoomIntroduction room.owner)
                 |> ChatRoom.room room
+                |> ChatRoom.membersTyping []
                 |> ChatRoom.messageForm (messageForm device model.message)
                 |> ChatRoom.view device
 
