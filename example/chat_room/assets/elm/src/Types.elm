@@ -3,8 +3,11 @@ module Types exposing
     , Room
     , User
     , decodeMessage
+    , decodeRoom
     , decodeRooms
     , decodeUser
+    , initRoom
+    , initUser
     )
 
 import Json.Decode as JD exposing (Value)
@@ -26,9 +29,25 @@ type alias Room =
     }
 
 
+initRoom : Room
+initRoom =
+    { id = ""
+    , owner = initUser
+    , members = []
+    , messages = []
+    }
+
+
 type alias User =
     { id : String
     , username : String
+    }
+
+
+initUser : User
+initUser =
+    { id = ""
+    , username = ""
     }
 
 
@@ -50,16 +69,9 @@ messageDecoder =
         |> andMap (JD.field "owner" userDecoder)
 
 
-decodeRooms : Value -> Result JD.Error (List Room)
-decodeRooms payload =
-    JD.decodeValue roomsDecoder payload
-
-
-roomsDecoder : JD.Decoder (List Room)
-roomsDecoder =
-    JD.succeed
-        identity
-        |> andMap (JD.field "rooms" (JD.list roomDecoder))
+decodeRoom : Value -> Result JD.Error Room
+decodeRoom payload =
+    JD.decodeValue roomDecoder payload
 
 
 roomDecoder : JD.Decoder Room
@@ -70,6 +82,18 @@ roomDecoder =
         |> andMap (JD.field "owner" userDecoder)
         |> andMap (JD.field "members" (JD.list userDecoder))
         |> andMap (JD.field "messages" (JD.list messageDecoder))
+
+
+decodeRooms : Value -> Result JD.Error (List Room)
+decodeRooms payload =
+    JD.decodeValue roomsDecoder payload
+
+
+roomsDecoder : JD.Decoder (List Room)
+roomsDecoder =
+    JD.succeed
+        identity
+        |> andMap (JD.field "rooms" (JD.list roomDecoder))
 
 
 decodeUser : Value -> Result JD.Error User

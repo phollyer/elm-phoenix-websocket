@@ -32,6 +32,16 @@ defmodule ChatRoom.Room do
    |> Enum.map(fn {_, room} -> room end)
   end
 
+  def messages(id) do
+    case find(id) do
+      {:ok, room} ->
+        room.messages
+
+      :not_found ->
+        []
+    end
+  end
+
   def delete_list(list), do: Enum.each(list, &(:ets.delete(:rooms_table, &1)))
 
   def create_id(), do: inspect System.system_time(:millisecond)

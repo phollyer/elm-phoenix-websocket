@@ -18,12 +18,7 @@ view config =
     El.column
         [ Border.rounded 10
         , Background.color Color.steelblue
-        , El.paddingEach
-            { left = 10
-            , top = 10
-            , right = 10
-            , bottom = 0
-            }
+        , El.padding 10
         , El.spacing 10
         , El.width El.fill
         , Font.color Color.skyblue

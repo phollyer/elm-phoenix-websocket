@@ -1,4 +1,4 @@
-defmodule ChatRoomWeb.MultiRoomChannel do
+defmodule ChatRoomWeb.LobbyChannel do
   use Phoenix.Channel
 
   alias ChatRoom.Room

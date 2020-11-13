@@ -14,15 +14,17 @@ import Json.Decode as JD
 import Json.Decode.Extra exposing (andMap)
 import Json.Encode as JE exposing (Value)
 import Phoenix
-import Types exposing (Message, Room, User, decodeMessage, decodeRooms, decodeUser)
+import Types exposing (Message, Room, User, decodeMessage, decodeRoom, decodeRooms, decodeUser, initRoom, initUser)
 import UI
 import View.Button as Button
+import View.ChatRoom as ChatRoom
 import View.Lobby as Lobby
 import View.LobbyForm as LobbyForm
 import View.LobbyMembers as LobbyMembers
 import View.LobbyRoom as LobbyRoom
 import View.LobbyRooms as LobbyRooms
 import View.LobbyUser as LobbyUser
+import View.MessageForm as MessageForm
 import View.Username as Username
 
 
@@ -55,6 +57,7 @@ type alias Model =
 
 type State
     = InLobby LobbyState
+    | InRoom Room User
 
 
 type LobbyState
@@ -83,6 +86,8 @@ type Msg
     = GotUsernameChange String
     | GotJoinLobby
     | GotCreateRoom
+    | GotEnterRoom Room
+    | GotMessageChange Room User String
     | PhoenixMsg Phoenix.Msg
 
 
@@ -100,6 +105,13 @@ update msg model =
             createRoom model.phoenix
                 |> updatePhoenixWith PhoenixMsg model
 
+        GotEnterRoom room ->
+            joinRoom room model.state model.phoenix
+                |> updatePhoenixWith PhoenixMsg (gotoRoom room model)
+
+        GotMessageChange room user message ->
+            ( model, Cmd.none )
+
         PhoenixMsg subMsg ->
             let
                 ( newModel, cmd ) =
@@ -111,6 +123,14 @@ update msg model =
                     case decodeUser payload of
                         Ok user ->
                             ( { newModel | state = InLobby (Registered user) }, cmd )
+
+                        Err _ ->
+                            ( newModel, cmd )
+
+                Phoenix.ChannelResponse (Phoenix.JoinOk _ payload) ->
+                    case decodeRoom payload of
+                        Ok room ->
+                            ( updateRoom room newModel, cmd )
 
                         Err _ ->
                             ( newModel, cmd )
@@ -154,6 +174,49 @@ createRoom phoenix =
         phoenix
 
 
+joinRoom : Room -> State -> Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
+joinRoom room state phoenix =
+    case state of
+        InLobby (Registered user) ->
+            let
+                topic =
+                    "example:room:" ++ room.id
+            in
+            phoenix
+                |> Phoenix.setJoinConfig
+                    { joinConfig
+                        | topic = topic
+                        , events = [ "message_list" ]
+                        , payload =
+                            JE.object
+                                [ ( "id", JE.string (String.trim user.id) ) ]
+                    }
+                |> Phoenix.join topic
+
+        _ ->
+            ( phoenix, Cmd.none )
+
+
+gotoRoom : Room -> Model -> Model
+gotoRoom room model =
+    case model.state of
+        InLobby (Registered user) ->
+            { model | state = InRoom room user }
+
+        _ ->
+            model
+
+
+updateRoom : Room -> Model -> Model
+updateRoom room model =
+    case model.state of
+        InRoom _ user ->
+            { model | state = InRoom room user }
+
+        _ ->
+            model
+
+
 toPresences : List Phoenix.Presence -> List Presence
 toPresences presences =
     List.map
@@ -168,6 +231,29 @@ toPresences presences =
             }
         )
         presences
+
+
+toRoom : Model -> Room
+toRoom model =
+    case model.state of
+        InRoom room _ ->
+            room
+
+        _ ->
+            initRoom
+
+
+toUser : Model -> User
+toUser model =
+    case model.state of
+        InRoom _ user ->
+            user
+
+        InLobby (Registered user) ->
+            user
+
+        InLobby Unregistered ->
+            initUser
 
 
 
@@ -212,7 +298,7 @@ view device model =
     case model.state of
         InLobby Unregistered ->
             Lobby.init
-                |> Lobby.introduction introduction
+                |> Lobby.introduction lobbyIntroduction
                 |> Lobby.form (lobbyForm device model.username)
                 |> Lobby.view device
 
@@ -224,15 +310,36 @@ view device model =
                 |> Lobby.rooms (lobbyRooms device model.rooms)
                 |> Lobby.view device
 
+        InRoom room _ ->
+            ChatRoom.init
+                |> ChatRoom.introduction (chatRoomIntroduction room.owner)
+                |> ChatRoom.room room
+                |> ChatRoom.messageForm
+                    (MessageForm.init
+                        |> MessageForm.value ""
+                        |> MessageForm.onChange (GotMessageChange (toRoom model) (toUser model))
+                        |> MessageForm.view device
+                    )
+                |> ChatRoom.view device
+
 
 
 {- Introduction -}
 
 
-introduction : List (List (Element Msg))
-introduction =
+lobbyIntroduction : List (List (Element Msg))
+lobbyIntroduction =
     [ [ El.text "Welcome," ]
     , [ El.text "Please enter a username in order to join the Lobby." ]
+    ]
+
+
+chatRoomIntroduction : User -> List (List (Element Msg))
+chatRoomIntroduction user =
+    [ [ El.text "Welcome to "
+      , El.text user.username
+      , El.text "'s room."
+      ]
     ]
 
 
@@ -316,4 +423,5 @@ lobbyRoom : Device -> Room -> Element Msg
 lobbyRoom device room =
     LobbyRoom.init
         |> LobbyRoom.room room
+        |> LobbyRoom.onClick GotEnterRoom
         |> LobbyRoom.view device

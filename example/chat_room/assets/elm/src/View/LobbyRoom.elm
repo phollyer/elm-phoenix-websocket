@@ -1,5 +1,6 @@
 module View.LobbyRoom exposing
     ( init
+    , onClick
     , room
     , view
     )
@@ -9,20 +10,31 @@ import Template.LobbyRoom.PhonePortrait as PhonePortrait
 import Types exposing (Room, User)
 
 
-type Config
-    = Config Room
+type Config msg
+    = Config
+        { room : Room
+        , onClick : Maybe (Room -> msg)
+        }
 
 
-init : Config
+init : Config msg
 init =
-    Config (Room "" (User "" "") [] [])
+    Config
+        { room = Room "" (User "" "") [] []
+        , onClick = Nothing
+        }
 
 
-view : Device -> Config -> Element msg
+view : Device -> Config msg -> Element msg
 view { class, orientation } (Config config) =
-    PhonePortrait.view { room = config }
+    PhonePortrait.view config
 
 
-room : Room -> Config -> Config
-room room_ _ =
-    Config room_
+room : Room -> Config msg -> Config msg
+room room_ (Config config) =
+    Config { config | room = room_ }
+
+
+onClick : (Room -> msg) -> Config msg -> Config msg
+onClick toMsg (Config config) =
+    Config { config | onClick = Just toMsg }

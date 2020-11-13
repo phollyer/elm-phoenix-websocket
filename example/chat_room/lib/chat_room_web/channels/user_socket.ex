@@ -2,12 +2,13 @@ defmodule ChatRoomWeb.UserSocket do
   use Phoenix.Socket
 
   ## Channels
-  channel "example:lobby", ChatRoomWeb.MultiRoomChannel
+  channel "example:lobby", ChatRoomWeb.LobbyChannel
   channel "example:manage_channel_messages", ChatRoomWeb.ManageChannelMessagesChannel
   channel "example:manage_presence_messages", ChatRoomWeb.ManagePresenceMessagesChannel
   channel "example:manage_presence_messages_*", ChatRoomWeb.ManagePresenceMessagesChannel
   channel "example:join_and_leave_channels", ChatRoomWeb.JoinAndLeaveChannel
   channel "example:join_channel_number_*", ChatRoomWeb.JoinMultipleChannelsChannel
+  channel "example:room:*", ChatRoomWeb.ChatRoomChannel
   channel "example:send_and_receive", ChatRoomWeb.SendAndReceiveChannel
 
   # Socket params are passed from the client and can
