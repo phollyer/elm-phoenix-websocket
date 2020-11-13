@@ -3,6 +3,7 @@ module Types exposing
     , Room
     , User
     , decodeMessage
+    , decodeMessages
     , decodeRoom
     , decodeRooms
     , decodeUser
@@ -15,9 +16,9 @@ import Json.Decode.Extra exposing (andMap)
 
 
 type alias Message =
-    { id : String
-    , text : String
+    { text : String
     , owner : User
+    , createdAt : Int
     }
 
 
@@ -55,6 +56,11 @@ initUser =
 {- Decoders -}
 
 
+decodeMessages : Value -> Result JD.Error (List Message)
+decodeMessages payload =
+    JD.decodeValue (JD.field "messages" (JD.list messageDecoder)) payload
+
+
 decodeMessage : Value -> Result JD.Error Message
 decodeMessage payload =
     JD.decodeValue messageDecoder payload
@@ -64,9 +70,9 @@ messageDecoder : JD.Decoder Message
 messageDecoder =
     JD.succeed
         Message
-        |> andMap (JD.field "id" JD.string)
         |> andMap (JD.field "text" JD.string)
         |> andMap (JD.field "owner" userDecoder)
+        |> andMap (JD.field "created_at" JD.int)
 
 
 decodeRoom : Value -> Result JD.Error Room

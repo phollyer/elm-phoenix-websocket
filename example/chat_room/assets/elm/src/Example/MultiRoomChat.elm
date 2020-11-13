@@ -14,7 +14,7 @@ import Json.Decode as JD
 import Json.Decode.Extra exposing (andMap)
 import Json.Encode as JE exposing (Value)
 import Phoenix
-import Types exposing (Message, Room, User, decodeMessage, decodeRoom, decodeRooms, decodeUser, initRoom, initUser)
+import Types exposing (Message, Room, User, decodeMessages, decodeRoom, decodeRooms, decodeUser, initRoom, initUser)
 import UI
 import View.Button as Button
 import View.ChatRoom as ChatRoom
@@ -26,6 +26,7 @@ import View.LobbyRoom as LobbyRoom
 import View.LobbyRooms as LobbyRooms
 import View.LobbyUser as LobbyUser
 import View.MessageForm as MessageForm
+import View.Messages as Messages
 
 
 
@@ -38,6 +39,7 @@ init phoenix =
     , state = InLobby Unregistered
     , username = ""
     , message = ""
+    , messages = []
     , presences = []
     , rooms = []
     , membersTyping = []
@@ -53,6 +55,7 @@ type alias Model =
     , state : State
     , username : String
     , message : String
+    , messages : List Message
     , presences : List Presence
     , rooms : List Room
     , membersTyping : List String
@@ -120,7 +123,8 @@ update msg model =
             ( { model | message = message }, Cmd.none )
 
         GotSendMessage ->
-            ( model, Cmd.none )
+            sendMessage model.message (toRoom model) model.phoenix
+                |> updatePhoenixWith PhoenixMsg { model | message = "" }
 
         GotMemberStartedTyping user room ->
             memberStartedTyping user room model.phoenix
@@ -173,6 +177,14 @@ update msg model =
                     case JD.decodeValue (JD.field "username" JD.string) payload of
                         Ok username ->
                             ( dropMemberTyping username newModel, cmd )
+
+                        Err _ ->
+                            ( newModel, cmd )
+
+                Phoenix.ChannelEvent _ "message_list" payload ->
+                    case decodeMessages payload of
+                        Ok messages_ ->
+                            ( { newModel | messages = messages_ }, cmd )
 
                         Err _ ->
                             ( newModel, cmd )
@@ -257,6 +269,19 @@ memberStoppedTyping user room phoenix =
             , payload =
                 JE.object
                     [ ( "username", JE.string user.username ) ]
+        }
+        phoenix
+
+
+sendMessage : String -> Room -> Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
+sendMessage message room phoenix =
+    Phoenix.push
+        { pushConfig
+            | topic = "example:room:" ++ room.id
+            , event = "new_message"
+            , payload =
+                JE.object
+                    [ ( "message", JE.string message ) ]
         }
         phoenix
 
@@ -395,10 +420,10 @@ view device model =
                 |> Lobby.rooms (lobbyRooms device model.rooms)
                 |> Lobby.view device
 
-        InRoom room _ ->
+        InRoom room user ->
             ChatRoom.init
                 |> ChatRoom.introduction (chatRoomIntroduction room.owner)
-                |> ChatRoom.room room
+                |> ChatRoom.messages (messages device user model.messages)
                 |> ChatRoom.membersTyping model.membersTyping
                 |> ChatRoom.messageForm (messageForm device model)
                 |> ChatRoom.view device
@@ -530,3 +555,15 @@ lobbyRoom device room =
         |> LobbyRoom.room room
         |> LobbyRoom.onClick GotEnterRoom
         |> LobbyRoom.view device
+
+
+
+{- Messages -}
+
+
+messages : Device -> User -> List Message -> Element Msg
+messages device user messages_ =
+    Messages.init
+        |> Messages.user user
+        |> Messages.messages messages_
+        |> Messages.view device

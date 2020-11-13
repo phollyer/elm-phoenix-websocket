@@ -32,10 +32,19 @@ defmodule ChatRoom.Room do
    |> Enum.map(fn {_, room} -> room end)
   end
 
+  def add_message(id, message) do
+    case find(id) do
+      {:ok, room} ->
+        :ets.insert(:rooms_table, {id, %{ room | messages: [message | room.messages]}})
+      :not_found ->
+        nil
+    end
+  end
+
   def messages(id) do
     case find(id) do
       {:ok, room} ->
-        room.messages
+        Enum.sort_by(room.messages, &(&1.created_at))
 
       :not_found ->
         []

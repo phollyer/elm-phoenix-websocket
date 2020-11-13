@@ -3,31 +3,30 @@ module View.ChatRoom exposing
     , introduction
     , membersTyping
     , messageForm
-    , room
+    , messages
     , view
     )
 
 import Element as El exposing (Device, Element)
 import Template.ChatRoom.PhonePortrait as PhonePortrait
-import Types exposing (Room, initRoom)
 
 
 type Config msg
     = Config
-        { room : Room
-        , introduction : List (List (Element msg))
+        { introduction : List (List (Element msg))
         , messageForm : Element msg
         , membersTyping : List String
+        , messages : Element msg
         }
 
 
 init : Config msg
 init =
     Config
-        { room = initRoom
-        , introduction = []
+        { introduction = []
         , messageForm = El.none
         , membersTyping = []
+        , messages = El.none
         }
 
 
@@ -41,11 +40,6 @@ introduction intro (Config config) =
     Config { config | introduction = intro }
 
 
-room : Room -> Config msg -> Config msg
-room room_ (Config config) =
-    Config { config | room = room_ }
-
-
 messageForm : Element msg -> Config msg -> Config msg
 messageForm form (Config config) =
     Config { config | messageForm = form }
@@ -54,3 +48,8 @@ messageForm form (Config config) =
 membersTyping : List String -> Config msg -> Config msg
 membersTyping members (Config config) =
     Config { config | membersTyping = members }
+
+
+messages : Element msg -> Config msg -> Config msg
+messages element (Config config) =
+    Config { config | messages = element }

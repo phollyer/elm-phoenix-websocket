@@ -5,15 +5,14 @@ import Element as El exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Types exposing (Message, Room)
 
 
 type alias Config msg c =
     { c
-        | room : Room
-        , introduction : List (List (Element msg))
+        | introduction : List (List (Element msg))
         , messageForm : Element msg
         , membersTyping : List String
+        , messages : Element msg
     }
 
 
@@ -32,7 +31,8 @@ view config =
                 , El.spacing 10
                 , El.width El.fill
                 ]
-                [ membersTypingView config.membersTyping
+                [ config.messages
+                , membersTypingView config.membersTyping
                 , config.messageForm
                 ]
             ]
@@ -45,22 +45,6 @@ introduction intro =
             [ El.width El.fill ]
         )
         intro
-
-
-roomView : Room -> Element msg
-roomView room =
-    El.column
-        [ Background.color Color.aliceblue
-        , Border.rounded 5
-        , El.width El.fill
-        , El.height El.fill
-        ]
-        (messagesView room.messages)
-
-
-messagesView : List Message -> List (Element msg)
-messagesView messages =
-    []
 
 
 membersTypingView : List String -> Element msg
