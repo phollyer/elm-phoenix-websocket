@@ -1,4 +1,4 @@
-module Template.Username.PhonePortrait exposing (view)
+module Template.InputField.PhonePortrait exposing (view)
 
 import Element as El exposing (Element)
 import Element.Border as Border
@@ -7,8 +7,9 @@ import Element.Input as Input
 
 type alias Config msg c =
     { c
-        | onChange : Maybe (String -> msg)
-        , value : String
+        | label : String
+        , onChange : Maybe (String -> msg)
+        , text : String
     }
 
 
@@ -21,9 +22,9 @@ view config =
                 , El.width El.fill
                 ]
                 { onChange = onChange
-                , text = config.value
-                , placeholder = Just (Input.placeholder [] (El.text "Username"))
-                , label = Input.labelHidden "Username"
+                , text = config.text
+                , placeholder = Just (Input.placeholder [] (El.text config.label))
+                , label = Input.labelHidden config.label
                 }
 
         Nothing ->

@@ -18,6 +18,7 @@ import Types exposing (Message, Room, User, decodeMessage, decodeRoom, decodeRoo
 import UI
 import View.Button as Button
 import View.ChatRoom as ChatRoom
+import View.InputField as InputField
 import View.Lobby as Lobby
 import View.LobbyForm as LobbyForm
 import View.LobbyMembers as LobbyMembers
@@ -25,7 +26,6 @@ import View.LobbyRoom as LobbyRoom
 import View.LobbyRooms as LobbyRooms
 import View.LobbyUser as LobbyUser
 import View.MessageForm as MessageForm
-import View.Username as Username
 
 
 
@@ -344,17 +344,18 @@ chatRoomIntroduction user =
 
 
 
-{- Lobby Form -}
+{- Forms -}
 
 
 lobbyForm : Device -> String -> Element Msg
 lobbyForm device username =
     LobbyForm.init
         |> LobbyForm.usernameInput
-            (Username.init
-                |> Username.value username
-                |> Username.onChange GotUsernameChange
-                |> Username.view device
+            (InputField.init
+                |> InputField.label "Username"
+                |> InputField.text username
+                |> InputField.onChange GotInputFieldChange
+                |> InputField.view device
             )
         |> LobbyForm.submitBtn
             (Button.init
