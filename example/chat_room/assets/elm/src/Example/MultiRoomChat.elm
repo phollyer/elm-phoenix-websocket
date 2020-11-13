@@ -316,7 +316,7 @@ view device model =
                 |> ChatRoom.room room
                 |> ChatRoom.messageForm
                     (MessageForm.init
-                        |> MessageForm.value ""
+                        |> MessageForm.text ""
                         |> MessageForm.onChange (GotMessageChange (toRoom model) (toUser model))
                         |> MessageForm.view device
                     )

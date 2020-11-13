@@ -11,6 +11,7 @@ type alias Config msg c =
     { c
         | room : Room
         , introduction : List (List (Element msg))
+        , messageForm : Element msg
     }
 
 
@@ -24,7 +25,7 @@ view config =
     <|
         List.append
             (introduction config.introduction)
-            [ roomView config.room ]
+            [ config.messageForm ]
 
 
 introduction : List (List (Element msg)) -> List (Element msg)

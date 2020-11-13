@@ -1,7 +1,7 @@
 module View.MessageForm exposing
     ( init
     , onChange
-    , value
+    , text
     , view
     )
 
@@ -11,7 +11,7 @@ import Template.MessageForm.PhonePortrait as PhonePortrait
 
 type Config msg
     = Config
-        { value : String
+        { text : String
         , onChange : Maybe (String -> msg)
         }
 
@@ -19,7 +19,7 @@ type Config msg
 init : Config msg
 init =
     Config
-        { value = ""
+        { text = ""
         , onChange = Nothing
         }
 
@@ -34,6 +34,6 @@ onChange toMsg (Config config) =
     Config { config | onChange = Just toMsg }
 
 
-value : String -> Config msg -> Config msg
-value val (Config config) =
-    Config { config | value = val }
+text : String -> Config msg -> Config msg
+text text_ (Config config) =
+    Config { config | text = text_ }
