@@ -39,9 +39,7 @@ toMessage user message =
 userMessage : Message -> Element msg
 userMessage message =
     El.row
-        [ El.width El.fill
-        , Font.color Color.skyblue
-        ]
+        [ El.width El.fill ]
         [ El.el
             [ El.width <| El.fillPortion 1 ]
             El.none
@@ -50,7 +48,9 @@ userMessage message =
             , El.width <| El.fillPortion 5
             ]
             [ El.el
-                [ El.alignRight ]
+                [ El.alignRight
+                , Font.color Color.darkslateblue
+                ]
                 (El.text message.owner.username)
             , El.column
                 [ Background.color Color.darkslateblue
@@ -58,6 +58,7 @@ userMessage message =
                 , El.alignRight
                 , El.padding 5
                 , El.spacing 10
+                , Font.color Color.skyblue
                 ]
                 (toParagraphs message.text)
             ]
@@ -68,20 +69,20 @@ othersMessage : Message -> Element msg
 othersMessage message =
     El.row
         [ El.width El.fill
-        , Font.color Color.darkolivegreen
         ]
         [ El.column
             [ El.spacing 5
             , El.width <| El.fillPortion 5
             ]
             [ El.el
-                []
+                [ Font.color Color.darkolivegreen ]
                 (El.text message.owner.username)
             , El.column
                 [ Background.color Color.darkseagreen
                 , Border.rounded 10
                 , El.padding 5
                 , El.spacing 10
+                , Font.color Color.darkolivegreen
                 ]
                 (toParagraphs message.text)
             ]
