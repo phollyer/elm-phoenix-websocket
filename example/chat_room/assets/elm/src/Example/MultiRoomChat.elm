@@ -203,6 +203,19 @@ joinRoom room state phoenix =
             ( phoenix, Cmd.none )
 
 
+memberIsTyping : User -> Room -> Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
+memberIsTyping user room phoenix =
+    Phoenix.push
+        { pushConfig
+            | topic = "example:room:" ++ room.id
+            , event = "member_is_typing"
+            , payload =
+                JE.object
+                    [ ( "username", JE.string user.username ) ]
+        }
+        phoenix
+
+
 gotoRoom : Room -> Model -> Model
 gotoRoom room model =
     case model.state of
