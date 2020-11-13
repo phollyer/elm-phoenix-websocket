@@ -3,6 +3,8 @@ module View.InputField exposing
     , label
     , multiline
     , onChange
+    , onFocus
+    , onLoseFocus
     , text
     , view
     )
@@ -18,9 +20,11 @@ import Template.InputField.PhonePortrait as PhonePortrait
 type Config msg
     = Config
         { label : String
-        , onChange : Maybe (String -> msg)
         , text : String
         , multiline : Bool
+        , onChange : Maybe (String -> msg)
+        , onFocus : Maybe msg
+        , onLoseFocus : Maybe msg
         }
 
 
@@ -32,9 +36,11 @@ init : Config msg
 init =
     Config
         { label = ""
-        , onChange = Nothing
         , text = ""
         , multiline = False
+        , onChange = Nothing
+        , onFocus = Nothing
+        , onLoseFocus = Nothing
         }
 
 
@@ -57,11 +63,21 @@ multiline bool (Config config) =
     Config { config | multiline = bool }
 
 
+text : String -> Config msg -> Config msg
+text name (Config config) =
+    Config { config | text = name }
+
+
 onChange : (String -> msg) -> Config msg -> Config msg
 onChange toMsg (Config config) =
     Config { config | onChange = Just toMsg }
 
 
-text : String -> Config msg -> Config msg
-text name (Config config) =
-    Config { config | text = name }
+onFocus : msg -> Config msg -> Config msg
+onFocus msg (Config config) =
+    Config { config | onFocus = Just msg }
+
+
+onLoseFocus : msg -> Config msg -> Config msg
+onLoseFocus msg (Config config) =
+    Config { config | onFocus = Just msg }

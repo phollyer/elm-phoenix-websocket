@@ -1,16 +1,19 @@
 module Template.InputField.PhonePortrait exposing (view)
 
-import Element as El exposing (Element)
+import Element as El exposing (Attribute, Element)
 import Element.Border as Border
+import Element.Events as Event
 import Element.Input as Input
 
 
 type alias Config msg c =
     { c
         | label : String
+        , text : String
         , multiline : Bool
         , onChange : Maybe (String -> msg)
-        , text : String
+        , onFocus : Maybe msg
+        , onLoseFocus : Maybe msg
     }
 
 
@@ -21,11 +24,10 @@ view config =
             case config.multiline of
                 True ->
                     Input.multiline
-                        [ Border.rounded 5
-                        , El.height <|
-                            El.maximum 200 El.fill
-                        , El.width El.fill
-                        ]
+                        (multilineAttrs
+                            |> maybeEventWith config.onFocus Event.onFocus
+                            |> maybeEventWith config.onLoseFocus Event.onLoseFocus
+                        )
                         { onChange = onChange
                         , text = config.text
                         , placeholder = Just (Input.placeholder [] (El.text config.label))
@@ -35,9 +37,10 @@ view config =
 
                 False ->
                     Input.text
-                        [ Border.rounded 5
-                        , El.width El.fill
-                        ]
+                        (singleLineAttrs
+                            |> maybeEventWith config.onFocus Event.onFocus
+                            |> maybeEventWith config.onLoseFocus Event.onLoseFocus
+                        )
                         { onChange = onChange
                         , text = config.text
                         , placeholder = Just (Input.placeholder [] (El.text config.label))
@@ -45,4 +48,30 @@ view config =
                         }
 
         Nothing ->
-            El.none
+            El.text config.text
+
+
+multilineAttrs : List (Attribute msg)
+multilineAttrs =
+    [ Border.rounded 5
+    , El.height <|
+        El.maximum 200 El.fill
+    , El.width El.fill
+    ]
+
+
+singleLineAttrs : List (Attribute msg)
+singleLineAttrs =
+    [ Border.rounded 5
+    , El.width El.fill
+    ]
+
+
+maybeEventWith : Maybe msg -> (msg -> Attribute msg) -> List (Attribute msg) -> List (Attribute msg)
+maybeEventWith maybeMsg toEvent attrs =
+    case maybeMsg of
+        Nothing ->
+            attrs
+
+        Just msg ->
+            toEvent msg :: attrs

@@ -90,6 +90,8 @@ type Msg
     | GotCreateRoom
     | GotEnterRoom Room
     | GotMessageChange String
+    | GotMemberStartedTyping User Room
+    | GotMemberStoppedTyping User Room
     | GotSendMessage
     | PhoenixMsg Phoenix.Msg
 
@@ -116,6 +118,12 @@ update msg model =
             ( { model | message = message }, Cmd.none )
 
         GotSendMessage ->
+            ( model, Cmd.none )
+
+        GotMemberStartedTyping user room ->
+            ( model, Cmd.none )
+
+        GotMemberStoppedTyping user room ->
             ( model, Cmd.none )
 
         PhoenixMsg subMsg ->
@@ -334,7 +342,7 @@ view device model =
                 |> ChatRoom.introduction (chatRoomIntroduction room.owner)
                 |> ChatRoom.room room
                 |> ChatRoom.membersTyping []
-                |> ChatRoom.messageForm (messageForm device model.message)
+                |> ChatRoom.messageForm (messageForm device model)
                 |> ChatRoom.view device
 
 
@@ -382,15 +390,17 @@ lobbyForm device username =
         |> LobbyForm.view device
 
 
-messageForm : Device -> String -> Element Msg
-messageForm device message =
+messageForm : Device -> Model -> Element Msg
+messageForm device ({ message } as model) =
     MessageForm.init
         |> MessageForm.inputField
             (InputField.init
                 |> InputField.label "New Message"
                 |> InputField.text message
-                |> InputField.onChange GotMessageChange
                 |> InputField.multiline True
+                |> InputField.onChange GotMessageChange
+                |> InputField.onFocus (GotMemberStartedTyping (toUser model) (toRoom model))
+                |> InputField.onLoseFocus (GotMemberStoppedTyping (toUser model) (toRoom model))
                 |> InputField.view device
             )
         |> MessageForm.submitBtn
