@@ -6,6 +6,7 @@ import Element as El exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Html.Attributes as Attr
 
 
 type alias Config msg c =
@@ -55,7 +56,9 @@ introduction intro =
 messages : Int -> Element msg -> Element msg
 messages height element =
     El.el
-        [ El.height El.fill
+        [ El.htmlAttribute <|
+            Attr.id "message-list"
+        , El.height El.fill
         , El.width El.fill
         , El.clipY
         , El.scrollbarY

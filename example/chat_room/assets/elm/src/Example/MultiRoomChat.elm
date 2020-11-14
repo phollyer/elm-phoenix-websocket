@@ -7,6 +7,7 @@ module Example.MultiRoomChat exposing
     , view
     )
 
+import Browser.Dom as Dom
 import Configs exposing (joinConfig, pushConfig)
 import Device exposing (Device)
 import Element as El exposing (Element)
@@ -15,6 +16,7 @@ import Json.Decode as JD
 import Json.Decode.Extra exposing (andMap)
 import Json.Encode as JE exposing (Value)
 import Phoenix
+import Task
 import Types exposing (Message, Room, User, decodeMessages, decodeRoom, decodeRooms, decodeUser, initRoom, initUser)
 import UI
 import View.Button as Button
@@ -91,7 +93,8 @@ type alias Meta =
 
 
 type Msg
-    = GotUsernameChange String
+    = NoOp
+    | GotUsernameChange String
     | GotJoinLobby
     | GotCreateRoom
     | GotEnterRoom Room
@@ -185,7 +188,14 @@ update msg model =
                 Phoenix.ChannelEvent _ "message_list" payload ->
                     case decodeMessages payload of
                         Ok messages_ ->
-                            ( { newModel | messages = messages_ }, cmd )
+                            ( { newModel | messages = messages_ }
+                            , Cmd.batch
+                                [ cmd
+                                , Dom.getViewportOf "message-list"
+                                    |> Task.andThen (\{ scene } -> Dom.setViewportOf "message-list" 0 scene.height)
+                                    |> Task.attempt (\_ -> NoOp)
+                                ]
+                            )
 
                         Err _ ->
                             ( newModel, cmd )
@@ -195,6 +205,9 @@ update msg model =
 
                 _ ->
                     ( newModel, cmd )
+
+        NoOp ->
+            ( model, Cmd.none )
 
 
 joinLobby : String -> Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
