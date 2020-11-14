@@ -32,8 +32,8 @@ init =
 
 
 view : Device -> Config msg -> Element msg
-view { class, orientation } (Config config) =
-    PhonePortrait.view config
+view ({ class, orientation } as device) (Config config) =
+    PhonePortrait.view device config
 
 
 introduction : List (List (Element msg)) -> Config msg -> Config msg
