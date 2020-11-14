@@ -8,7 +8,8 @@ module View.ChatRoom exposing
     )
 
 import Device exposing (Device)
-import Element as El exposing (Element)
+import Element as El exposing (DeviceClass(..), Element, Orientation(..))
+import Template.ChatRoom.PhoneLandscape as PhoneLandscape
 import Template.ChatRoom.PhonePortrait as PhonePortrait
 
 
@@ -33,7 +34,12 @@ init =
 
 view : Device -> Config msg -> Element msg
 view ({ class, orientation } as device) (Config config) =
-    PhonePortrait.view device config
+    case ( class, orientation ) of
+        ( Phone, Portrait ) ->
+            PhonePortrait.view device config
+
+        _ ->
+            PhoneLandscape.view device config
 
 
 introduction : List (List (Element msg)) -> Config msg -> Config msg

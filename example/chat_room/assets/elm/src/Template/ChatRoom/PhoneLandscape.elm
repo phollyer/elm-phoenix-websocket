@@ -1,4 +1,4 @@
-module Template.ChatRoom.PhonePortrait exposing (view)
+module Template.ChatRoom.PhoneLandscape exposing (view)
 
 import Colors.Opaque as Color
 import Device exposing (Device)
@@ -6,6 +6,7 @@ import Element as El exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Html.Attributes as Attr
 import Template.ChatRoom.Common as Common exposing (Config)
 
 
@@ -17,7 +18,7 @@ view { height } config =
         List.append
             (introduction config.introduction)
             [ El.column
-                (Common.contentAttrs (height - 120))
+                (Common.contentAttrs (height - 150))
                 [ El.el Common.messagesAttrs config.messages
                 , membersTypingView config.membersTyping
                 , form config.messageForm
