@@ -4,7 +4,8 @@ module View.Page exposing
     , view
     )
 
-import Element as El exposing (Device, DeviceClass(..), Element)
+import Device exposing (Device)
+import Element as El exposing (DeviceClass(..), Element)
 import Html exposing (Html)
 import Template.Page.Desktop as Desktop
 import Template.Page.Phone as Phone

@@ -5,7 +5,8 @@ module View.Messages exposing
     , view
     )
 
-import Element exposing (Device, Element)
+import Device exposing (Device)
+import Element exposing (Element)
 import Template.Messages.PhonePortrait as PhonePortrait
 import Types exposing (Message, User, initUser)
 

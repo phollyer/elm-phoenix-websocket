@@ -4,7 +4,8 @@ module View.ApplicableFunctions exposing
     , view
     )
 
-import Element exposing (Device, DeviceClass(..), Element)
+import Device exposing (Device)
+import Element exposing (DeviceClass(..), Element)
 import Template.ApplicableFunctions.PhoneLandscape as PhoneLandscape
 import Template.ApplicableFunctions.PhonePortrait as PhonePortrait
 

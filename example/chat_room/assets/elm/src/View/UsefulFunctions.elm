@@ -4,7 +4,8 @@ module View.UsefulFunctions exposing
     , view
     )
 
-import Element exposing (Device, DeviceClass(..), Element, Orientation(..))
+import Device exposing (Device)
+import Element exposing (DeviceClass(..), Element, Orientation(..))
 import Template.UsefulFunctions.PhonePortrait as PhonePortrait
 import Template.UsefulFunctions.Tablet as Tablet
 

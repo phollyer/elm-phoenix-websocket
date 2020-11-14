@@ -7,7 +7,8 @@ module View.Button exposing
     , view
     )
 
-import Element exposing (Device, Element)
+import Device exposing (Device)
+import Element exposing (Element)
 import Template.Button.Phone as Phone
 
 

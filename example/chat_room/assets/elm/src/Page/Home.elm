@@ -9,7 +9,8 @@ module Page.Home exposing
     , view
     )
 
-import Element exposing (Device, Element)
+import Device exposing (Device)
+import Element exposing (Element)
 import Phoenix
 import Route exposing (Route(..))
 import Session exposing (Session)

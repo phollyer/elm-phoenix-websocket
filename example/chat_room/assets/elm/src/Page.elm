@@ -4,7 +4,8 @@ module Page exposing
     )
 
 import Browser exposing (Document)
-import Element exposing (Device, Element)
+import Device exposing (Device)
+import Element exposing (Element)
 import View.Page as Page
 
 

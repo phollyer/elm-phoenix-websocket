@@ -15,7 +15,8 @@ then passing off the menu config to the relevant template.
 
 -}
 
-import Element exposing (Device, DeviceClass(..), Element, Orientation(..))
+import Device exposing (Device)
+import Element exposing (DeviceClass(..), Element, Orientation(..))
 import Template.Menu.Desktop as Desktop
 import Template.Menu.PhoneLandscape as PhoneLandscape
 import Template.Menu.PhonePortrait as PhonePortrait

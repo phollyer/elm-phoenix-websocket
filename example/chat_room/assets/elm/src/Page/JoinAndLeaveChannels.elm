@@ -9,7 +9,8 @@ module Page.JoinAndLeaveChannels exposing
     , view
     )
 
-import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
+import Device exposing (Device)
+import Element as El exposing (DeviceClass(..), Element, Orientation(..))
 import Example.JoinMultipleChannels as JoinMultipleChannels
 import Example.JoinWithBadParams as JoinWithBadParams
 import Example.JoinWithGoodParams as JoinWithGoodParams

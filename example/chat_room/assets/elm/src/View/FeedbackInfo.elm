@@ -9,7 +9,8 @@ module View.FeedbackInfo exposing
     , view
     )
 
-import Element exposing (Device, DeviceClass(..), Element, Orientation(..))
+import Device exposing (Device)
+import Element exposing (DeviceClass(..), Element, Orientation(..))
 import Json.Encode as JE exposing (Value)
 import Template.FeedbackInfo.PhoneLandscape as PhoneLandscape
 import Template.FeedbackInfo.PhonePortrait as PhonePortrait

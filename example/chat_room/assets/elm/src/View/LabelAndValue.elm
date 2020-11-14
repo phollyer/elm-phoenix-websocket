@@ -6,7 +6,8 @@ module View.LabelAndValue exposing
     , view
     )
 
-import Element exposing (Device, Element)
+import Device exposing (Device)
+import Element exposing (Element)
 import Template.LabelAndValue.PhonePortrait as PhonePortrait
 
 

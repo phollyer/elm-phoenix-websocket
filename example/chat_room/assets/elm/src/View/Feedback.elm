@@ -6,7 +6,8 @@ module View.Feedback exposing
     , view
     )
 
-import Element exposing (Device, DeviceClass(..), Element, Orientation(..))
+import Device exposing (Device)
+import Element exposing (DeviceClass(..), Element, Orientation(..))
 import Template.Feedback.PhoneLandscape as PhoneLandscape
 import Template.Feedback.PhonePortrait as PhonePortrait
 import View.Group as Group

@@ -9,7 +9,8 @@ module Page.ChatRooms exposing
     , view
     )
 
-import Element as El exposing (Device, Element)
+import Device exposing (Device)
+import Element as El exposing (Element)
 import Example.MultiRoomChat as MultiRoomChat
 import Phoenix
 import Route

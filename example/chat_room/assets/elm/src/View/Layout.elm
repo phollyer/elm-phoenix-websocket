@@ -15,7 +15,8 @@ then passing off the page config to the chosen template.
 
 -}
 
-import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
+import Device exposing (Device)
+import Element as El exposing (DeviceClass(..), Element, Orientation(..))
 import Template.Layout.PhoneLandscape as PhoneLandscape
 import Template.Layout.PhonePortrait as PhonePortrait
 import Template.Layout.Tablet as Tablet

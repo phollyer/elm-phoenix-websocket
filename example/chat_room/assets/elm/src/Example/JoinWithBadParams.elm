@@ -8,7 +8,8 @@ module Example.JoinWithBadParams exposing
     )
 
 import Configs exposing (joinConfig)
-import Element as El exposing (Device, Element)
+import Device exposing (Device)
+import Element as El exposing (Element)
 import Example.Utils exposing (batch, updatePhoenixWith)
 import Extra.String as String
 import Json.Encode as JE

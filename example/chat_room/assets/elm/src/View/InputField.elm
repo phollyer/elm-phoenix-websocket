@@ -9,7 +9,8 @@ module View.InputField exposing
     , view
     )
 
-import Element exposing (Device, Element)
+import Device exposing (Device)
+import Element exposing (Element)
 import Template.InputField.PhonePortrait as PhonePortrait
 
 

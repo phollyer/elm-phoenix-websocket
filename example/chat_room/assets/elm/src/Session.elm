@@ -9,7 +9,7 @@ module Session exposing
     )
 
 import Browser.Navigation as Nav
-import Element exposing (Device)
+import Device exposing (Device)
 import Phoenix
 import Ports
 

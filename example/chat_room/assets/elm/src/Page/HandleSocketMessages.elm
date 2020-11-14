@@ -9,7 +9,8 @@ module Page.HandleSocketMessages exposing
     , view
     )
 
-import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
+import Device exposing (Device)
+import Element as El exposing (DeviceClass(..), Element, Orientation(..))
 import Example.ManageChannelMessages as ManageChannelMessages
 import Example.ManagePresenceMessages as ManagePresenceMessages
 import Example.ManageSocketHeartbeat as ManageSocketHeartbeat

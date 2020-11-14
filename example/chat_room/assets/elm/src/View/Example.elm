@@ -16,7 +16,8 @@ only one.
 
 -}
 
-import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
+import Device exposing (Device)
+import Element as El exposing (DeviceClass(..), Element, Orientation(..))
 import Template.Example.PhoneLandscape as PhoneLandscape
 import Template.Example.PhonePortrait as PhonePortrait
 import Template.Example.Tablet as Tablet

@@ -7,7 +7,8 @@ module View.FeedbackContent exposing
     , view
     )
 
-import Element as El exposing (Device, Element)
+import Device exposing (Device)
+import Element as El exposing (Element)
 import Template.FeedbackContent.PhonePortrait as PhonePortrait
 
 

@@ -8,7 +8,8 @@ module Example.MultiRoomChat exposing
     )
 
 import Configs exposing (joinConfig, pushConfig)
-import Element as El exposing (Device, Element)
+import Device exposing (Device)
+import Element as El exposing (Element)
 import Example.Utils exposing (updatePhoenixWith)
 import Json.Decode as JD
 import Json.Decode.Extra exposing (andMap)

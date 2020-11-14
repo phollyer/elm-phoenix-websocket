@@ -7,7 +7,8 @@ module Example.ManagePresenceMessages exposing
     , view
     )
 
-import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
+import Device exposing (Device)
+import Element as El exposing (DeviceClass(..), Element, Orientation(..))
 import Example.Utils exposing (batch, updatePhoenixWith)
 import Extra.String as String
 import Json.Decode as JD

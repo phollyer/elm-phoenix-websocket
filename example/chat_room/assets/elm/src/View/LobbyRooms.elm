@@ -4,7 +4,8 @@ module View.LobbyRooms exposing
     , view
     )
 
-import Element exposing (Device, Element)
+import Device exposing (Device)
+import Element exposing (Element)
 import Template.LobbyRooms.PhonePortrait as PhonePortrait
 
 

@@ -7,7 +7,8 @@ module View.ExampleControls exposing
     , view
     )
 
-import Element exposing (Device, DeviceClass(..), Element, Orientation(..))
+import Device exposing (Device)
+import Element exposing (DeviceClass(..), Element, Orientation(..))
 import Template.ExampleControls.PhoneLandscape as PhoneLandscape
 import Template.ExampleControls.PhonePortrait as PhonePortrait
 import View.Group as Group
