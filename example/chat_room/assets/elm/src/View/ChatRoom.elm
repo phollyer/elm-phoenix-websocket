@@ -117,7 +117,12 @@ view device (Config config) =
     <|
         introduction config.user config.room
             :: [ El.column
-                    (contentAttrs device)
+                    [ El.alignBottom
+                    , El.spacing 10
+                    , El.width El.fill
+                    , El.height <|
+                        El.maximum (maxHeight device) El.fill
+                    ]
                     [ messagesView device config.user config.messages
                     , membersTypingView config.membersTyping
                     , form device (Config config)
@@ -161,20 +166,19 @@ introduction currentUser currentRoom =
 
 
 membersTypingView : List String -> Element msg
-membersTypingView members =
-    if members == [] then
+membersTypingView membersTyping_ =
+    if membersTyping_ == [] then
         El.none
 
     else
         El.paragraph
             [ El.width El.fill
-            , El.height El.shrink
             , Font.alignLeft
             ]
             [ El.el
                 [ Font.bold ]
                 (El.text "Members Typing: ")
-            , List.intersperse ", " members
+            , List.intersperse ", " membersTyping_
                 |> String.concat
                 |> El.text
             ]
@@ -219,17 +223,7 @@ form device (Config config) =
 
 
 
-{- Attributes -}
-
-
-contentAttrs : Device -> List (Attribute msg)
-contentAttrs device =
-    [ El.alignBottom
-    , El.spacing 10
-    , El.width El.fill
-    , El.height <|
-        El.maximum (maxHeight device) El.fill
-    ]
+{- Max Height -}
 
 
 maxHeight : Device -> Int
