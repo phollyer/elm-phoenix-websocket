@@ -14,6 +14,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
+import View exposing (andMaybeEventWith)
 
 
 
@@ -72,7 +73,7 @@ panel : Maybe msg -> List (Element msg) -> Element msg
 panel maybeMsg =
     El.column
         (panelAttrs
-            |> maybeOnClick maybeMsg
+            |> andMaybeEventWith maybeMsg Event.onClick
         )
 
 
@@ -97,16 +98,6 @@ panelAttrs =
     , El.width <| El.maximum 250 El.fill
     , El.centerX
     ]
-
-
-maybeOnClick : Maybe msg -> List (Attribute msg) -> List (Attribute msg)
-maybeOnClick maybeMsg attrs =
-    case maybeMsg of
-        Nothing ->
-            attrs
-
-        Just msg ->
-            Event.onClick msg :: attrs
 
 
 

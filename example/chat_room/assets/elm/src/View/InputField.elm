@@ -14,6 +14,7 @@ import Element as El exposing (Attribute, Element)
 import Element.Border as Border
 import Element.Events as Event
 import Element.Input as Input
+import View exposing (andMaybeEventWith)
 
 
 
@@ -152,13 +153,3 @@ singleLineAttrs =
 placeholder : String -> Maybe (Input.Placeholder msg)
 placeholder text_ =
     Just (Input.placeholder [] (El.text text_))
-
-
-andMaybeEventWith : Maybe msg -> (msg -> Attribute msg) -> List (Attribute msg) -> List (Attribute msg)
-andMaybeEventWith maybeMsg toEvent attrs =
-    case maybeMsg of
-        Nothing ->
-            attrs
-
-        Just msg ->
-            toEvent msg :: attrs

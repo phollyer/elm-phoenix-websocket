@@ -25,7 +25,6 @@ import View.InputField as InputField
 import View.Lobby as Lobby
 import View.LobbyForm as LobbyForm
 import View.LobbyMembers as LobbyMembers
-import View.LobbyRoom as LobbyRoom
 import View.LobbyRooms as LobbyRooms
 import View.LobbyUser as LobbyUser
 import View.MessageForm as MessageForm
@@ -546,16 +545,9 @@ toUsers presences =
 lobbyRooms : Device -> List Room -> Element Msg
 lobbyRooms device rooms =
     LobbyRooms.init
-        |> LobbyRooms.elements (List.map (lobbyRoom device) rooms)
+        |> LobbyRooms.rooms rooms
+        |> LobbyRooms.onClick GotEnterRoom
         |> LobbyRooms.view device
-
-
-lobbyRoom : Device -> Room -> Element Msg
-lobbyRoom device room =
-    LobbyRoom.init
-        |> LobbyRoom.room room
-        |> LobbyRoom.onClick GotEnterRoom
-        |> LobbyRoom.view device
 
 
 
