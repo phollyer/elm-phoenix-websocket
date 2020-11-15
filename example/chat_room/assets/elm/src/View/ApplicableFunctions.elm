@@ -5,9 +5,8 @@ module View.ApplicableFunctions exposing
     )
 
 import Device exposing (Device)
-import Element exposing (DeviceClass(..), Element)
-import Template.ApplicableFunctions.PhoneLandscape as PhoneLandscape
-import Template.ApplicableFunctions.PhonePortrait as PhonePortrait
+import Element as El exposing (Attribute, DeviceClass(..), Element)
+import UI
 
 
 type Config
@@ -19,16 +18,25 @@ init =
     Config []
 
 
-view : Device -> Config -> Element msg
-view { class, orientation } (Config config) =
-    case ( class, orientation ) of
-        ( Phone, _ ) ->
-            PhonePortrait.view config
-
-        _ ->
-            PhoneLandscape.view config
-
-
 functions : List String -> Config -> Config
 functions functions_ (Config _) =
     Config functions_
+
+
+view : Device -> Config -> Element msg
+view { class } (Config functions_) =
+    El.column
+        (spacing class
+            :: [ El.width El.fill ]
+        )
+        (List.map UI.functionLink functions_)
+
+
+spacing : DeviceClass -> Attribute msg
+spacing class =
+    case class of
+        Phone ->
+            El.spacing 5
+
+        _ ->
+            El.spacing 10
