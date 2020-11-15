@@ -2,9 +2,14 @@ module View.ChatRoom exposing
     ( init
     , introduction
     , membersTyping
-    , messageForm
     , messages
+    , onChange
+    , onFocus
+    , onLoseFocus
+    , onSubmit
+    , room
     , user
+    , userText
     , view
     )
 
@@ -15,7 +20,8 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Html.Attributes as Attr
-import Types exposing (Message, User, initUser)
+import Types exposing (Message, Room, User, initRoom, initUser)
+import View.MessageForm as MessageForm
 import View.Messages as Messages
 
 
@@ -26,9 +32,14 @@ import View.Messages as Messages
 type Config msg
     = Config
         { user : User
-        , messageForm : Element msg
+        , room : Room
+        , userText : String
         , membersTyping : List String
         , messages : List Message
+        , onChange : Maybe (String -> msg)
+        , onFocus : Maybe msg
+        , onLoseFocus : Maybe msg
+        , onSubmit : Maybe msg
         }
 
 
@@ -36,9 +47,14 @@ init : Config msg
 init =
     Config
         { user = initUser
-        , messageForm = El.none
+        , room = initRoom
+        , userText = ""
         , membersTyping = []
         , messages = []
+        , onChange = Nothing
+        , onFocus = Nothing
+        , onLoseFocus = Nothing
+        , onSubmit = Nothing
         }
 
 
@@ -47,9 +63,14 @@ user user_ (Config config) =
     Config { config | user = user_ }
 
 
-messageForm : Element msg -> Config msg -> Config msg
-messageForm element (Config config) =
-    Config { config | messageForm = element }
+room : Room -> Config msg -> Config msg
+room room_ (Config config) =
+    Config { config | room = room_ }
+
+
+userText : String -> Config msg -> Config msg
+userText text (Config config) =
+    Config { config | userText = text }
 
 
 membersTyping : List String -> Config msg -> Config msg
@@ -60,6 +81,26 @@ membersTyping members (Config config) =
 messages : List Message -> Config msg -> Config msg
 messages messages_ (Config config) =
     Config { config | messages = messages_ }
+
+
+onChange : (String -> msg) -> Config msg -> Config msg
+onChange toMsg (Config config) =
+    Config { config | onChange = Just toMsg }
+
+
+onFocus : msg -> Config msg -> Config msg
+onFocus toMsg (Config config) =
+    Config { config | onFocus = Just toMsg }
+
+
+onLoseFocus : msg -> Config msg -> Config msg
+onLoseFocus toMsg (Config config) =
+    Config { config | onLoseFocus = Just toMsg }
+
+
+onSubmit : msg -> Config msg -> Config msg
+onSubmit msg (Config config) =
+    Config { config | onSubmit = Just msg }
 
 
 
@@ -74,24 +115,49 @@ view device (Config config) =
         , El.width El.fill
         ]
     <|
-        introduction config.user
+        introduction config.user config.room
             :: [ El.column
                     (contentAttrs device)
                     [ messagesView device config.user config.messages
                     , membersTypingView config.membersTyping
-                    , form config.messageForm
+                    , form device (Config config)
                     ]
                ]
 
 
-introduction : User -> Element msg
-introduction currentUser =
-    El.paragraph
-        [ El.width El.fill ]
-        [ El.text "Welcome to "
-        , El.text currentUser.username
-        , El.text "'s room."
-        ]
+introduction : User -> Room -> Element msg
+introduction currentUser currentRoom =
+    if currentUser.id == currentRoom.owner.id then
+        El.column
+            [ El.width El.fill
+            , El.spacing 10
+            ]
+            [ El.paragraph
+                [ El.width El.fill ]
+                [ El.text "Welcome to your room." ]
+            , El.paragraph
+                [ El.width El.fill ]
+                [ El.text "When you leave the room it will close and all messages will be deleted." ]
+            ]
+
+    else
+        El.column
+            [ El.width El.fill
+            , El.spacing 10
+            ]
+            [ El.paragraph
+                [ El.width El.fill ]
+                [ El.text "Welcome to "
+                , El.text currentUser.username
+                , El.text "'s room."
+                ]
+            , El.paragraph
+                [ El.width El.fill ]
+                [ El.text "When "
+                , El.text currentUser.username
+                , El.text " leaves the room it will close and all messages will be deleted."
+                ]
+            ]
 
 
 membersTypingView : List String -> Element msg
@@ -112,15 +178,6 @@ membersTypingView members =
                 |> String.concat
                 |> El.text
             ]
-
-
-form : Element msg -> Element msg
-form element =
-    El.el
-        [ El.height El.shrink
-        , El.width El.fill
-        ]
-        element
 
 
 
@@ -144,6 +201,21 @@ messagesView device currentUser messages_ =
             |> Messages.messages messages_
             |> Messages.view device
         )
+
+
+
+{- Form -}
+
+
+form : Device -> Config msg -> Element msg
+form device (Config config) =
+    MessageForm.init
+        |> MessageForm.text config.userText
+        |> MessageForm.onChange config.onChange
+        |> MessageForm.onFocus config.onFocus
+        |> MessageForm.onLoseFocus config.onLoseFocus
+        |> MessageForm.onSubmit config.onSubmit
+        |> MessageForm.view device
 
 
 

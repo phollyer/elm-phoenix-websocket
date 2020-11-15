@@ -398,23 +398,13 @@ view device model =
 
         InRoom room user ->
             ChatRoom.init
-                |> ChatRoom.user (toUser model)
+                |> ChatRoom.user user
+                |> ChatRoom.room room
                 |> ChatRoom.messages model.messages
                 |> ChatRoom.membersTyping model.membersTyping
-                |> ChatRoom.messageForm (messageForm device model)
+                |> ChatRoom.userText model.message
+                |> ChatRoom.onChange GotMessageChange
+                |> ChatRoom.onFocus (GotMemberStartedTyping user room)
+                |> ChatRoom.onLoseFocus (GotMemberStoppedTyping user room)
+                |> ChatRoom.onSubmit GotSendMessage
                 |> ChatRoom.view device
-
-
-
-{- Forms -}
-
-
-messageForm : Device -> Model -> Element Msg
-messageForm device ({ message } as model) =
-    MessageForm.init
-        |> MessageForm.text message
-        |> MessageForm.onChange GotMessageChange
-        |> MessageForm.onFocus (GotMemberStartedTyping (toUser model) (toRoom model))
-        |> MessageForm.onLoseFocus (GotMemberStoppedTyping (toUser model) (toRoom model))
-        |> MessageForm.onSubmit GotSendMessage
-        |> MessageForm.view device
