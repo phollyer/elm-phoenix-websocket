@@ -56,6 +56,10 @@ view device (Config functions_) =
             :: toRows device functions_
 
 
+
+{- Function Rows -}
+
+
 toRows : Device -> List ( String, String ) -> List (Element msg)
 toRows ({ class } as device) rows =
     case class of
