@@ -10,12 +10,14 @@ module View.InputField exposing
     )
 
 import Device exposing (Device)
-import Element exposing (Element)
-import Template.InputField.PhonePortrait as PhonePortrait
+import Element as El exposing (Attribute, Element)
+import Element.Border as Border
+import Element.Events as Event
+import Element.Input as Input
 
 
 
-{- Config -}
+{- Model -}
 
 
 type Config msg
@@ -29,10 +31,6 @@ type Config msg
         }
 
 
-
-{- Init -}
-
-
 init : Config msg
 init =
     Config
@@ -43,15 +41,6 @@ init =
         , onFocus = Nothing
         , onLoseFocus = Nothing
         }
-
-
-
-{- View -}
-
-
-view : Device -> Config msg -> Element msg
-view device (Config config) =
-    PhonePortrait.view config
 
 
 label : String -> Config msg -> Config msg
@@ -82,3 +71,94 @@ onFocus msg (Config config) =
 onLoseFocus : msg -> Config msg -> Config msg
 onLoseFocus msg (Config config) =
     Config { config | onLoseFocus = Just msg }
+
+
+
+{- View -}
+
+
+view : Device -> Config msg -> Element msg
+view _ (Config config) =
+    case config.onChange of
+        Nothing ->
+            El.text config.text
+
+        Just onChange_ ->
+            case config.multiline of
+                True ->
+                    multi onChange_ (Config config)
+
+                False ->
+                    single onChange_ (Config config)
+
+
+
+{- Multiline -}
+
+
+multi : (String -> msg) -> Config msg -> Element msg
+multi onChange_ (Config config) =
+    Input.multiline
+        (multilineAttrs
+            |> andMaybeEventWith config.onFocus Event.onFocus
+            |> andMaybeEventWith config.onLoseFocus Event.onLoseFocus
+        )
+        { onChange = onChange_
+        , text = config.text
+        , placeholder = placeholder config.label
+        , label = Input.labelHidden config.label
+        , spellcheck = True
+        }
+
+
+multilineAttrs : List (Attribute msg)
+multilineAttrs =
+    [ Border.rounded 5
+    , El.height <|
+        El.maximum 200 El.fill
+    , El.width El.fill
+    ]
+
+
+
+{- Single Line -}
+
+
+single : (String -> msg) -> Config msg -> Element msg
+single onChange_ (Config config) =
+    Input.text
+        (singleLineAttrs
+            |> andMaybeEventWith config.onFocus Event.onFocus
+            |> andMaybeEventWith config.onLoseFocus Event.onLoseFocus
+        )
+        { onChange = onChange_
+        , text = config.text
+        , placeholder = placeholder config.label
+        , label = Input.labelHidden config.label
+        }
+
+
+singleLineAttrs : List (Attribute msg)
+singleLineAttrs =
+    [ Border.rounded 5
+    , El.width El.fill
+    ]
+
+
+
+{- Common -}
+
+
+placeholder : String -> Maybe (Input.Placeholder msg)
+placeholder text_ =
+    Just (Input.placeholder [] (El.text text_))
+
+
+andMaybeEventWith : Maybe msg -> (msg -> Attribute msg) -> List (Attribute msg) -> List (Attribute msg)
+andMaybeEventWith maybeMsg toEvent attrs =
+    case maybeMsg of
+        Nothing ->
+            attrs
+
+        Just msg ->
+            toEvent msg :: attrs
