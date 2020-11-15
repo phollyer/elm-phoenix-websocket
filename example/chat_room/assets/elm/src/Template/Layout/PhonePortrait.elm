@@ -19,11 +19,16 @@ view { homeMsg, title, body } =
 
 header : String -> Element msg
 header title =
-    El.paragraph
+    El.row
         (Font.size 20
             :: Common.headerAttrs
         )
-        [ El.text title ]
+        [ El.el
+            (El.paddingXY 0 5
+                :: Common.titleAttrs
+            )
+            (El.text title)
+        ]
 
 
 homeButton : Maybe msg -> Element msg

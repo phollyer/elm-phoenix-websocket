@@ -139,11 +139,11 @@ view model =
         device =
             Session.device model.session
     in
-    { title = "Chat Rooms"
+    { title = "Chat Rooms Example"
     , content =
         Layout.init
             |> Layout.homeMsg (Just GotHomeBtnClick)
-            |> Layout.title "Chat Rooms"
+            |> Layout.title "Chat Rooms Example"
             |> Layout.body
                 (ExamplePage.init
                     |> ExamplePage.example (viewExample device model)

@@ -3,6 +3,7 @@ module Template.Layout.Common exposing
     , containerAttrs
     , headerAttrs
     , homeButtonAttrs
+    , titleAttrs
     )
 
 import Colors.Opaque as Color
@@ -22,7 +23,6 @@ containerAttrs : List (Attribute msg)
 containerAttrs =
     [ El.height El.fill
     , El.width El.fill
-    , El.spacing 20
     , El.clip
     , El.scrollbars
     ]
@@ -30,13 +30,18 @@ containerAttrs =
 
 headerAttrs : List (Attribute msg)
 headerAttrs =
-    [ El.paddingEach
-        { left = 0
-        , top = 20
-        , right = 0
-        , bottom = 0
-        }
-    , Font.center
+    [ El.width El.fill
+    , Font.bold
+    , Font.underline
+    , Font.color Color.darkslateblue
+    , Font.family
+        [ Font.typeface "Oswald" ]
+    ]
+
+
+titleAttrs : List (Attribute msg)
+titleAttrs =
+    [ El.centerX
     , Font.bold
     , Font.underline
     , Font.color Color.darkslateblue

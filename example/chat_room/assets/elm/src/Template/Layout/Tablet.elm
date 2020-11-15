@@ -19,11 +19,16 @@ view { homeMsg, title, body } =
 
 header : String -> Element msg
 header title =
-    El.paragraph
+    El.row
         (Font.size 40
             :: Common.headerAttrs
         )
-        [ El.text title ]
+        [ El.el
+            (El.paddingXY 0 10
+                :: Common.titleAttrs
+            )
+            (El.text title)
+        ]
 
 
 homeButton : Maybe msg -> Element msg
@@ -34,7 +39,7 @@ homeButton maybeMsg =
 
         Just msg ->
             El.el
-                [ El.paddingXY 10 20 ]
+                [ El.paddingXY 0 10 ]
             <|
                 Input.button
                     (Font.size 40

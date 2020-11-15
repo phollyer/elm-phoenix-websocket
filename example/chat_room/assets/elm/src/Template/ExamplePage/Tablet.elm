@@ -22,21 +22,26 @@ view config =
 
 introduction : List (List (Element msg)) -> Element msg
 introduction intro =
-    El.column
-        (List.append
-            [ Font.size 22
-            , El.spacing 20
-            ]
-            Common.introductionAttrs
-        )
-    <|
-        List.map
-            (\paragraph ->
-                El.paragraph
-                    [ El.width El.fill ]
-                    paragraph
-            )
-            intro
+    case intro of
+        [] ->
+            El.none
+
+        _ ->
+            El.column
+                (List.append
+                    [ Font.size 22
+                    , El.spacing 20
+                    ]
+                    Common.introductionAttrs
+                )
+            <|
+                List.map
+                    (\paragraph ->
+                        El.paragraph
+                            [ El.width El.fill ]
+                            paragraph
+                    )
+                    intro
 
 
 
@@ -44,12 +49,16 @@ introduction intro =
 
 
 menu : Element msg -> Element msg
-menu menu_ =
-    El.el
-        (Font.size 18
-            :: Common.menuAttrs
-        )
-        menu_
+menu element =
+    if element == El.none then
+        El.none
+
+    else
+        El.el
+            (Font.size 18
+                :: Common.menuAttrs
+            )
+            element
 
 
 
