@@ -175,7 +175,7 @@ push : Device -> Element Msg
 push device =
     Button.init
         |> Button.label "Push Message"
-        |> Button.onPress (GotControlClick Push)
+        |> Button.onPress (Just (GotControlClick Push))
         |> Button.view device
 
 
@@ -183,7 +183,7 @@ on : Device -> Bool -> Element Msg
 on device state =
     Button.init
         |> Button.label "Messages On"
-        |> Button.onPress (GotControlClick On)
+        |> Button.onPress (Just (GotControlClick On))
         |> Button.enabled (not state)
         |> Button.view device
 
@@ -192,7 +192,7 @@ off : Device -> Bool -> Element Msg
 off device state =
     Button.init
         |> Button.label "Messages Off"
-        |> Button.onPress (GotControlClick Off)
+        |> Button.onPress (Just (GotControlClick Off))
         |> Button.enabled state
         |> Button.view device
 

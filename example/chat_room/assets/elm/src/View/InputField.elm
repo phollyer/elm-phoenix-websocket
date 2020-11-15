@@ -58,19 +58,19 @@ text name (Config config) =
     Config { config | text = name }
 
 
-onChange : (String -> msg) -> Config msg -> Config msg
-onChange toMsg (Config config) =
-    Config { config | onChange = Just toMsg }
+onChange : Maybe (String -> msg) -> Config msg -> Config msg
+onChange maybeToMsg (Config config) =
+    Config { config | onChange = maybeToMsg }
 
 
-onFocus : msg -> Config msg -> Config msg
-onFocus msg (Config config) =
-    Config { config | onFocus = Just msg }
+onFocus : Maybe msg -> Config msg -> Config msg
+onFocus maybeMsg (Config config) =
+    Config { config | onFocus = maybeMsg }
 
 
-onLoseFocus : msg -> Config msg -> Config msg
-onLoseFocus msg (Config config) =
-    Config { config | onLoseFocus = Just msg }
+onLoseFocus : Maybe msg -> Config msg -> Config msg
+onLoseFocus maybeMsg (Config config) =
+    Config { config | onLoseFocus = maybeMsg }
 
 
 

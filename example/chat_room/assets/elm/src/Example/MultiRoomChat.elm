@@ -474,13 +474,13 @@ lobbyForm device username =
             (InputField.init
                 |> InputField.label "Username"
                 |> InputField.text username
-                |> InputField.onChange GotUsernameChange
+                |> InputField.onChange (Just GotUsernameChange)
                 |> InputField.view device
             )
         |> LobbyForm.submitBtn
             (Button.init
                 |> Button.label "Join The Lobby"
-                |> Button.onPress GotJoinLobby
+                |> Button.onPress (Just GotJoinLobby)
                 |> Button.enabled (String.trim username /= "")
                 |> Button.view device
             )
@@ -490,23 +490,11 @@ lobbyForm device username =
 messageForm : Device -> Model -> Element Msg
 messageForm device ({ message } as model) =
     MessageForm.init
-        |> MessageForm.inputField
-            (InputField.init
-                |> InputField.label "New Message"
-                |> InputField.text message
-                |> InputField.multiline True
-                |> InputField.onChange GotMessageChange
-                |> InputField.onFocus (GotMemberStartedTyping (toUser model) (toRoom model))
-                |> InputField.onLoseFocus (GotMemberStoppedTyping (toUser model) (toRoom model))
-                |> InputField.view device
-            )
-        |> MessageForm.submitBtn
-            (Button.init
-                |> Button.label "Send Message"
-                |> Button.onPress GotSendMessage
-                |> Button.enabled (String.trim message /= "")
-                |> Button.view device
-            )
+        |> MessageForm.text message
+        |> MessageForm.onChange GotMessageChange
+        |> MessageForm.onFocus (GotMemberStartedTyping (toUser model) (toRoom model))
+        |> MessageForm.onLoseFocus (GotMemberStoppedTyping (toUser model) (toRoom model))
+        |> MessageForm.onSubmit GotSendMessage
         |> MessageForm.view device
 
 
@@ -530,7 +518,7 @@ createRoomBtn : Device -> Element Msg
 createRoomBtn device =
     Button.init
         |> Button.label "Create A Room"
-        |> Button.onPress GotCreateRoom
+        |> Button.onPress (Just GotCreateRoom)
         |> Button.view device
 
 

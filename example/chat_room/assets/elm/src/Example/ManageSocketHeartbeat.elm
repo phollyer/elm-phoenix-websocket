@@ -163,7 +163,7 @@ on : Device -> Bool -> Element Msg
 on device state =
     Button.init
         |> Button.label "Heartbeat On"
-        |> Button.onPress (GotControlClick On)
+        |> Button.onPress (Just (GotControlClick On))
         |> Button.enabled (not state)
         |> Button.view device
 
@@ -172,7 +172,7 @@ off : Device -> Bool -> Element Msg
 off device state =
     Button.init
         |> Button.label "Heartbeat Off"
-        |> Button.onPress (GotControlClick Off)
+        |> Button.onPress (Just (GotControlClick Off))
         |> Button.enabled state
         |> Button.view device
 

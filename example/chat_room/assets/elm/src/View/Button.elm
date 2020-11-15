@@ -47,9 +47,9 @@ label label_ (Config config) =
     Config { config | label = label_ }
 
 
-onPress : msg -> Config msg -> Config msg
-onPress msg (Config config) =
-    Config { config | onPress = Just msg }
+onPress : Maybe msg -> Config msg -> Config msg
+onPress maybe (Config config) =
+    Config { config | onPress = maybe }
 
 
 
