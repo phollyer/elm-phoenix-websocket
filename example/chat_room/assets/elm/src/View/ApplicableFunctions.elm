@@ -9,6 +9,10 @@ import Element as El exposing (Attribute, DeviceClass(..), Element)
 import UI
 
 
+
+{- Model -}
+
+
 type Config
     = Config (List String)
 
@@ -23,6 +27,10 @@ functions functions_ (Config _) =
     Config functions_
 
 
+
+{- View -}
+
+
 view : Device -> Config -> Element msg
 view { class } (Config functions_) =
     El.column
@@ -30,6 +38,10 @@ view { class } (Config functions_) =
             :: [ El.width El.fill ]
         )
         (List.map UI.functionLink functions_)
+
+
+
+{- Attributes -}
 
 
 spacing : DeviceClass -> Attribute msg
