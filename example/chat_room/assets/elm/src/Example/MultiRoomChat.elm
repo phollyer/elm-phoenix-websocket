@@ -17,7 +17,7 @@ import Json.Decode.Extra exposing (andMap)
 import Json.Encode as JE exposing (Value)
 import Phoenix
 import Task
-import Types exposing (Message, Room, User, decodeMessages, decodeRoom, decodeRooms, decodeUser, initRoom, initUser)
+import Types exposing (Message, Presence, Room, User, decodeMessages, decodeMetas, decodeRoom, decodeRooms, decodeUser, initRoom, initUser)
 import UI
 import View.Button as Button
 import View.ChatRoom as ChatRoom
@@ -25,6 +25,7 @@ import View.InputField as InputField
 import View.Lobby as Lobby
 import View.LobbyForm as LobbyForm
 import View.LobbyMembers as LobbyMembers
+import View.LobbyRegistration as LobbyRegistration
 import View.LobbyRooms as LobbyRooms
 import View.LobbyUser as LobbyUser
 import View.MessageForm as MessageForm
@@ -38,7 +39,7 @@ import View.Messages as Messages
 init : Phoenix.Model -> Model
 init phoenix =
     { phoenix = phoenix
-    , state = InLobby Unregistered
+    , state = Unregistered
     , username = ""
     , message = ""
     , messages = []
@@ -65,26 +66,9 @@ type alias Model =
 
 
 type State
-    = InLobby LobbyState
-    | InRoom Room User
-
-
-type LobbyState
     = Unregistered
-    | Registered User
-
-
-type alias Presence =
-    { id : String
-    , metas : List Meta
-    , user : User
-    }
-
-
-type alias Meta =
-    { online_at : String
-    , device : String
-    }
+    | InLobby User
+    | InRoom Room User
 
 
 
@@ -147,7 +131,7 @@ update msg model =
                 Phoenix.ChannelResponse (Phoenix.JoinOk "example:lobby" payload) ->
                     case decodeUser payload of
                         Ok user ->
-                            ( { newModel | state = InLobby (Registered user) }, cmd )
+                            ( { newModel | state = InLobby user }, cmd )
 
                         Err _ ->
                             ( newModel, cmd )
@@ -236,7 +220,7 @@ createRoom phoenix =
 joinRoom : Room -> State -> Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
 joinRoom room state phoenix =
     case state of
-        InLobby (Registered user) ->
+        InLobby user ->
             let
                 topic =
                     "example:room:" ++ room.id
@@ -302,7 +286,7 @@ sendMessage message room phoenix =
 gotoRoom : Room -> Model -> Model
 gotoRoom room model =
     case model.state of
-        InLobby (Registered user) ->
+        InLobby user ->
             { model | state = InRoom room user }
 
         _ ->
@@ -369,37 +353,14 @@ toRoom model =
 toUser : Model -> User
 toUser model =
     case model.state of
-        InRoom _ user ->
-            user
-
-        InLobby (Registered user) ->
-            user
-
-        InLobby Unregistered ->
+        Unregistered ->
             initUser
 
+        InLobby user ->
+            user
 
-
-{- Decoders -}
-
-
-decodeMetas : List Value -> List Meta
-decodeMetas metas =
-    List.map
-        (\meta ->
-            JD.decodeValue metaDecoder meta
-                |> Result.toMaybe
-                |> Maybe.withDefault (Meta "" "")
-        )
-        metas
-
-
-metaDecoder : JD.Decoder Meta
-metaDecoder =
-    JD.succeed
-        Meta
-        |> andMap (JD.field "online_at" JD.string)
-        |> andMap (JD.field "device" JD.string)
+        InRoom _ user ->
+            user
 
 
 
@@ -419,18 +380,20 @@ subscriptions model =
 view : Device -> Model -> Element Msg
 view device model =
     case model.state of
-        InLobby Unregistered ->
-            Lobby.init
-                |> Lobby.introduction lobbyIntroduction
-                |> Lobby.form (lobbyForm device model.username)
-                |> Lobby.view device
+        Unregistered ->
+            LobbyRegistration.init
+                |> LobbyRegistration.username model.username
+                |> LobbyRegistration.onChange GotUsernameChange
+                |> LobbyRegistration.onSubmit GotJoinLobby
+                |> LobbyRegistration.view device
 
-        InLobby (Registered user) ->
+        InLobby user ->
             Lobby.init
-                |> Lobby.user (lobbyUser device user)
-                |> Lobby.createRoomBtn (createRoomBtn device)
-                |> Lobby.members (lobbyMembers device model.presences)
-                |> Lobby.rooms (lobbyRooms device model.rooms)
+                |> Lobby.user user
+                |> Lobby.onCreateRoom GotCreateRoom
+                |> Lobby.onEnterRoom GotEnterRoom
+                |> Lobby.members model.presences
+                |> Lobby.rooms model.rooms
                 |> Lobby.view device
 
         InRoom room user ->
@@ -446,13 +409,6 @@ view device model =
 {- Introduction -}
 
 
-lobbyIntroduction : List (List (Element Msg))
-lobbyIntroduction =
-    [ [ El.text "Welcome," ]
-    , [ El.text "Please enter a username in order to join the Lobby." ]
-    ]
-
-
 chatRoomIntroduction : User -> List (List (Element Msg))
 chatRoomIntroduction user =
     [ [ El.text "Welcome to "
@@ -466,15 +422,6 @@ chatRoomIntroduction user =
 {- Forms -}
 
 
-lobbyForm : Device -> String -> Element Msg
-lobbyForm device username =
-    LobbyForm.init
-        |> LobbyForm.text username
-        |> LobbyForm.onChange GotUsernameChange
-        |> LobbyForm.onSubmit GotJoinLobby
-        |> LobbyForm.view device
-
-
 messageForm : Device -> Model -> Element Msg
 messageForm device ({ message } as model) =
     MessageForm.init
@@ -484,59 +431,6 @@ messageForm device ({ message } as model) =
         |> MessageForm.onLoseFocus (GotMemberStoppedTyping (toUser model) (toRoom model))
         |> MessageForm.onSubmit GotSendMessage
         |> MessageForm.view device
-
-
-
-{- Lobby User -}
-
-
-lobbyUser : Device -> User -> Element Msg
-lobbyUser device user =
-    LobbyUser.init
-        |> LobbyUser.username user.username
-        |> LobbyUser.userId user.id
-        |> LobbyUser.view device
-
-
-
-{- Create Room Button -}
-
-
-createRoomBtn : Device -> Element Msg
-createRoomBtn device =
-    Button.init
-        |> Button.label "Create A Room"
-        |> Button.onPress (Just GotCreateRoom)
-        |> Button.view device
-
-
-
-{- Lobby Members -}
-
-
-lobbyMembers : Device -> List Presence -> Element Msg
-lobbyMembers device presences =
-    LobbyMembers.init
-        |> LobbyMembers.members (toUsers presences)
-        |> LobbyMembers.view device
-
-
-toUsers : List Presence -> List User
-toUsers presences =
-    List.map .user presences
-        |> List.sortBy .username
-
-
-
-{- Lobby Rooms -}
-
-
-lobbyRooms : Device -> List Room -> Element Msg
-lobbyRooms device rooms =
-    LobbyRooms.init
-        |> LobbyRooms.rooms rooms
-        |> LobbyRooms.onClick GotEnterRoom
-        |> LobbyRooms.view device
 
 
 

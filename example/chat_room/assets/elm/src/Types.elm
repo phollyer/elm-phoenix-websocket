@@ -1,9 +1,12 @@
 module Types exposing
     ( Message
+    , Meta
+    , Presence
     , Room
     , User
     , decodeMessage
     , decodeMessages
+    , decodeMetas
     , decodeRoom
     , decodeRooms
     , decodeUser
@@ -52,8 +55,44 @@ initUser =
     }
 
 
+type alias Presence =
+    { id : String
+    , metas : List Meta
+    , user : User
+    }
+
+
+type alias Meta =
+    { online_at : String
+    , device : String
+    }
+
+
 
 {- Decoders -}
+
+
+decodeMetas : List Value -> List Meta
+decodeMetas metas =
+    List.map
+        (\meta ->
+            JD.decodeValue metaDecoder meta
+                |> Result.toMaybe
+                |> Maybe.withDefault (Meta "" "")
+        )
+        metas
+
+
+metaDecoder : JD.Decoder Meta
+metaDecoder =
+    JD.succeed
+        Meta
+        |> andMap (JD.field "online_at" JD.string)
+        |> andMap (JD.field "device" JD.string)
+
+
+
+{- Messages -}
 
 
 decodeMessages : Value -> Result JD.Error (List Message)
@@ -75,6 +114,15 @@ messageDecoder =
         |> andMap (JD.field "created_at" JD.int)
 
 
+
+{- Rooms -}
+
+
+decodeRooms : Value -> Result JD.Error (List Room)
+decodeRooms payload =
+    JD.decodeValue (JD.field "rooms" (JD.list roomDecoder)) payload
+
+
 decodeRoom : Value -> Result JD.Error Room
 decodeRoom payload =
     JD.decodeValue roomDecoder payload
@@ -90,16 +138,8 @@ roomDecoder =
         |> andMap (JD.field "messages" (JD.list messageDecoder))
 
 
-decodeRooms : Value -> Result JD.Error (List Room)
-decodeRooms payload =
-    JD.decodeValue roomsDecoder payload
 
-
-roomsDecoder : JD.Decoder (List Room)
-roomsDecoder =
-    JD.succeed
-        identity
-        |> andMap (JD.field "rooms" (JD.list roomDecoder))
+{- User -}
 
 
 decodeUser : Value -> Result JD.Error User

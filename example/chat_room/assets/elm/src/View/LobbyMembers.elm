@@ -4,8 +4,12 @@ module View.LobbyMembers exposing
     , view
     )
 
+import Colors.Opaque as Color
 import Device exposing (Device)
 import Element as El exposing (Element)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Font as Font
 
 
 
@@ -40,20 +44,20 @@ members users (Config config) =
 view : Device -> Config -> Element msg
 view _ (Config config) =
     El.column
-        [ El.width El.fill
-        , El.clipY
-        , El.paddingEach
-            { left = 0
-            , top = 0
-            , right = 0
-            , bottom = 10
-            }
-        , El.scrollbarY
+        [ Border.rounded 10
+        , Background.color Color.steelblue
+        , El.padding 10
         , El.spacing 10
+        , El.width El.fill
+        , Font.color Color.skyblue
         ]
-    <|
-        List.map
-            (\member ->
-                El.text member.username
-            )
-            config.members
+        (El.el
+            [ El.centerX ]
+            (El.text "Members")
+            :: List.map toMember config.members
+        )
+
+
+toMember : User -> Element msg
+toMember user =
+    El.text user.username

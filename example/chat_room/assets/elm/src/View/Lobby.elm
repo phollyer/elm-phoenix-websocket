@@ -1,48 +1,74 @@
 module View.Lobby exposing
-    ( createRoomBtn
-    , form
-    , init
-    , introduction
+    ( init
     , members
+    , onCreateRoom
+    , onEnterRoom
     , rooms
     , user
     , view
     )
 
+import Colors.Opaque as Color
 import Device exposing (Device)
 import Element as El exposing (Element)
-import Template.Lobby.PhonePortrait as PhonePortrait
+import Element.Background as Background
+import Element.Border as Border
+import Element.Font as Font
+import Types exposing (Presence, Room, User, initUser)
+import View.Button as Button
+import View.LobbyMembers as LobbyMembers
+import View.LobbyRooms as LobbyRooms
+import View.LobbyUser as LobbyUser
 
 
 
-{- Config -}
+{- Model -}
 
 
 type Config msg
     = Config
-        { introduction : List (List (Element msg))
-        , form : Element msg
-        , user : Maybe (Element msg)
-        , members : Element msg
-        , createRoomBtn : Element msg
-        , rooms : Element msg
+        { user : User
+        , members : List Presence
+        , onCreateRoom : Maybe msg
+        , onEnterRoom : Maybe (Room -> msg)
+        , rooms : List Room
         }
-
-
-
-{- Init -}
 
 
 init : Config msg
 init =
     Config
-        { introduction = []
-        , form = El.none
-        , user = Nothing
-        , members = El.none
-        , createRoomBtn = El.none
-        , rooms = El.none
+        { user = initUser
+        , members = []
+        , onCreateRoom = Nothing
+        , onEnterRoom = Nothing
+        , rooms = []
         }
+
+
+members : List Presence -> Config msg -> Config msg
+members members_ (Config config) =
+    Config { config | members = members_ }
+
+
+onCreateRoom : msg -> Config msg -> Config msg
+onCreateRoom msg (Config config) =
+    Config { config | onCreateRoom = Just msg }
+
+
+onEnterRoom : (Room -> msg) -> Config msg -> Config msg
+onEnterRoom msg (Config config) =
+    Config { config | onEnterRoom = Just msg }
+
+
+rooms : List Room -> Config msg -> Config msg
+rooms rooms_ (Config config) =
+    Config { config | rooms = rooms_ }
+
+
+user : User -> Config msg -> Config msg
+user user_ (Config config) =
+    Config { config | user = user_ }
 
 
 
@@ -51,34 +77,74 @@ init =
 
 view : Device -> Config msg -> Element msg
 view device (Config config) =
-    PhonePortrait.view config
+    El.column
+        [ El.width El.fill
+        , El.spacing 15
+        ]
+        [ El.column
+            [ Border.rounded 10
+            , Background.color Color.steelblue
+            , El.padding 20
+            , El.spacing 20
+            , El.width El.fill
+            , Font.color Color.skyblue
+            ]
+            [ userView device config.user
+            , createRoomBtn device config.onCreateRoom
+            ]
+        , membersView device config.members
+        , roomsView device (Config config)
+        ]
 
 
-form : Element msg -> Config msg -> Config msg
-form inputElement (Config config) =
-    Config { config | form = inputElement }
+
+{- Lobby User -}
 
 
-introduction : List (List (Element msg)) -> Config msg -> Config msg
-introduction elements (Config config) =
-    Config { config | introduction = elements }
+userView : Device -> User -> Element msg
+userView device { username, id } =
+    LobbyUser.init
+        |> LobbyUser.username username
+        |> LobbyUser.userId id
+        |> LobbyUser.view device
 
 
-members : Element msg -> Config msg -> Config msg
-members element (Config config) =
-    Config { config | members = element }
+
+{- Create Room Button -}
 
 
-createRoomBtn : Element msg -> Config msg -> Config msg
-createRoomBtn btn (Config config) =
-    Config { config | createRoomBtn = btn }
+createRoomBtn : Device -> Maybe msg -> Element msg
+createRoomBtn device maybeMsg =
+    Button.init
+        |> Button.label "Create A Room"
+        |> Button.onPress maybeMsg
+        |> Button.view device
 
 
-rooms : Element msg -> Config msg -> Config msg
-rooms element (Config config) =
-    Config { config | rooms = element }
+
+{- Lobby Members -}
 
 
-user : Element msg -> Config msg -> Config msg
-user element (Config config) =
-    Config { config | user = Just element }
+membersView : Device -> List Presence -> Element msg
+membersView device presences =
+    LobbyMembers.init
+        |> LobbyMembers.members (toUsers presences)
+        |> LobbyMembers.view device
+
+
+toUsers : List Presence -> List User
+toUsers presences =
+    List.map .user presences
+        |> List.sortBy .username
+
+
+
+{- Rooms -}
+
+
+roomsView : Device -> Config msg -> Element msg
+roomsView device (Config config) =
+    LobbyRooms.init
+        |> LobbyRooms.rooms config.rooms
+        |> LobbyRooms.onClick config.onEnterRoom
+        |> LobbyRooms.view device

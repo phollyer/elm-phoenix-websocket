@@ -40,9 +40,9 @@ rooms rooms_ (Config config) =
     Config { config | rooms = rooms_ }
 
 
-onClick : (Room -> msg) -> Config msg -> Config msg
+onClick : Maybe (Room -> msg) -> Config msg -> Config msg
 onClick toMsg (Config config) =
-    Config { config | onClick = Just toMsg }
+    Config { config | onClick = toMsg }
 
 
 
