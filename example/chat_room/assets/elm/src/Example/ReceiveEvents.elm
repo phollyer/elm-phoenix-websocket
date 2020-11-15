@@ -180,8 +180,7 @@ push : Device -> Element Msg
 push device =
     Button.init
         |> Button.label "Push Event"
-        |> Button.onPress (Just (GotControlClick Push))
-        |> Button.enabled True
+        |> Button.onPress (GotControlClick Push)
         |> Button.view device
 
 
@@ -189,7 +188,7 @@ leave : Device -> Bool -> Element Msg
 leave device enabled =
     Button.init
         |> Button.label "Leave"
-        |> Button.onPress (Just (GotControlClick Leave))
+        |> Button.onPress (GotControlClick Leave)
         |> Button.enabled enabled
         |> Button.view device
 

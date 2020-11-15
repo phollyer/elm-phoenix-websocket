@@ -480,7 +480,7 @@ lobbyForm device username =
         |> LobbyForm.submitBtn
             (Button.init
                 |> Button.label "Join The Lobby"
-                |> Button.onPress (Just GotJoinLobby)
+                |> Button.onPress GotJoinLobby
                 |> Button.enabled (String.trim username /= "")
                 |> Button.view device
             )
@@ -503,7 +503,7 @@ messageForm device ({ message } as model) =
         |> MessageForm.submitBtn
             (Button.init
                 |> Button.label "Send Message"
-                |> Button.onPress (Just GotSendMessage)
+                |> Button.onPress GotSendMessage
                 |> Button.enabled (String.trim message /= "")
                 |> Button.view device
             )
@@ -530,8 +530,7 @@ createRoomBtn : Device -> Element Msg
 createRoomBtn device =
     Button.init
         |> Button.label "Create A Room"
-        |> Button.onPress (Just GotCreateRoom)
-        |> Button.enabled True
+        |> Button.onPress GotCreateRoom
         |> Button.view device
 
 

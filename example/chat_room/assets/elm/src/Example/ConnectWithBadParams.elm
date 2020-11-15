@@ -134,7 +134,7 @@ connect : Device -> Phoenix.Model -> Element Msg
 connect device phoenix =
     Button.init
         |> Button.label "Connect"
-        |> Button.onPress (Just (GotControlClick Connect))
+        |> Button.onPress (GotControlClick Connect)
         |> Button.enabled
             (case Phoenix.socketState phoenix of
                 Phoenix.Disconnected _ ->

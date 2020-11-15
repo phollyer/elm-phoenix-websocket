@@ -148,7 +148,7 @@ join : Device -> Phoenix.Model -> Element Msg
 join device phoenix =
     Button.init
         |> Button.label "Join"
-        |> Button.onPress (Just (GotControlClick Join))
+        |> Button.onPress (GotControlClick Join)
         |> Button.enabled (not <| Phoenix.channelJoined "example:join_and_leave_channels" phoenix)
         |> Button.view device
 
@@ -157,7 +157,7 @@ leave : Device -> Phoenix.Model -> Element Msg
 leave device phoenix =
     Button.init
         |> Button.label "Leave"
-        |> Button.onPress (Just (GotControlClick Leave))
+        |> Button.onPress (GotControlClick Leave)
         |> Button.enabled (Phoenix.channelJoined "example:join_and_leave_channels" phoenix)
         |> Button.view device
 

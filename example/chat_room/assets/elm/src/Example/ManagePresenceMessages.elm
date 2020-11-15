@@ -254,7 +254,7 @@ join : Device -> (Action -> Msg) -> Bool -> Element Msg
 join device onPress enabled =
     Button.init
         |> Button.label "Join"
-        |> Button.onPress (Just (onPress Join))
+        |> Button.onPress (onPress Join)
         |> Button.enabled enabled
         |> Button.view device
 
@@ -263,7 +263,7 @@ leave : Device -> (Action -> Msg) -> Bool -> Element Msg
 leave device onPress enabled =
     Button.init
         |> Button.label "Leave"
-        |> Button.onPress (Just (onPress Leave))
+        |> Button.onPress (onPress Leave)
         |> Button.enabled enabled
         |> Button.view device
 
@@ -272,7 +272,7 @@ on : Device -> Bool -> Element Msg
 on device enabled =
     Button.init
         |> Button.label "Presence On"
-        |> Button.onPress (Just (GotControlClick On))
+        |> Button.onPress (GotControlClick On)
         |> Button.enabled enabled
         |> Button.view device
 
@@ -281,7 +281,7 @@ off : Device -> Bool -> Element Msg
 off device enabled =
     Button.init
         |> Button.label "Presence Off"
-        |> Button.onPress (Just (GotControlClick Off))
+        |> Button.onPress (GotControlClick Off)
         |> Button.enabled enabled
         |> Button.view device
 
