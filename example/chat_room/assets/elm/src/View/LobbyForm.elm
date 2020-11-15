@@ -1,48 +1,81 @@
 module View.LobbyForm exposing
     ( init
-    , submitBtn
-    , usernameInput
+    , onChange
+    , onSubmit
+    , text
     , view
     )
 
 import Device exposing (Device)
 import Element as El exposing (Element)
-import Template.LobbyForm.PhonePortrait as PhonePortrait
+import View.Button as Button
+import View.InputField as InputField
 
 
-type Config msg c
+
+{- Model -}
+
+
+type Config msg
     = Config
-        { usernameInput : Element msg
-        , submitBtn : Element msg
+        { text : String
+        , onChange : Maybe (String -> msg)
+        , onSubmit : Maybe msg
         }
 
 
-
-{- Init -}
-
-
-init : Config msg c
+init : Config msg
 init =
     Config
-        { usernameInput = El.none
-        , submitBtn = El.none
+        { text = ""
+        , onChange = Nothing
+        , onSubmit = Nothing
         }
+
+
+text : String -> Config msg -> Config msg
+text text_ (Config config) =
+    Config { config | text = text_ }
+
+
+onChange : (String -> msg) -> Config msg -> Config msg
+onChange msg (Config config) =
+    Config { config | onChange = Just msg }
+
+
+onSubmit : msg -> Config msg -> Config msg
+onSubmit msg (Config config) =
+    Config { config | onSubmit = Just msg }
 
 
 
 {- View -}
 
 
-view : Device -> Config msg c -> Element msg
-view device (Config config) =
-    PhonePortrait.view config
+view : Device -> Config msg -> Element msg
+view device config =
+    El.column
+        [ El.width El.fill
+        , El.spacing 20
+        ]
+        [ inputField device config
+        , submitButton device config
+        ]
 
 
-usernameInput : Element msg -> Config msg c -> Config msg c
-usernameInput inputElement (Config config) =
-    Config { config | usernameInput = inputElement }
+inputField : Device -> Config msg -> Element msg
+inputField device (Config config) =
+    InputField.init
+        |> InputField.label "Username"
+        |> InputField.text config.text
+        |> InputField.onChange config.onChange
+        |> InputField.view device
 
 
-submitBtn : Element msg -> Config msg c -> Config msg c
-submitBtn btnElement (Config config) =
-    Config { config | submitBtn = btnElement }
+submitButton : Device -> Config msg -> Element msg
+submitButton device (Config config) =
+    Button.init
+        |> Button.label "Join Lobby"
+        |> Button.onPress config.onSubmit
+        |> Button.enabled (String.trim config.text /= "")
+        |> Button.view device

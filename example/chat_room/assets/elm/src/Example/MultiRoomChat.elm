@@ -469,20 +469,9 @@ chatRoomIntroduction user =
 lobbyForm : Device -> String -> Element Msg
 lobbyForm device username =
     LobbyForm.init
-        |> LobbyForm.usernameInput
-            (InputField.init
-                |> InputField.label "Username"
-                |> InputField.text username
-                |> InputField.onChange (Just GotUsernameChange)
-                |> InputField.view device
-            )
-        |> LobbyForm.submitBtn
-            (Button.init
-                |> Button.label "Join The Lobby"
-                |> Button.onPress (Just GotJoinLobby)
-                |> Button.enabled (String.trim username /= "")
-                |> Button.view device
-            )
+        |> LobbyForm.text username
+        |> LobbyForm.onChange GotUsernameChange
+        |> LobbyForm.onSubmit GotJoinLobby
         |> LobbyForm.view device
 
 
