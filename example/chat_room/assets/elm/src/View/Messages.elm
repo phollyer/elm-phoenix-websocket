@@ -74,7 +74,7 @@ userMessage { owner, text } =
         [ emptySpace
         , column
             [ username El.alignRight owner.username
-            , messageContent
+            , messageContent El.alignRight
                 { backgroundColor = Color.darkslateblue
                 , fontColor = Color.skyblue
                 }
@@ -88,7 +88,7 @@ othersMessage { owner, text } =
     row
         [ column
             [ username El.alignLeft owner.username
-            , messageContent
+            , messageContent El.alignLeft
                 { backgroundColor = Color.darkseagreen
                 , fontColor = Color.darkolivegreen
                 }
@@ -128,10 +128,11 @@ username alignment name =
         (El.text name)
 
 
-messageContent : { backgroundColor : Color, fontColor : Color } -> String -> Element msg
-messageContent { backgroundColor, fontColor } text =
+messageContent : Attribute msg -> { backgroundColor : Color, fontColor : Color } -> String -> Element msg
+messageContent alignment { backgroundColor, fontColor } text =
     El.column
-        [ Background.color backgroundColor
+        [ alignment
+        , Background.color backgroundColor
         , Border.rounded 10
         , El.padding 5
         , El.spacing 10

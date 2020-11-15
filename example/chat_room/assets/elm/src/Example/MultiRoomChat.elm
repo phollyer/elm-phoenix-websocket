@@ -398,24 +398,11 @@ view device model =
 
         InRoom room user ->
             ChatRoom.init
-                |> ChatRoom.introduction (chatRoomIntroduction room.owner)
-                |> ChatRoom.messages (messages device user model.messages)
+                |> ChatRoom.user (toUser model)
+                |> ChatRoom.messages model.messages
                 |> ChatRoom.membersTyping model.membersTyping
                 |> ChatRoom.messageForm (messageForm device model)
                 |> ChatRoom.view device
-
-
-
-{- Introduction -}
-
-
-chatRoomIntroduction : User -> List (List (Element Msg))
-chatRoomIntroduction user =
-    [ [ El.text "Welcome to "
-      , El.text user.username
-      , El.text "'s room."
-      ]
-    ]
 
 
 
@@ -431,15 +418,3 @@ messageForm device ({ message } as model) =
         |> MessageForm.onLoseFocus (GotMemberStoppedTyping (toUser model) (toRoom model))
         |> MessageForm.onSubmit GotSendMessage
         |> MessageForm.view device
-
-
-
-{- Messages -}
-
-
-messages : Device -> User -> List Message -> Element Msg
-messages device user messages_ =
-    Messages.init
-        |> Messages.user user
-        |> Messages.messages messages_
-        |> Messages.view device
