@@ -13,6 +13,10 @@ import Template.Feedback.PhonePortrait as PhonePortrait
 import View.Group as Group
 
 
+
+{- Model -}
+
+
 type Config msg
     = Config
         { elements : List (Element msg)
@@ -30,6 +34,20 @@ init =
         }
 
 
+elements : List (Element msg) -> Config msg -> Config msg
+elements list (Config config) =
+    Config { config | elements = list }
+
+
+group : Group.Config -> Config msg -> Config msg
+group group_ (Config config) =
+    Config { config | group = group_ }
+
+
+
+{- View -}
+
+
 view : Device -> Config msg -> Element msg
 view ({ class, orientation } as device) (Config config) =
     Group.orderElementsForDevice device config.group config
@@ -41,13 +59,3 @@ view ({ class, orientation } as device) (Config config) =
                 _ ->
                     PhoneLandscape.view
            )
-
-
-elements : List (Element msg) -> Config msg -> Config msg
-elements list (Config config) =
-    Config { config | elements = list }
-
-
-group : Group.Config -> Config msg -> Config msg
-group group_ (Config config) =
-    Config { config | group = group_ }

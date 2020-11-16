@@ -9,7 +9,7 @@ module View.Group exposing
 
 import Device exposing (Device)
 import Element exposing (DeviceClass, Element, Orientation)
-import Extra.List as List
+import List.Extra as List
 
 
 type Config
@@ -44,7 +44,7 @@ layoutForDevice :
     -> { c | layout : Maybe (List Int) }
 layoutForDevice { class, orientation } (Config config) c =
     { c
-        | layout = List.findByClassAndOrientation class orientation config.layouts
+        | layout = findByClassAndOrientation class orientation config.layouts
     }
 
 
@@ -56,10 +56,27 @@ orderElementsForDevice :
 orderElementsForDevice { class, orientation } (Config config) c =
     { c
         | elements =
-            case List.findByClassAndOrientation class orientation config.order of
+            case findByClassAndOrientation class orientation config.order of
                 Nothing ->
                     c.elements
 
                 Just newIndices ->
-                    List.reIndex newIndices c.elements
+                    reIndex newIndices c.elements
     }
+
+
+findByClassAndOrientation : DeviceClass -> Orientation -> List ( DeviceClass, Orientation, a ) -> Maybe a
+findByClassAndOrientation class orientation list =
+    List.find (\( c, o, _ ) -> c == class && o == orientation) list
+        |> Maybe.map (\( _, _, a ) -> a)
+
+
+reIndex : List Int -> List a -> List a
+reIndex sortOrder elements_ =
+    List.indexedMap Tuple.pair elements_
+        |> List.map2
+            (\newIndex ( _, element ) -> ( newIndex, element ))
+            sortOrder
+        |> List.sortBy Tuple.first
+        |> List.unzip
+        |> Tuple.second
