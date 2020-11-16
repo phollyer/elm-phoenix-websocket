@@ -7,9 +7,8 @@ module View.Feedback exposing
     )
 
 import Device exposing (Device)
-import Element exposing (DeviceClass(..), Element, Orientation(..))
-import Template.Feedback.PhoneLandscape as PhoneLandscape
-import Template.Feedback.PhonePortrait as PhonePortrait
+import Element as El exposing (DeviceClass(..), Element, Orientation(..))
+import List.Extra as List
 import View.Group as Group
 
 
@@ -50,12 +49,50 @@ group group_ (Config config) =
 
 view : Device -> Config msg -> Element msg
 view ({ class, orientation } as device) (Config config) =
-    Group.orderElementsForDevice device config.group config
-        |> Group.layoutForDevice device config.group
-        |> (case ( class, orientation ) of
+    let
+        newConfig =
+            Group.orderElementsForDevice device config.group config
+                |> Group.layoutForDevice device config.group
+    in
+    case newConfig.layout of
+        Nothing ->
+            case ( class, orientation ) of
                 ( Phone, Portrait ) ->
-                    PhonePortrait.view
+                    column
+                        (List.map toElement newConfig.elements)
 
                 _ ->
-                    PhoneLandscape.view
-           )
+                    wrappedRow config.elements
+
+        Just layout ->
+            column
+                (List.groupsOfVarying layout newConfig.elements
+                    |> List.map wrappedRow
+                )
+
+
+wrappedRow : List (Element msg) -> Element msg
+wrappedRow elements_ =
+    El.wrappedRow
+        [ El.spacing 10
+        , El.width El.fill
+        ]
+        (List.map toElement elements_)
+
+
+toElement : Element msg -> Element msg
+toElement element =
+    El.el
+        [ El.alignTop
+        , El.width El.fill
+        ]
+        element
+
+
+column : List (Element msg) -> Element msg
+column =
+    El.column
+        [ El.paddingXY 0 10
+        , El.spacing 10
+        , El.width El.fill
+        ]
