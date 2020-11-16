@@ -63,7 +63,9 @@ view _ (Config config) =
         ]
         [ titleView config.title
         , labelView config.label
-        , elementView config.element
+        , El.el
+            [ El.width El.fill ]
+            config.element_
         ]
 
 
@@ -93,10 +95,3 @@ labelView label_ =
             , Font.bold
             ]
             (El.text label_)
-
-
-elementView : Element msg -> Element msg
-elementView element_ =
-    El.el
-        [ El.width El.fill ]
-        element_
