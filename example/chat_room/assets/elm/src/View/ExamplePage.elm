@@ -1,82 +1,161 @@
 module View.ExamplePage exposing
-    ( Config, init
+    ( Config
+    , example
+    , init
+    , introduction
+    , menu
     , view
-    , id, introduction, menu, example
     )
 
-{-| This module is intended to enable building up an example with pipelines and
-then passing off the example config to the chosen template - currently there is
-only one.
-
-@docs Config, init
-
-@docs Template, view
-
-@docs id, introduction, menu, example
-
--}
-
+import Colors.Opaque as Color
 import Device exposing (Device)
-import Element as El exposing (DeviceClass(..), Element, Orientation(..))
-import Template.ExamplePage.PhoneLandscape as PhoneLandscape
-import Template.ExamplePage.PhonePortrait as PhonePortrait
-import Template.ExamplePage.Tablet as Tablet
+import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))
+import Element.Font as Font
 
 
-{-| -}
+
+{- Model -}
+
+
 type Config msg
     = Config
-        { id : Maybe String
-        , introduction : List (List (Element msg))
+        { introduction : List (List (Element msg))
         , menu : Element msg
         , example : Element msg
         }
 
 
-{-| -}
 init : Config msg
 init =
     Config
-        { id = Nothing
-        , introduction = []
+        { introduction = []
         , menu = El.none
         , example = El.none
         }
 
 
-{-| -}
-view : Device -> Config msg -> Element msg
-view { class, orientation } (Config config) =
-    case ( class, orientation ) of
-        ( Phone, Portrait ) ->
-            PhonePortrait.view config
-
-        ( Phone, Landscape ) ->
-            PhoneLandscape.view config
-
-        _ ->
-            Tablet.view config
-
-
-{-| -}
-id : Maybe String -> Config msg -> Config msg
-id maybeId (Config config) =
-    Config { config | id = maybeId }
-
-
-{-| -}
 introduction : List (List (Element msg)) -> Config msg -> Config msg
-introduction list (Config config) =
-    Config { config | introduction = list }
+introduction intro (Config config) =
+    Config { config | introduction = intro }
 
 
-{-| -}
 menu : Element msg -> Config msg -> Config msg
 menu menu_ (Config config) =
     Config { config | menu = menu_ }
 
 
-{-| -}
 example : Element msg -> Config msg -> Config msg
-example desc (Config config) =
-    Config { config | example = desc }
+example example_ (Config config) =
+    Config { config | example = example_ }
+
+
+
+{- View -}
+
+
+view : Device -> Config msg -> Element msg
+view device (Config config) =
+    El.column
+        [ El.height El.fill
+        , El.width El.fill
+        , El.spacing 10
+        , El.paddingEach
+            { left = 0
+            , top = 0
+            , right = 0
+            , bottom = 10
+            }
+        ]
+        [ introductionView device config.introduction
+        , menuView device config.menu
+        , exampleView device config.example
+        ]
+
+
+
+{- Introduction -}
+
+
+introductionView : Device -> List (List (Element msg)) -> Element msg
+introductionView device intro =
+    case intro of
+        [] ->
+            El.none
+
+        _ ->
+            El.column
+                [ fontSize device
+                , spacing device
+                , Font.color Color.darkslateblue
+                , Font.family
+                    [ Font.typeface "Piedra" ]
+                , Font.justify
+                ]
+            <|
+                List.map
+                    (\paragraph ->
+                        El.paragraph
+                            [ El.width El.fill ]
+                            paragraph
+                    )
+                    intro
+
+
+
+{- Menu -}
+
+
+menuView : Device -> Element msg -> Element msg
+menuView device element =
+    if element == El.none then
+        El.none
+
+    else
+        El.el
+            [ fontSize device
+            , El.width El.fill
+            ]
+            element
+
+
+
+{- Example -}
+
+
+exampleView : Device -> Element msg -> Element msg
+exampleView device content =
+    El.el
+        [ fontSize device
+        , El.spacing 12
+        , Font.color Color.darkslateblue
+        , Font.justify
+        , Font.family
+            [ Font.typeface "Varela Round" ]
+        , El.height El.fill
+        , El.width El.fill
+        ]
+        content
+
+
+
+{- Attributes -}
+
+
+fontSize : Device -> Attribute msg
+fontSize { class } =
+    case class of
+        Phone ->
+            Font.size 14
+
+        _ ->
+            Font.size 18
+
+
+spacing : Device -> Attribute msg
+spacing { class } =
+    case class of
+        Phone ->
+            El.spacing 16
+
+        _ ->
+            El.spacing 20
