@@ -7,9 +7,15 @@ module View.FeedbackContent exposing
     , view
     )
 
+import Colors.Opaque as Color
 import Device exposing (Device)
 import Element as El exposing (Element)
+import Element.Font as Font
 import Template.FeedbackContent.PhonePortrait as PhonePortrait
+
+
+
+{- Model -}
 
 
 type Config msg
@@ -29,11 +35,6 @@ init =
         }
 
 
-view : Device -> Config msg -> Element msg
-view _ (Config config) =
-    PhonePortrait.view config
-
-
 title : Maybe String -> Config msg -> Config msg
 title title_ (Config config) =
     Config { config | title = title_ }
@@ -47,3 +48,55 @@ label label_ (Config config) =
 element : Element msg -> Config msg -> Config msg
 element element_ (Config config) =
     Config { config | element = element_ }
+
+
+
+{- View -}
+
+
+view : Device -> Config msg -> Element msg
+view _ (Config config) =
+    El.column
+        [ El.width El.fill
+        , El.spacing 10
+        , Font.family [ Font.typeface "Oswald" ]
+        ]
+        [ titleView config.title
+        , labelView config.label
+        , elementView config.element
+        ]
+
+
+titleView : Maybe String -> Element msg
+titleView maybeTitle =
+    case maybeTitle of
+        Nothing ->
+            El.none
+
+        Just title_ ->
+            El.el
+                [ Font.color Color.darkslateblue
+                , Font.bold
+                ]
+                (El.text title_)
+
+
+labelView : String -> Element msg
+labelView label_ =
+    if label_ == "" then
+        El.none
+
+    else
+        El.el
+            [ El.alignTop
+            , Font.color Color.darkslateblue
+            , Font.bold
+            ]
+            (El.text label_)
+
+
+elementView : Element msg -> Element msg
+elementView element_ =
+    El.el
+        [ El.width El.fill ]
+        element_
