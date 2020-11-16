@@ -11,7 +11,6 @@ import Colors.Opaque as Color
 import Device exposing (Device)
 import Element as El exposing (Element)
 import Element.Font as Font
-import Template.FeedbackContent.PhonePortrait as PhonePortrait
 
 
 
@@ -65,7 +64,7 @@ view _ (Config config) =
         , labelView config.label
         , El.el
             [ El.width El.fill ]
-            config.element_
+            config.element
         ]
 
 
