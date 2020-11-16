@@ -40,8 +40,8 @@ init =
 
 
 userId : Maybe String -> Config msg -> Config msg
-userId maybeUserId (Config config) =
-    Config { config | userId = maybeUserId }
+userId maybeUserId_ (Config config) =
+    Config { config | userId = maybeUserId_ }
 
 
 elements : List (Element msg) -> Config msg -> Config msg
@@ -68,13 +68,13 @@ view ({ class, orientation } as device) (Config config) =
     case newConfig.layout of
         Nothing ->
             column
-                [ maybeId newConfig.userId
+                [ maybeUserId newConfig.userId
                 , toRow newConfig.elements
                 ]
 
         Just layout ->
             column
-                (maybeId newConfig.userId
+                (maybeUserId newConfig.userId
                     :: toRows layout newConfig.elements
                 )
 
@@ -96,8 +96,8 @@ column =
         ]
 
 
-maybeId : Maybe String -> Element msg
-maybeId maybeId_ =
+maybeUserId : Maybe String -> Element msg
+maybeUserId maybeId_ =
     case maybeId_ of
         Nothing ->
             El.none
