@@ -73,36 +73,34 @@ view : Device -> Config msg -> Element msg
 view ({ class, orientation } as device) (Config config) =
     case ( class, orientation ) of
         ( Phone, Portrait ) ->
-            El.column (containerAttrs device) <|
-                List.map (menuItem config.selected config.onClick) config.options
+            El.column
+                (paddingEach device
+                    :: containerAttrs device
+                )
+            <|
+                List.map (stackItem config.selected config.onClick) config.options
 
         _ ->
             case Group.layoutForDevice device config.group of
                 Nothing ->
                     El.row
-                        [ El.paddingEach
+                        (El.paddingEach
                             { left = 5
                             , top = 0
                             , right = 5
                             , bottom = 0
                             }
-                        , spacing device
-                        , Border.color Color.aliceblue
-                        , Border.widthEach
-                            { left = 0
-                            , top = 1
-                            , right = 0
-                            , bottom = 1
-                            }
-                        , El.width El.fill
-                        , Font.family
-                            [ Font.typeface "Varela Round" ]
-                        ]
+                            :: containerAttrs device
+                        )
                     <|
                         List.map (rowItem config.selected config.onClick) config.options
 
                 Just layout ->
-                    El.column (containerAttrs device) <|
+                    El.column
+                        (paddingEach device
+                            :: containerAttrs device
+                        )
+                    <|
                         (Group.orderForDevice device config.options config.group
                             |> List.groupsOfVarying layout
                             |> toRows config.selected config.onClick
@@ -120,75 +118,30 @@ toRow selected_ maybeOnClick options_ =
         [ El.width El.fill
         , El.spacing 20
         ]
-        (List.map (menuItem selected_ maybeOnClick) options_)
+        (List.map (stackItem selected_ maybeOnClick) options_)
 
 
-menuItem : String -> Maybe (String -> msg) -> String -> Element msg
-menuItem selected_ maybeOnClick item =
-    let
-        ( attrs, highlight ) =
-            if selected_ == item then
-                ( [ El.centerX
-                  , El.centerY
-                  , Font.color Color.darkslateblue
-                  ]
-                , El.el
-                    [ Border.color Color.aliceblue
-                    , Border.widthEach
-                        { left = 0
-                        , top = 0
-                        , right = 0
-                        , bottom = 4
-                        }
-                    , El.width El.fill
-                    ]
-                    El.none
-                )
-
-            else
-                ( [ Border.color (Alpha.darkslateblue 0)
-                  , Border.widthEach
-                        { left = 0
-                        , top = 0
-                        , right = 0
-                        , bottom = 4
-                        }
-                  , El.centerX
-                  , El.centerY
-                  , El.pointer
-                  , El.mouseOver
-                        [ Border.color Color.lavender ]
-                  , Font.color Color.darkslateblue
-                  ]
-                    |> andMaybeEventWithArg maybeOnClick item Event.onClick
-                , El.none
-                )
-    in
-    El.column
-        attrs
-        [ El.text item
-        , highlight
-        ]
+stackItem : String -> Maybe (String -> msg) -> String -> Element msg
+stackItem selected_ maybeOnClick item =
+    El.el
+        (List.append
+            (itemAttrs selected_ item maybeOnClick)
+            [ Border.widthEach
+                { left = 0
+                , top = 0
+                , right = 0
+                , bottom = 4
+                }
+            ]
+        )
+        (El.text item)
 
 
 rowItem : String -> Maybe (String -> msg) -> String -> Element msg
 rowItem selected_ maybeOnClick item =
-    let
-        attrs =
-            if selected_ == item then
-                [ Border.color Color.aliceblue ]
-
-            else
-                [ Border.color (Alpha.darkslateblue 0)
-                , El.pointer
-                , El.mouseOver
-                    [ Border.color Color.lavender ]
-                ]
-                    |> andMaybeEventWithArg maybeOnClick item Event.onClick
-    in
     El.el
         (List.append
-            attrs
+            (itemAttrs selected_ item maybeOnClick)
             [ Border.widthEach
                 { left = 0
                 , top = 4
@@ -196,8 +149,6 @@ rowItem selected_ maybeOnClick item =
                 , bottom = 4
                 }
             , El.paddingXY 0 5
-            , El.centerX
-            , Font.color Color.darkslateblue
             ]
         )
         (El.text item)
@@ -209,8 +160,7 @@ rowItem selected_ maybeOnClick item =
 
 containerAttrs : Device -> List (Attribute msg)
 containerAttrs device =
-    [ paddingEach device
-    , spacing device
+    [ spacing device
     , Border.color Color.aliceblue
     , Border.widthEach
         { left = 0
@@ -219,31 +169,27 @@ containerAttrs device =
         , bottom = 1
         }
     , El.width El.fill
+    , Font.color Color.darkslateblue
     , Font.family
         [ Font.typeface "Varela Round" ]
     ]
 
 
-selectedItemAttrs : Device -> List (Attribute msg)
-selectedItemAttrs { class, orientation } =
-    case ( class, orientation ) of
-        ( Phone, Portrait ) ->
-            [ El.centerX
-            , El.centerY
-            , Font.color Color.darkslateblue
-            ]
+itemAttrs : String -> String -> Maybe (String -> msg) -> List (Attribute msg)
+itemAttrs selected_ item maybeOnClick =
+    if selected_ == item then
+        [ Border.color Color.aliceblue
+        , El.centerX
+        ]
 
-        ( Phone, Landscape ) ->
-            [ El.centerX
-            , El.centerY
-            , Font.color Color.darkslateblue
-            ]
-
-        _ ->
-            [ El.centerX
-            , El.centerY
-            , Font.color Color.darkslateblue
-            ]
+    else
+        [ Border.color (Alpha.darkslateblue 0)
+        , El.centerX
+        , El.pointer
+        , El.mouseOver
+            [ Border.color Color.lavender ]
+        ]
+            |> andMaybeEventWithArg maybeOnClick item Event.onClick
 
 
 paddingEach : Device -> Attribute msg
