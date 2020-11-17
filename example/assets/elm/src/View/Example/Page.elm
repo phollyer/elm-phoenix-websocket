@@ -95,7 +95,9 @@ introductionView device intro =
                 List.map
                     (\paragraph ->
                         El.paragraph
-                            [ El.width El.fill ]
+                            [ El.width El.fill
+                            , El.spacing 10
+                            ]
                             paragraph
                     )
                     intro
@@ -155,7 +157,7 @@ spacing : Device -> Attribute msg
 spacing { class } =
     case class of
         Phone ->
-            El.spacing 16
+            El.spacing 18
 
         _ ->
-            El.spacing 20
+            El.spacing 22
