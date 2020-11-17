@@ -86,6 +86,7 @@ roomAttrs =
     , Border.color Color.darkblue
     , Border.width 1
     , El.padding 10
+    , El.spacing 10
     , El.width El.fill
     ]
 
