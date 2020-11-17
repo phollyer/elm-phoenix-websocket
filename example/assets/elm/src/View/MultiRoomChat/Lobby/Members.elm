@@ -50,13 +50,18 @@ view _ (Config users) =
         , El.width El.fill
         , Font.color Color.skyblue
         ]
-        (El.el
+        [ El.el
             [ El.centerX ]
             (El.text "Members")
-            :: List.map toMember users
-        )
+        , El.paragraph
+            [ El.width El.fill ]
+            [ toMembers users ]
+        ]
 
 
-toMember : User -> Element msg
-toMember user =
-    El.text user.username
+toMembers : List User -> Element msg
+toMembers users =
+    List.map .username users
+        |> List.intersperse ", "
+        |> String.concat
+        |> El.text
