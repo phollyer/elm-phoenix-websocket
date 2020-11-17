@@ -1,4 +1,4 @@
-defmodule ChatRoom.Message do
+defmodule ElmPhoenixWebSocketExample.Message do
 
   def create(message, user) do
     %{text: message,

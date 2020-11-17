@@ -1,6 +1,6 @@
-defmodule ChatRoom do
+defmodule ElmPhoenixWebSocketExample do
   @moduledoc """
-  ChatRoom keeps the contexts that define your domain
+  ElmPhoenixWebSocketExample keeps the contexts that define your domain
   and business logic.
 
   Contexts are also responsible for managing your data, regardless

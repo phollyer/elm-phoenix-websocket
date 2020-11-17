@@ -1,6 +1,6 @@
-defmodule ChatRoom.User do
+defmodule ElmPhoenixWebSocketExample.User do
 
-  alias ChatRoom.Room
+  alias ElmPhoenixWebSocketExample.Room
 
   def create(username) do
     %{id: create_id(),

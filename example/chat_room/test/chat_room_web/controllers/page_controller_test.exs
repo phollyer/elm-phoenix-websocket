@@ -1,5 +1,5 @@
-defmodule ChatRoomWeb.PageControllerTest do
-  use ChatRoomWeb.ConnCase
+defmodule ElmPhoenixWebSocketExampleWeb.PageControllerTest do
+  use ElmPhoenixWebSocketExampleWeb.ConnCase
 
   test "GET /", %{conn: conn} do
     conn = get(conn, "/")

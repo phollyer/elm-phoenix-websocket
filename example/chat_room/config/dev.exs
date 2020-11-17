@@ -6,7 +6,7 @@ use Mix.Config
 # The watchers configuration can be used to run external
 # watchers to your application. For example, we use it
 # with webpack to recompile .js and .css sources.
-config :chat_room, ChatRoomWeb.Endpoint,
+config :elm_phoenix_web_socket_example, ElmPhoenixWebSocketExampleWeb.Endpoint,
   http: [port: 4000],
   debug_errors: true,
   code_reloader: true,
@@ -46,13 +46,13 @@ config :chat_room, ChatRoomWeb.Endpoint,
 # different ports.
 
 # Watch static and templates for browser reloading.
-config :chat_room, ChatRoomWeb.Endpoint,
+config :elm_phoenix_web_socket_example, ElmPhoenixWebSocketExampleWeb.Endpoint,
   live_reload: [
     patterns: [
       ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"priv/gettext/.*(po)$",
-      ~r"lib/chat_room_web/(live|views)/.*(ex)$",
-      ~r"lib/chat_room_web/templates/.*(eex)$"
+      ~r"lib/elm_phoenix_web_socket_example_web/(live|views)/.*(ex)$",
+      ~r"lib/elm_phoenix_web_socket_example_web/templates/.*(eex)$"
     ]
   ]
 

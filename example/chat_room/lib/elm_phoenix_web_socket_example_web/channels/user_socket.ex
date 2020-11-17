@@ -1,15 +1,15 @@
-defmodule ChatRoomWeb.UserSocket do
+defmodule ElmPhoenixWebSocketExampleWeb.UserSocket do
   use Phoenix.Socket
 
   ## Channels
-  channel "example:lobby", ChatRoomWeb.LobbyChannel
-  channel "example:manage_channel_messages", ChatRoomWeb.ManageChannelMessagesChannel
-  channel "example:manage_presence_messages", ChatRoomWeb.ManagePresenceMessagesChannel
-  channel "example:manage_presence_messages_*", ChatRoomWeb.ManagePresenceMessagesChannel
-  channel "example:join_and_leave_channels", ChatRoomWeb.JoinAndLeaveChannel
-  channel "example:join_channel_number_*", ChatRoomWeb.JoinMultipleChannelsChannel
-  channel "example:room:*", ChatRoomWeb.ChatRoomChannel
-  channel "example:send_and_receive", ChatRoomWeb.SendAndReceiveChannel
+  channel "example:lobby", ElmPhoenixWebSocketExampleWeb.LobbyChannel
+  channel "example:manage_channel_messages", ElmPhoenixWebSocketExampleWeb.ManageChannelMessagesChannel
+  channel "example:manage_presence_messages", ElmPhoenixWebSocketExampleWeb.ManagePresenceMessagesChannel
+  channel "example:manage_presence_messages_*", ElmPhoenixWebSocketExampleWeb.ManagePresenceMessagesChannel
+  channel "example:join_and_leave_channels", ElmPhoenixWebSocketExampleWeb.JoinAndLeaveChannel
+  channel "example:join_channel_number_*", ElmPhoenixWebSocketExampleWeb.JoinMultipleChannelsChannel
+  channel "example:room:*", ElmPhoenixWebSocketExampleWeb.ElmPhoenixWebSocketExampleChannel
+  channel "example:send_and_receive", ElmPhoenixWebSocketExampleWeb.SendAndReceiveChannel
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After
@@ -34,7 +34,7 @@ defmodule ChatRoomWeb.UserSocket do
   # Would allow you to broadcast a "disconnect" event and terminate
   # all active sockets and channels for a given user:
   #
-  #     ChatRoomWeb.Endpoint.broadcast("user_socket:#{user.id}", "disconnect", %{})
+  #     ElmPhoenixWebSocketExampleWeb.Endpoint.broadcast("user_socket:#{user.id}", "disconnect", %{})
   #
   # Returning `nil` makes this socket anonymous.
   @impl true

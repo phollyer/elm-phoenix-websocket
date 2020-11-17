@@ -1,4 +1,4 @@
-defmodule ChatRoom.Room do
+defmodule ElmPhoenixWebSocketExample.Room do
 
   def create(user) do
     %{id: create_id(),

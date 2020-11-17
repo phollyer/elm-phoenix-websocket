@@ -1,9 +1,9 @@
-defmodule ChatRoom.MixProject do
+defmodule ElmPhoenixWebSocketExample.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :chat_room,
+      app: :elm_phoenix_web_socket_example,
       version: "0.1.0",
       elixir: "~> 1.7",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -19,7 +19,7 @@ defmodule ChatRoom.MixProject do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {ChatRoom.Application, []},
+      mod: {ElmPhoenixWebSocketExample.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
   end

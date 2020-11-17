@@ -1,4 +1,4 @@
-defmodule ChatRoomWeb.ManageChannelMessagesChannel do
+defmodule ElmPhoenixWebSocketExampleWeb.ManageChannelMessagesChannel do
   use Phoenix.Channel
 
   def join("example:manage_channel_messages", _, socket) do

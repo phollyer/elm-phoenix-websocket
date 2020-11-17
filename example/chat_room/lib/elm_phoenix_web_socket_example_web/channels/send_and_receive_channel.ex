@@ -1,4 +1,4 @@
-defmodule ChatRoomWeb.SendAndReceiveChannel do
+defmodule ElmPhoenixWebSocketExampleWeb.SendAndReceiveChannel do
   use Phoenix.Channel
 
   def join("example:send_and_receive", _, socket) do

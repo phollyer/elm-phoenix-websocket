@@ -1,7 +1,7 @@
-defmodule ChatRoomWeb.ManagePresenceMessagesChannel do
+defmodule ElmPhoenixWebSocketExampleWeb.ManagePresenceMessagesChannel do
   use Phoenix.Channel
 
-  alias ChatRoomWeb.Presence
+  alias ElmPhoenixWebSocketExampleWeb.Presence
 
   def join("example:manage_presence_messages", _, socket) do
     {:ok, %{example_id: inspect(System.system_time(:millisecond))}, socket}

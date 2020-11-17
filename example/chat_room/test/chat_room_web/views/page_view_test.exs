@@ -1,3 +1,3 @@
-defmodule ChatRoomWeb.PageViewTest do
-  use ChatRoomWeb.ConnCase, async: true
+defmodule ElmPhoenixWebSocketExampleWeb.PageViewTest do
+  use ElmPhoenixWebSocketExampleWeb.ConnCase, async: true
 end

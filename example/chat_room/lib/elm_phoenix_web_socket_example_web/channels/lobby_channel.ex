@@ -1,9 +1,9 @@
-defmodule ChatRoomWeb.LobbyChannel do
+defmodule ElmPhoenixWebSocketExampleWeb.LobbyChannel do
   use Phoenix.Channel
 
-  alias ChatRoom.Room
-  alias ChatRoom.User
-  alias ChatRoomWeb.Presence
+  alias ElmPhoenixWebSocketExample.Room
+  alias ElmPhoenixWebSocketExample.User
+  alias ElmPhoenixWebSocketExampleWeb.Presence
 
   def join("example:lobby", %{"username" => username}, socket) do
     {:ok, user} =

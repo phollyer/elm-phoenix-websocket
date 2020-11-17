@@ -1,4 +1,4 @@
-defmodule ChatRoomWeb.ErrorHelpers do
+defmodule ElmPhoenixWebSocketExampleWeb.ErrorHelpers do
   @moduledoc """
   Conveniences for translating and building error messages.
   """
@@ -39,9 +39,9 @@ defmodule ChatRoomWeb.ErrorHelpers do
     # should be written to the errors.po file. The :count option is
     # set by Ecto and indicates we should also apply plural rules.
     if count = opts[:count] do
-      Gettext.dngettext(ChatRoomWeb.Gettext, "errors", msg, msg, count, opts)
+      Gettext.dngettext(ElmPhoenixWebSocketExampleWeb.Gettext, "errors", msg, msg, count, opts)
     else
-      Gettext.dgettext(ChatRoomWeb.Gettext, "errors", msg, opts)
+      Gettext.dgettext(ElmPhoenixWebSocketExampleWeb.Gettext, "errors", msg, opts)
     end
   end
 end

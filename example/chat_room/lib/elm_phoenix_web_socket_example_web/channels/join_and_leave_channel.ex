@@ -1,4 +1,4 @@
-defmodule ChatRoomWeb.JoinAndLeaveChannel do
+defmodule ElmPhoenixWebSocketExampleWeb.JoinAndLeaveChannel do
   use Phoenix.Channel
 
 

@@ -1,12 +1,12 @@
-defmodule ChatRoomWeb do
+defmodule ElmPhoenixWebSocketExampleWeb do
   @moduledoc """
   The entrypoint for defining your web interface, such
   as controllers, views, channels and so on.
 
   This can be used in your application as:
 
-      use ChatRoomWeb, :controller
-      use ChatRoomWeb, :view
+      use ElmPhoenixWebSocketExampleWeb, :controller
+      use ElmPhoenixWebSocketExampleWeb, :view
 
   The definitions below will be executed for every view,
   controller, etc, so keep them short and clean, focused
@@ -19,19 +19,19 @@ defmodule ChatRoomWeb do
 
   def controller do
     quote do
-      use Phoenix.Controller, namespace: ChatRoomWeb
+      use Phoenix.Controller, namespace: ElmPhoenixWebSocketExampleWeb
 
       import Plug.Conn
-      import ChatRoomWeb.Gettext
-      alias ChatRoomWeb.Router.Helpers, as: Routes
+      import ElmPhoenixWebSocketExampleWeb.Gettext
+      alias ElmPhoenixWebSocketExampleWeb.Router.Helpers, as: Routes
     end
   end
 
   def view do
     quote do
       use Phoenix.View,
-        root: "lib/chat_room_web/templates",
-        namespace: ChatRoomWeb
+        root: "lib/elm_phoenix_web_socket_example_web/templates",
+        namespace: ElmPhoenixWebSocketExampleWeb
 
       # Import convenience functions from controllers
       import Phoenix.Controller, only: [get_flash: 1, get_flash: 2, view_module: 1]
@@ -53,7 +53,7 @@ defmodule ChatRoomWeb do
   def channel do
     quote do
       use Phoenix.Channel
-      import ChatRoomWeb.Gettext
+      import ElmPhoenixWebSocketExampleWeb.Gettext
     end
   end
 
@@ -65,9 +65,9 @@ defmodule ChatRoomWeb do
       # Import basic rendering functionality (render, render_layout, etc)
       import Phoenix.View
 
-      import ChatRoomWeb.ErrorHelpers
-      import ChatRoomWeb.Gettext
-      alias ChatRoomWeb.Router.Helpers, as: Routes
+      import ElmPhoenixWebSocketExampleWeb.ErrorHelpers
+      import ElmPhoenixWebSocketExampleWeb.Gettext
+      alias ElmPhoenixWebSocketExampleWeb.Router.Helpers, as: Routes
     end
   end
 

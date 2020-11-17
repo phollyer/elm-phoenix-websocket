@@ -1,4 +1,4 @@
-defmodule ChatRoomWeb.Telemetry do
+defmodule ElmPhoenixWebSocketExampleWeb.Telemetry do
   use Supervisor
   import Telemetry.Metrics
 
@@ -40,7 +40,7 @@ defmodule ChatRoomWeb.Telemetry do
     [
       # A module, function and arguments to be invoked periodically.
       # This function must call :telemetry.execute/3 and a metric must be added above.
-      # {ChatRoomWeb, :count_users, []}
+      # {ElmPhoenixWebSocketExampleWeb, :count_users, []}
     ]
   end
 end

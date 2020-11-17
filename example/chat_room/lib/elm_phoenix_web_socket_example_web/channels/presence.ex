@@ -1,9 +1,9 @@
-defmodule ChatRoomWeb.Presence do
+defmodule ElmPhoenixWebSocketExampleWeb.Presence do
   use Phoenix.Presence,
-    otp_app: :chat_room,
-    pubsub_server: ChatRoom.PubSub
+    otp_app: :elm_phoenix_web_socket_example,
+    pubsub_server: ElmPhoenixWebSocketExample.PubSub
 
-  alias ChatRoom.User
+  alias ElmPhoenixWebSocketExample.User
 
   def fetch("example:lobby", presences) do
     for {key, %{metas: metas}} <- presences, into: %{} do

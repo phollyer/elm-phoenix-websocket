@@ -1,10 +1,10 @@
-defmodule ChatRoomWeb.ChatRoomChannel do
+defmodule ElmPhoenixWebSocketExampleWeb.ElmPhoenixWebSocketExampleChannel do
   use Phoenix.Channel
 
-  alias ChatRoom.Message
-  alias ChatRoom.Room
-  alias ChatRoom.User
-  alias ChatRoomWeb.Presence
+  alias ElmPhoenixWebSocketExample.Message
+  alias ElmPhoenixWebSocketExample.Room
+  alias ElmPhoenixWebSocketExample.User
+  alias ElmPhoenixWebSocketExampleWeb.Presence
 
   def join("example:room:" <> room_id, %{"id" => user_id}, socket) do
     {:ok, user} = User.find(user_id)

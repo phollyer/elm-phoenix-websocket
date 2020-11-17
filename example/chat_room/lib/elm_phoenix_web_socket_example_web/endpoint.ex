@@ -1,16 +1,16 @@
-defmodule ChatRoomWeb.Endpoint do
-  use Phoenix.Endpoint, otp_app: :chat_room
+defmodule ElmPhoenixWebSocketExampleWeb.Endpoint do
+  use Phoenix.Endpoint, otp_app: :elm_phoenix_web_socket_example
 
   # The session will be stored in the cookie and signed,
   # this means its contents can be read but not tampered with.
   # Set :encryption_salt if you would also like to encrypt it.
   @session_options [
     store: :cookie,
-    key: "_chat_room_key",
+    key: "_elm_phoenix_web_socket_example_key",
     signing_salt: "ScPTnkuY"
   ]
 
-  socket "/socket", ChatRoomWeb.UserSocket,
+  socket "/socket", ElmPhoenixWebSocketExampleWeb.UserSocket,
     websocket: true,
     longpoll: false
 
@@ -22,7 +22,7 @@ defmodule ChatRoomWeb.Endpoint do
   # when deploying your static files in production.
   plug Plug.Static,
     at: "/",
-    from: :chat_room,
+    from: :elm_phoenix_web_socket_example,
     gzip: false,
     only: ~w(css fonts images js favicon.ico robots.txt)
 
@@ -49,5 +49,5 @@ defmodule ChatRoomWeb.Endpoint do
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
-  plug ChatRoomWeb.Router
+  plug ElmPhoenixWebSocketExampleWeb.Router
 end

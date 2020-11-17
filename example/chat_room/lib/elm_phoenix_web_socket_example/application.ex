@@ -1,4 +1,4 @@
-defmodule ChatRoom.Application do
+defmodule ElmPhoenixWebSocketExample.Application do
   # See https://hexdocs.pm/elixir/Application.html
   # for more information on OTP Applications
   @moduledoc false
@@ -11,26 +11,26 @@ defmodule ChatRoom.Application do
 
     children = [
       # Start the Telemetry supervisor
-      ChatRoomWeb.Telemetry,
+      ElmPhoenixWebSocketExampleWeb.Telemetry,
       # Start the PubSub system
-      {Phoenix.PubSub, name: ChatRoom.PubSub},
-      ChatRoomWeb.Presence,
+      {Phoenix.PubSub, name: ElmPhoenixWebSocketExample.PubSub},
+      ElmPhoenixWebSocketExampleWeb.Presence,
       # Start the Endpoint (http/https)
-      ChatRoomWeb.Endpoint
-      # Start a worker by calling: ChatRoom.Worker.start_link(arg)
-      # {ChatRoom.Worker, arg}
+      ElmPhoenixWebSocketExampleWeb.Endpoint
+      # Start a worker by calling: ElmPhoenixWebSocketExample.Worker.start_link(arg)
+      # {ElmPhoenixWebSocketExample.Worker, arg}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
-    opts = [strategy: :one_for_one, name: ChatRoom.Supervisor]
+    opts = [strategy: :one_for_one, name: ElmPhoenixWebSocketExample.Supervisor]
     Supervisor.start_link(children, opts)
   end
 
   # Tell Phoenix to update the endpoint configuration
   # whenever the application is updated.
   def config_change(changed, _new, removed) do
-    ChatRoomWeb.Endpoint.config_change(changed, removed)
+    ElmPhoenixWebSocketExampleWeb.Endpoint.config_change(changed, removed)
     :ok
   end
 end
