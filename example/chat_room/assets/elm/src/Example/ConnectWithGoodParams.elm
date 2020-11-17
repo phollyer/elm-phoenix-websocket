@@ -16,8 +16,8 @@ import Phoenix
 import UI
 import View.ApplicableFunctions as ApplicableFunctions
 import View.Button as Button
-import View.Example as Example
-import View.ExampleControls as ExampleControls
+import View.Example.Controls as Controls
+import View.Example.Example as Example
 import View.Feedback as Feedback
 import View.FeedbackContent as FeedbackContent
 import View.FeedbackPanel as FeedbackPanel
@@ -130,17 +130,17 @@ description =
 
 controls : Device -> Model -> Element Msg
 controls device { phoenix } =
-    ExampleControls.init
-        |> ExampleControls.elements
+    Controls.init
+        |> Controls.elements
             [ connect device phoenix
             , disconnect device phoenix
             ]
-        |> ExampleControls.group
+        |> Controls.group
             (Group.init
                 |> Group.layouts
                     [ ( Phone, Portrait, [ 2 ] ) ]
             )
-        |> ExampleControls.view device
+        |> Controls.view device
 
 
 connect : Device -> Phoenix.Model -> Element Msg

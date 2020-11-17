@@ -16,8 +16,8 @@ import Phoenix
 import UI
 import View.ApplicableFunctions as ApplicableFunctions
 import View.Button as Button
-import View.Example as Example
-import View.ExampleControls as ExampleControls
+import View.Example.Controls as Controls
+import View.Example.Example as Example
 import View.Feedback as Feedback
 import View.FeedbackContent as FeedbackContent
 import View.FeedbackInfo as FeedbackInfo
@@ -125,12 +125,12 @@ description =
 
 controls : Device -> Model -> Element Msg
 controls device { phoenix } =
-    ExampleControls.init
-        |> ExampleControls.elements
+    Controls.init
+        |> Controls.elements
             [ join device phoenix
             , leave device phoenix
             ]
-        |> ExampleControls.view device
+        |> Controls.view device
 
 
 join : Device -> Phoenix.Model -> Element Msg

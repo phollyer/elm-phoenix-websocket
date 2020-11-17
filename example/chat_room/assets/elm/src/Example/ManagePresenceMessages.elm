@@ -18,8 +18,8 @@ import Phoenix
 import UI
 import View.ApplicableFunctions as ApplicableFunctions
 import View.Button as Button
-import View.Example as Example
-import View.ExampleControls as ExampleControls
+import View.Example.Controls as Controls
+import View.Example.Example as Example
 import View.Feedback as Feedback
 import View.FeedbackContent as FeedbackContent
 import View.FeedbackInfo as FeedbackInfo
@@ -232,22 +232,22 @@ controls device { phoenix, maybeUserId, maybeExampleId, receiveMessages } =
         joinedChannel =
             Phoenix.channelJoined (controllerTopic maybeExampleId) phoenix
     in
-    ExampleControls.init
-        |> ExampleControls.userId maybeUserId
-        |> ExampleControls.elements
+    Controls.init
+        |> Controls.userId maybeUserId
+        |> Controls.elements
             [ join device GotControlClick (not <| joinedChannel)
             , on device (not receiveMessages)
             , off device receiveMessages
             , leave device GotControlClick joinedChannel
             ]
-        |> ExampleControls.group
+        |> Controls.group
             (Group.init
                 |> Group.layouts
                     [ ( Phone, Portrait, [ 2, 2 ] ) ]
                 |> Group.order
                     [ ( Phone, Portrait, [ 0, 2, 3, 1 ] ) ]
             )
-        |> ExampleControls.view device
+        |> Controls.view device
 
 
 join : Device -> (Action -> Msg) -> Bool -> Element Msg

@@ -17,8 +17,8 @@ import Phoenix
 import UI
 import View.ApplicableFunctions as ApplicableFunctions
 import View.Button as Button
-import View.Example as Example
-import View.ExampleControls as ExampleControls
+import View.Example.Controls as Controls
+import View.Example.Example as Example
 import View.Feedback as Feedback
 import View.FeedbackContent as FeedbackContent
 import View.FeedbackInfo as FeedbackInfo
@@ -155,20 +155,20 @@ description =
 
 controls : Device -> Model -> Element Msg
 controls device { receiveMessages } =
-    ExampleControls.init
-        |> ExampleControls.elements
+    Controls.init
+        |> Controls.elements
             [ push device
             , on device receiveMessages
             , off device receiveMessages
             ]
-        |> ExampleControls.group
+        |> Controls.group
             (Group.init
                 |> Group.layouts
                     [ ( Phone, Portrait, [ 2, 2 ] ) ]
                 |> Group.order
                     [ ( Phone, Portrait, [ 0, 2, 3, 1 ] ) ]
             )
-        |> ExampleControls.view device
+        |> Controls.view device
 
 
 push : Device -> Element Msg

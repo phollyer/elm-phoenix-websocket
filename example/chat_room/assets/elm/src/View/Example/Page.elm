@@ -1,4 +1,4 @@
-module View.ExamplePage exposing
+module View.Example.Page exposing
     ( Config
     , example
     , init

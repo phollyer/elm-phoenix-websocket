@@ -1,4 +1,4 @@
-module View.Example exposing
+module View.Example.Example exposing
     ( Config
     , controls
     , description

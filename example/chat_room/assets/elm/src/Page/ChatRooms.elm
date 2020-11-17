@@ -15,7 +15,7 @@ import Example.MultiRoomChat as MultiRoomChat
 import Phoenix
 import Route
 import Session exposing (Session)
-import View.ExamplePage as ExamplePage
+import View.Example.Page as ExamplePage
 import View.Layout as Layout
 
 
