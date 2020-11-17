@@ -62,6 +62,7 @@ view device (Config config) =
         , El.width El.fill
         , El.clip
         , El.scrollbars
+        , El.spacing 10
         ]
         [ header device config.title
         , config.body
