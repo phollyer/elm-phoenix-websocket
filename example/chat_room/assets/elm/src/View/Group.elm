@@ -4,12 +4,16 @@ module View.Group exposing
     , layoutForDevice
     , layouts
     , order
-    , orderElementsForDevice
+    , orderForDevice
     )
 
 import Device exposing (Device)
 import Element exposing (DeviceClass, Element, Orientation)
 import List.Extra as List
+
+
+
+{- Model -}
 
 
 type Config
@@ -37,46 +41,34 @@ order list (Config config) =
     Config { config | order = list }
 
 
-layoutForDevice :
-    Device
-    -> Config
-    -> { c | layout : Maybe (List Int) }
-    -> { c | layout : Maybe (List Int) }
-layoutForDevice { class, orientation } (Config config) c =
-    { c
-        | layout = findByClassAndOrientation class orientation config.layouts
-    }
+
+{- Helpers -}
 
 
-orderElementsForDevice :
-    Device
-    -> Config
-    -> { c | elements : List (Element msg) }
-    -> { c | elements : List (Element msg) }
-orderElementsForDevice { class, orientation } (Config config) c =
-    { c
-        | elements =
-            case findByClassAndOrientation class orientation config.order of
-                Nothing ->
-                    c.elements
-
-                Just newIndices ->
-                    reIndex newIndices c.elements
-    }
+layoutForDevice : Device -> Config -> Maybe (List Int)
+layoutForDevice device (Config config) =
+    findForDevice device config.layouts
 
 
-findByClassAndOrientation : DeviceClass -> Orientation -> List ( DeviceClass, Orientation, a ) -> Maybe a
-findByClassAndOrientation class orientation list =
-    List.find (\( c, o, _ ) -> c == class && o == orientation) list
+orderForDevice : Device -> List item -> Config -> List item
+orderForDevice device items (Config config) =
+    case findForDevice device config.order of
+        Nothing ->
+            items
+
+        Just sortOrder ->
+            List.indexedMap Tuple.pair items
+                |> List.map2 (\newIndex ( _, item ) -> ( newIndex, item )) sortOrder
+                |> List.sortBy Tuple.first
+                |> List.unzip
+                |> Tuple.second
+
+
+
+{- Private -}
+
+
+findForDevice : Device -> List ( DeviceClass, Orientation, a ) -> Maybe a
+findForDevice { class, orientation } list =
+    List.find (\( class_, orientation_, _ ) -> class_ == class && orientation_ == orientation) list
         |> Maybe.map (\( _, _, a ) -> a)
-
-
-reIndex : List Int -> List a -> List a
-reIndex sortOrder elements_ =
-    List.indexedMap Tuple.pair elements_
-        |> List.map2
-            (\newIndex ( _, element ) -> ( newIndex, element ))
-            sortOrder
-        |> List.sortBy Tuple.first
-        |> List.unzip
-        |> Tuple.second
