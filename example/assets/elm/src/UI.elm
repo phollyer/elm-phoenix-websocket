@@ -16,10 +16,8 @@ code : String -> Element msg
 code text =
     El.el
         [ Font.family [ Font.typeface "Roboto Mono" ]
-        , Background.color Color.lightgrey
-        , El.padding 2
-        , Border.width 1
-        , Border.color Color.black
+        , Background.color Color.gainsboro
+        , El.padding 1
         , Font.color Color.black
         ]
         (El.text text)
