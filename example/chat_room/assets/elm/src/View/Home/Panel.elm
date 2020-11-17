@@ -1,4 +1,4 @@
-module View.Panel exposing
+module View.Home.Panel exposing
     ( Config
     , description
     , init

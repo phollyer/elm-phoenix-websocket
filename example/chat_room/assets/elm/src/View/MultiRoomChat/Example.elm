@@ -1,4 +1,4 @@
-module View.ChatRoom exposing
+module View.MultiRoomChat.Example exposing
     ( init
     , introduction
     , membersTyping
@@ -21,8 +21,8 @@ import Element.Border as Border
 import Element.Font as Font
 import Html.Attributes as Attr
 import Types exposing (Message, Room, User, initRoom, initUser)
-import View.MessageForm as MessageForm
-import View.Messages as Messages
+import View.MultiRoomChat.Room.Form as MessageForm
+import View.MultiRoomChat.Room.Messages as Messages
 
 
 

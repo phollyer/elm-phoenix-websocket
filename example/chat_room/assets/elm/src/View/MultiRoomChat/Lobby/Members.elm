@@ -1,4 +1,4 @@
-module View.LobbyMembers exposing
+module View.MultiRoomChat.Lobby.Members exposing
     ( init
     , members
     , view

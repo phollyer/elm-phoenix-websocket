@@ -1,4 +1,4 @@
-module View.FeedbackInfo exposing
+module View.Example.Feedback.Info exposing
     ( Config
     , event
     , init

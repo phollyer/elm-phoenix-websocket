@@ -1,4 +1,4 @@
-module View.LobbyRegistration exposing
+module View.MultiRoomChat.Lobby.Registration exposing
     ( init
     , onChange
     , onSubmit
@@ -11,7 +11,7 @@ import Device exposing (Device)
 import Element as El exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
-import View.LobbyForm as LobbyForm
+import View.MultiRoomChat.Lobby.Form as Form
 
 
 
@@ -88,9 +88,9 @@ form device (Config config) =
         , El.padding 20
         , El.width El.fill
         ]
-        (LobbyForm.init
-            |> LobbyForm.text config.username
-            |> LobbyForm.onChange config.onChange
-            |> LobbyForm.onSubmit config.onSubmit
-            |> LobbyForm.view device
+        (Form.init
+            |> Form.text config.username
+            |> Form.onChange config.onChange
+            |> Form.onSubmit config.onSubmit
+            |> Form.view device
         )

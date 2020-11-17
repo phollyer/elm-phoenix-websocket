@@ -1,4 +1,4 @@
-module View.Feedback exposing
+module View.Example.Feedback exposing
     ( Config
     , elements
     , group

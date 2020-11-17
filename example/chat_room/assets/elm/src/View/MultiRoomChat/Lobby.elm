@@ -1,4 +1,4 @@
-module View.Lobby exposing
+module View.MultiRoomChat.Lobby exposing
     ( init
     , members
     , onCreateRoom
@@ -16,9 +16,9 @@ import Element.Border as Border
 import Element.Font as Font
 import Types exposing (Presence, Room, User, initUser)
 import View.Button as Button
-import View.LobbyMembers as LobbyMembers
-import View.LobbyRooms as LobbyRooms
-import View.LobbyUser as LobbyUser
+import View.MultiRoomChat.Lobby.Members as LobbyMembers
+import View.MultiRoomChat.Lobby.Rooms as LobbyRooms
+import View.MultiRoomChat.User as User
 
 
 
@@ -103,10 +103,10 @@ view device (Config config) =
 
 userView : Device -> User -> Element msg
 userView device { username, id } =
-    LobbyUser.init
-        |> LobbyUser.username username
-        |> LobbyUser.userId id
-        |> LobbyUser.view device
+    User.init
+        |> User.username username
+        |> User.userId id
+        |> User.view device
 
 
 

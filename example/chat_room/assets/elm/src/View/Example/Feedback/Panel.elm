@@ -1,4 +1,4 @@
-module View.FeedbackPanel exposing
+module View.Example.Feedback.Panel exposing
     ( Config
     , init
     , scrollable

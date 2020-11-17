@@ -1,4 +1,4 @@
-module View.LabelAndValue exposing
+module View.Example.LabelAndValue exposing
     ( Config
     , init
     , label

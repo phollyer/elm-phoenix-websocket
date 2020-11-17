@@ -1,8 +1,6 @@
-module View.MessageForm exposing
+module View.MultiRoomChat.Lobby.Form exposing
     ( init
     , onChange
-    , onFocus
-    , onLoseFocus
     , onSubmit
     , text
     , view
@@ -22,8 +20,6 @@ type Config msg
     = Config
         { text : String
         , onChange : Maybe (String -> msg)
-        , onFocus : Maybe msg
-        , onLoseFocus : Maybe msg
         , onSubmit : Maybe msg
         }
 
@@ -33,8 +29,6 @@ init =
     Config
         { text = ""
         , onChange = Nothing
-        , onFocus = Nothing
-        , onLoseFocus = Nothing
         , onSubmit = Nothing
         }
 
@@ -45,18 +39,8 @@ text text_ (Config config) =
 
 
 onChange : Maybe (String -> msg) -> Config msg -> Config msg
-onChange maybeToMsg (Config config) =
-    Config { config | onChange = maybeToMsg }
-
-
-onFocus : Maybe msg -> Config msg -> Config msg
-onFocus maybeMsg (Config config) =
-    Config { config | onFocus = maybeMsg }
-
-
-onLoseFocus : Maybe msg -> Config msg -> Config msg
-onLoseFocus maybeMsg (Config config) =
-    Config { config | onLoseFocus = maybeMsg }
+onChange maybeMsg (Config config) =
+    Config { config | onChange = maybeMsg }
 
 
 onSubmit : Maybe msg -> Config msg -> Config msg
@@ -71,8 +55,8 @@ onSubmit maybeMsg (Config config) =
 view : Device -> Config msg -> Element msg
 view device config =
     El.column
-        [ El.spacing 10
-        , El.width El.fill
+        [ El.width El.fill
+        , El.spacing 20
         ]
         [ inputField device config
         , submitButton device config
@@ -82,19 +66,16 @@ view device config =
 inputField : Device -> Config msg -> Element msg
 inputField device (Config config) =
     InputField.init
-        |> InputField.label "New Message"
+        |> InputField.label "Username"
         |> InputField.text config.text
-        |> InputField.multiline True
         |> InputField.onChange config.onChange
-        |> InputField.onFocus config.onFocus
-        |> InputField.onLoseFocus config.onLoseFocus
         |> InputField.view device
 
 
 submitButton : Device -> Config msg -> Element msg
 submitButton device (Config config) =
     Button.init
-        |> Button.label "Send Message"
+        |> Button.label "Join Lobby"
         |> Button.onPress config.onSubmit
         |> Button.enabled (String.trim config.text /= "")
         |> Button.view device

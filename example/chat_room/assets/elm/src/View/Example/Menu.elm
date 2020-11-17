@@ -1,4 +1,4 @@
-module View.Menu exposing
+module View.Example.Menu exposing
     ( Config
     , group
     , init

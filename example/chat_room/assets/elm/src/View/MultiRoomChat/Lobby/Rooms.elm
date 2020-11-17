@@ -1,4 +1,4 @@
-module View.LobbyRooms exposing
+module View.MultiRoomChat.Lobby.Rooms exposing
     ( init
     , onClick
     , rooms

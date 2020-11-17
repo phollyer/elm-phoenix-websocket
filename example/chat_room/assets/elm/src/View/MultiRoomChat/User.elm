@@ -1,4 +1,4 @@
-module View.LobbyUser exposing
+module View.MultiRoomChat.User exposing
     ( init
     , userId
     , username
