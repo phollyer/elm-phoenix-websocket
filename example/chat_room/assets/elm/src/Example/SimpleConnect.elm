@@ -13,14 +13,14 @@ import Example.Utils exposing (updatePhoenixWith)
 import Extra.String as String
 import Phoenix
 import UI
-import View.ApplicableFunctions as ApplicableFunctions
 import View.Button as Button
+import View.Example as Example
+import View.Example.ApplicableFunctions as ApplicableFunctions
 import View.Example.Controls as Controls
-import View.Example.Example as Example
-import View.Feedback as Feedback
-import View.FeedbackPanel as FeedbackPanel
+import View.Example.Feedback as Feedback
+import View.Example.Feedback.Panel as FeedbackPanel
+import View.Example.UsefulFunctions as UsefulFunctions
 import View.Group as Group
-import View.UsefulFunctions as UsefulFunctions
 
 
 

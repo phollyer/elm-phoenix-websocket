@@ -15,8 +15,8 @@ import Phoenix
 import Route exposing (Route(..))
 import Session exposing (Session)
 import View.Home as Home
+import View.Home.Panel as Panel
 import View.Layout as Layout
-import View.Panel as Panel
 
 
 init : Session -> ( Model, Cmd Msg )

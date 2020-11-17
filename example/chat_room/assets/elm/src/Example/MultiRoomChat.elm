@@ -20,16 +20,16 @@ import Task
 import Types exposing (Message, Presence, Room, User, decodeMessages, decodeMetas, decodeRoom, decodeRooms, decodeUser, initRoom, initUser)
 import UI
 import View.Button as Button
-import View.ChatRoom as ChatRoom
 import View.InputField as InputField
-import View.Lobby as Lobby
-import View.LobbyForm as LobbyForm
-import View.LobbyMembers as LobbyMembers
-import View.LobbyRegistration as LobbyRegistration
-import View.LobbyRooms as LobbyRooms
-import View.LobbyUser as LobbyUser
-import View.MessageForm as MessageForm
-import View.Messages as Messages
+import View.MultiRoomChat.Example as Example
+import View.MultiRoomChat.Lobby as Lobby
+import View.MultiRoomChat.Lobby.Form as LobbyForm
+import View.MultiRoomChat.Lobby.Members as LobbyMembers
+import View.MultiRoomChat.Lobby.Registration as LobbyRegistration
+import View.MultiRoomChat.Lobby.Rooms as LobbyRooms
+import View.MultiRoomChat.Room.Form as MessageForm
+import View.MultiRoomChat.Room.Messages as Messages
+import View.MultiRoomChat.User as User
 
 
 
@@ -397,14 +397,14 @@ view device model =
                 |> Lobby.view device
 
         InRoom room user ->
-            ChatRoom.init
-                |> ChatRoom.user user
-                |> ChatRoom.room room
-                |> ChatRoom.messages model.messages
-                |> ChatRoom.membersTyping model.membersTyping
-                |> ChatRoom.userText model.message
-                |> ChatRoom.onChange GotMessageChange
-                |> ChatRoom.onFocus (GotMemberStartedTyping user room)
-                |> ChatRoom.onLoseFocus (GotMemberStoppedTyping user room)
-                |> ChatRoom.onSubmit GotSendMessage
-                |> ChatRoom.view device
+            Example.init
+                |> Example.user user
+                |> Example.room room
+                |> Example.messages model.messages
+                |> Example.membersTyping model.membersTyping
+                |> Example.userText model.message
+                |> Example.onChange GotMessageChange
+                |> Example.onFocus (GotMemberStartedTyping user room)
+                |> Example.onLoseFocus (GotMemberStoppedTyping user room)
+                |> Example.onSubmit GotSendMessage
+                |> Example.view device

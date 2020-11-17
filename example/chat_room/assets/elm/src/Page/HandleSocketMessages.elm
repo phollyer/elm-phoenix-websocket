@@ -18,10 +18,10 @@ import Phoenix
 import Route
 import Session exposing (Session)
 import UI
+import View.Example.Menu as Menu
 import View.Example.Page as ExamplePage
 import View.Group as Group
 import View.Layout as Layout
-import View.Menu as Menu
 
 
 
