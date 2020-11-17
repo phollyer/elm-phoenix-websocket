@@ -93,7 +93,7 @@ view device (Config config) =
             , createRoomBtn device config.onCreateRoom
             ]
         , membersView device config.members
-        , roomsView device (Config config)
+        , roomsView (Config config)
         ]
 
 
@@ -142,9 +142,9 @@ toUsers presences =
 {- Rooms -}
 
 
-roomsView : Device -> Config msg -> Element msg
-roomsView device (Config config) =
+roomsView : Config msg -> Element msg
+roomsView (Config config) =
     LobbyRooms.init
         |> LobbyRooms.rooms config.rooms
         |> LobbyRooms.onClick config.onEnterRoom
-        |> LobbyRooms.view device
+        |> LobbyRooms.view

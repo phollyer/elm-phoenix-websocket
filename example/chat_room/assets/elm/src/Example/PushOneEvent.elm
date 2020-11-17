@@ -12,9 +12,8 @@ import Device exposing (Device)
 import Element as El exposing (DeviceClass(..), Element, Orientation(..))
 import Example.Utils exposing (updatePhoenixWith)
 import Extra.String as String
-import Json.Encode as JE exposing (Value)
+import Json.Encode exposing (Value)
 import Phoenix
-import UI
 import View.Button as Button
 import View.Example as Example
 import View.Example.ApplicableFunctions as ApplicableFunctions

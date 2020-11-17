@@ -85,12 +85,11 @@ view _ (Config config) =
             El.text config.text
 
         Just onChange_ ->
-            case config.multiline of
-                True ->
-                    multi onChange_ (Config config)
+            if config.multiline then
+                multi onChange_ (Config config)
 
-                False ->
-                    single onChange_ (Config config)
+            else
+                single onChange_ (Config config)
 
 
 

@@ -6,7 +6,6 @@ module View.MultiRoomChat.Lobby.Rooms exposing
     )
 
 import Colors.Opaque as Color
-import Device exposing (Device)
 import Element as El exposing (Attribute, Element)
 import Element.Background as Background
 import Element.Border as Border
@@ -49,8 +48,8 @@ onClick toMsg (Config config) =
 {- View -}
 
 
-view : Device -> Config msg -> Element msg
-view device (Config config) =
+view : Config msg -> Element msg
+view (Config config) =
     El.column
         [ Border.rounded 10
         , Background.color Color.steelblue

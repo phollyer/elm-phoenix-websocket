@@ -17,7 +17,7 @@ import Element.Font as Font
 
 
 type Config
-    = Config { members : List User }
+    = Config (List User)
 
 
 type alias User =
@@ -28,13 +28,12 @@ type alias User =
 
 init : Config
 init =
-    Config
-        { members = [] }
+    Config []
 
 
 members : List User -> Config -> Config
-members users (Config config) =
-    Config { config | members = users }
+members users _ =
+    Config users
 
 
 
@@ -42,7 +41,7 @@ members users (Config config) =
 
 
 view : Device -> Config -> Element msg
-view _ (Config config) =
+view _ (Config users) =
     El.column
         [ Border.rounded 10
         , Background.color Color.steelblue
@@ -54,7 +53,7 @@ view _ (Config config) =
         (El.el
             [ El.centerX ]
             (El.text "Members")
-            :: List.map toMember config.members
+            :: List.map toMember users
         )
 
 

@@ -59,7 +59,7 @@ group group_ (Config config) =
 
 
 view : Device -> Config msg -> Element msg
-view ({ class, orientation } as device) (Config config) =
+view device (Config config) =
     case Group.layoutForDevice device config.group of
         Nothing ->
             column

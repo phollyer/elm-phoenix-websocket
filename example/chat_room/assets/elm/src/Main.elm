@@ -4,7 +4,7 @@ import Browser exposing (Document)
 import Browser.Events exposing (onResize)
 import Browser.Navigation as Nav
 import Device exposing (Device)
-import Element as El exposing (Element)
+import Element exposing (Element)
 import Html
 import Page
 import Page.Blank as Blank

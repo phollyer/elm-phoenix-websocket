@@ -1,4 +1,4 @@
-module View.MultiRoomChat.Example exposing
+module View.MultiRoomChat.Room exposing
     ( init
     , introduction
     , membersTyping
@@ -15,7 +15,7 @@ module View.MultiRoomChat.Example exposing
 
 import Colors.Opaque as Color
 import Device exposing (Device)
-import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))
+import Element as El exposing (DeviceClass(..), Element, Orientation(..))
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -114,20 +114,19 @@ view device (Config config) =
         , El.height El.fill
         , El.width El.fill
         ]
-    <|
-        introduction config.user config.room
-            :: [ El.column
-                    [ El.alignBottom
-                    , El.spacing 10
-                    , El.width El.fill
-                    , El.height <|
-                        El.maximum (maxHeight device) El.fill
-                    ]
-                    [ messagesView device config.user config.messages
-                    , membersTypingView config.membersTyping
-                    , form device (Config config)
-                    ]
-               ]
+        [ introduction config.user config.room
+        , El.column
+            [ El.alignBottom
+            , El.spacing 10
+            , El.width El.fill
+            , El.height <|
+                El.maximum (maxHeight device) El.fill
+            ]
+            [ messagesView device config.user config.messages
+            , membersTypingView config.membersTyping
+            , form device (Config config)
+            ]
+        ]
 
 
 introduction : User -> Room -> Element msg

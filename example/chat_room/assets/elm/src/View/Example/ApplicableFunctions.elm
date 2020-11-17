@@ -34,9 +34,9 @@ functions functions_ (Config _) =
 view : Device -> Config -> Element msg
 view { class } (Config functions_) =
     El.column
-        (spacing class
-            :: [ El.width El.fill ]
-        )
+        [ spacing class
+        , El.width El.fill
+        ]
         (List.map UI.functionLink functions_)
 
 

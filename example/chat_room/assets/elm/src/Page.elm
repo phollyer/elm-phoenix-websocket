@@ -9,7 +9,6 @@ import Device exposing (Device)
 import Element as El exposing (Attribute, DeviceClass(..), Element)
 import Element.Background as Background
 import Element.Border as Border
-import Html exposing (Html)
 
 
 {-| Pages with content

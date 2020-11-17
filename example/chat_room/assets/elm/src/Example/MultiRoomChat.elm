@@ -10,26 +10,16 @@ module Example.MultiRoomChat exposing
 import Browser.Dom as Dom
 import Configs exposing (joinConfig, pushConfig)
 import Device exposing (Device)
-import Element as El exposing (Element)
+import Element exposing (Element)
 import Example.Utils exposing (updatePhoenixWith)
 import Json.Decode as JD
-import Json.Decode.Extra exposing (andMap)
-import Json.Encode as JE exposing (Value)
+import Json.Encode as JE
 import Phoenix
 import Task
 import Types exposing (Message, Presence, Room, User, decodeMessages, decodeMetas, decodeRoom, decodeRooms, decodeUser, initRoom, initUser)
-import UI
-import View.Button as Button
-import View.InputField as InputField
-import View.MultiRoomChat.Example as Example
 import View.MultiRoomChat.Lobby as Lobby
-import View.MultiRoomChat.Lobby.Form as LobbyForm
-import View.MultiRoomChat.Lobby.Members as LobbyMembers
 import View.MultiRoomChat.Lobby.Registration as LobbyRegistration
-import View.MultiRoomChat.Lobby.Rooms as LobbyRooms
-import View.MultiRoomChat.Room.Form as MessageForm
-import View.MultiRoomChat.Room.Messages as Messages
-import View.MultiRoomChat.User as User
+import View.MultiRoomChat.Room as Room
 
 
 
@@ -320,7 +310,7 @@ dropMemberTyping : String -> Model -> Model
 dropMemberTyping username model =
     { model
         | membersTyping =
-            List.filter (\username_ -> username /= username) model.membersTyping
+            List.filter (\username_ -> username_ /= username) model.membersTyping
     }
 
 
@@ -397,14 +387,14 @@ view device model =
                 |> Lobby.view device
 
         InRoom room user ->
-            Example.init
-                |> Example.user user
-                |> Example.room room
-                |> Example.messages model.messages
-                |> Example.membersTyping model.membersTyping
-                |> Example.userText model.message
-                |> Example.onChange GotMessageChange
-                |> Example.onFocus (GotMemberStartedTyping user room)
-                |> Example.onLoseFocus (GotMemberStoppedTyping user room)
-                |> Example.onSubmit GotSendMessage
-                |> Example.view device
+            Room.init
+                |> Room.user user
+                |> Room.room room
+                |> Room.messages model.messages
+                |> Room.membersTyping model.membersTyping
+                |> Room.userText model.message
+                |> Room.onChange GotMessageChange
+                |> Room.onFocus (GotMemberStartedTyping user room)
+                |> Room.onLoseFocus (GotMemberStoppedTyping user room)
+                |> Room.onSubmit GotSendMessage
+                |> Room.view device
