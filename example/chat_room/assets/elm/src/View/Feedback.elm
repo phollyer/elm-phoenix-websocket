@@ -49,24 +49,20 @@ group group_ (Config config) =
 
 view : Device -> Config msg -> Element msg
 view ({ class, orientation } as device) (Config config) =
-    let
-        newConfig =
-            Group.orderElementsForDevice device config.group config
-                |> Group.layoutForDevice device config.group
-    in
-    case newConfig.layout of
+    case Group.layoutForDevice device config.group of
         Nothing ->
             case ( class, orientation ) of
                 ( Phone, Portrait ) ->
                     column
-                        (List.map toElement newConfig.elements)
+                        (List.map toElement config.elements)
 
                 _ ->
                     wrappedRow config.elements
 
         Just layout ->
             column
-                (List.groupsOfVarying layout newConfig.elements
+                (Group.orderForDevice device config.elements config.group
+                    |> List.groupsOfVarying layout
                     |> List.map wrappedRow
                 )
 

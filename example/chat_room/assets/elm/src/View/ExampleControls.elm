@@ -60,22 +60,20 @@ group group_ (Config config) =
 
 view : Device -> Config msg -> Element msg
 view ({ class, orientation } as device) (Config config) =
-    let
-        newConfig =
-            Group.orderElementsForDevice device config.group config
-                |> Group.layoutForDevice device config.group
-    in
-    case newConfig.layout of
+    case Group.layoutForDevice device config.group of
         Nothing ->
             column
-                [ maybeUserId newConfig.userId
-                , toRow newConfig.elements
+                [ maybeUserId config.userId
+                , toRow <|
+                    Group.orderForDevice device config.elements config.group
                 ]
 
         Just layout ->
             column
-                (maybeUserId newConfig.userId
-                    :: toRows layout newConfig.elements
+                (maybeUserId config.userId
+                    :: (Group.orderForDevice device config.elements config.group
+                            |> toRows layout
+                       )
                 )
 
 
