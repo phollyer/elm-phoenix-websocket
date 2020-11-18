@@ -44,7 +44,7 @@ defmodule ElmPhoenixWebSocketExampleWeb.LobbyChannel do
 
     User.delete(user)
 
-    broadcast(socket, "room_list", %{rooms: Room.all()})
+    broadcast_room_list(socket)
   end
 
   def handle_in("create_room", _, socket) do
@@ -52,8 +52,23 @@ defmodule ElmPhoenixWebSocketExampleWeb.LobbyChannel do
 
     User.create_room(user)
 
-    broadcast(socket, "room_list", %{rooms: Room.all()})
+    broadcast_room_list(socket)
 
     {:reply, :ok, socket}
+  end
+
+  def handle_in("delete_room", %{"room_id" => room_id}, socket) do
+    {:ok, room} = Room.find(room_id)
+
+    Room.delete(room)
+
+    broadcast_room_list(socket)
+
+    {:reply, :ok, socket}
+  end
+
+
+  defp broadcast_room_list(socket) do
+    broadcast(socket, "room_list", %{rooms: Room.all()})
   end
 end
