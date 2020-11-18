@@ -147,5 +147,6 @@ roomsView : Config msg -> Element msg
 roomsView (Config config) =
     LobbyRooms.init
         |> LobbyRooms.rooms config.rooms
+        |> LobbyRooms.user config.user
         |> LobbyRooms.onClick config.onEnterRoom
         |> LobbyRooms.view

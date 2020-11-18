@@ -2,6 +2,7 @@ module View.MultiRoomChat.Lobby.Rooms exposing
     ( init
     , onClick
     , rooms
+    , user
     , view
     )
 
@@ -12,7 +13,7 @@ import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
 import Room exposing (Room)
-import Types exposing (User)
+import Types exposing (User, initUser)
 import View exposing (andMaybeEventWithArg)
 
 
@@ -23,6 +24,7 @@ import View exposing (andMaybeEventWithArg)
 type Config msg
     = Config
         { rooms : List Room
+        , user : User
         , onClick : Maybe (Room -> msg)
         }
 
@@ -31,6 +33,7 @@ init : Config msg
 init =
     Config
         { rooms = []
+        , user = initUser
         , onClick = Nothing
         }
 
@@ -38,6 +41,11 @@ init =
 rooms : List Room -> Config msg -> Config msg
 rooms rooms_ (Config config) =
     Config { config | rooms = rooms_ }
+
+
+user : User -> Config msg -> Config msg
+user user_ (Config config) =
+    Config { config | user = user_ }
 
 
 onClick : Maybe (Room -> msg) -> Config msg -> Config msg
@@ -72,14 +80,14 @@ view (Config config) =
                 , El.text "A Room is opened when the owner of the Room enters it."
                 ]
             ]
-            (List.map (toRoom config.onClick) config.rooms)
+            (List.map (toRoom config.onClick config.user) config.rooms)
 
 
-toRoom : Maybe (Room -> msg) -> Room -> Element msg
-toRoom maybeToMsg room =
+toRoom : Maybe (Room -> msg) -> User -> Room -> Element msg
+toRoom maybeToMsg currentUser room =
     let
         attrs =
-            roomAttrs room
+            roomAttrs currentUser room
                 |> andMaybeEventWithArg maybeToMsg room Event.onClick
     in
     El.column
@@ -89,9 +97,9 @@ toRoom maybeToMsg room =
         ]
 
 
-roomAttrs : Room -> List (Attribute msg)
-roomAttrs room =
-    if List.member room.owner room.members then
+roomAttrs : User -> Room -> List (Attribute msg)
+roomAttrs currentUser room =
+    if currentUser == room.owner || List.member room.owner room.members then
         [ Background.color Color.mediumseagreen
         , Border.rounded 10
         , Border.color Color.seagreen
@@ -100,6 +108,9 @@ roomAttrs room =
         , El.spacing 10
         , El.width El.fill
         , Font.color Color.lightgreen
+        , El.pointer
+        , El.mouseOver
+            [ Border.color Color.lawngreen ]
         ]
 
     else
