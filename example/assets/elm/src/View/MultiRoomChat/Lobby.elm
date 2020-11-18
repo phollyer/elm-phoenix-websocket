@@ -101,7 +101,7 @@ view device (Config config) =
             [ userView device config.user
             , createRoomBtn device config.onCreateRoom
             ]
-        , membersView device config.members
+        , membersView device config.user config.members
         , roomsView device (Config config)
         ]
 
@@ -134,10 +134,11 @@ createRoomBtn device maybeMsg =
 {- Lobby Members -}
 
 
-membersView : Device -> List Presence -> Element msg
-membersView device presences =
+membersView : Device -> User -> List Presence -> Element msg
+membersView device currentUser presences =
     LobbyMembers.init
         |> LobbyMembers.members (toUsers presences)
+        |> LobbyMembers.user currentUser
         |> LobbyMembers.view device
 
 

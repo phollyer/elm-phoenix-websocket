@@ -1,6 +1,7 @@
 module View.MultiRoomChat.Lobby.Members exposing
     ( init
     , members
+    , user
     , view
     )
 
@@ -10,6 +11,7 @@ import Element as El exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Types exposing (User, initUser)
 
 
 
@@ -17,23 +19,28 @@ import Element.Font as Font
 
 
 type Config
-    = Config (List User)
-
-
-type alias User =
-    { id : String
-    , username : String
-    }
+    = Config
+        { members : List User
+        , user : User
+        }
 
 
 init : Config
 init =
-    Config []
+    Config
+        { members = []
+        , user = initUser
+        }
 
 
 members : List User -> Config -> Config
-members users _ =
-    Config users
+members users (Config config) =
+    Config { config | members = users }
+
+
+user : User -> Config -> Config
+user currentUser (Config config) =
+    Config { config | user = currentUser }
 
 
 
@@ -41,7 +48,7 @@ members users _ =
 
 
 view : Device -> Config -> Element msg
-view _ (Config users) =
+view _ config =
     El.column
         [ Border.rounded 10
         , Background.color Color.steelblue
@@ -55,13 +62,15 @@ view _ (Config users) =
             (El.text "Members")
         , El.paragraph
             [ El.width El.fill ]
-            [ toMembers users ]
+            [ toMembers config ]
         ]
 
 
-toMembers : List User -> Element msg
-toMembers users =
-    List.map .username users
+toMembers : Config -> Element msg
+toMembers (Config config) =
+    List.filter (\member -> member /= config.user) config.members
+        |> List.map .username
+        |> List.append [ "You" ]
         |> List.intersperse ", "
         |> String.concat
         |> El.text
