@@ -125,7 +125,7 @@ toRoom device (Config config) room =
             [ El.width El.fill
             , El.clipX
             ]
-            [ owner room.owner.username
+            [ owner config.user room
             , members room.members
             ]
         , El.row
@@ -198,8 +198,16 @@ roomAttrs currentUser room =
         ]
 
 
-owner : String -> Element msg
-owner username =
+owner : User -> Room -> Element msg
+owner currentUser room =
+    let
+        username =
+            if currentUser == room.owner then
+                "You"
+
+            else
+                currentUser.username
+    in
     El.row
         [ El.spacing 10
         , El.width El.fill
