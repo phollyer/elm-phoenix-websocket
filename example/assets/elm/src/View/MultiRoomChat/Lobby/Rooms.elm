@@ -122,7 +122,9 @@ toRoom device (Config config) room =
     El.row
         (roomAttrs config.user room)
         [ El.column
-            [ El.width El.fill ]
+            [ El.width El.fill
+            , El.clipX
+            ]
             [ owner room.owner.username
             , members room.members
             ]
