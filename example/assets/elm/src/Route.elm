@@ -1,5 +1,6 @@
 module Route exposing
     ( Route(..)
+    , back
     , fromUrl
     , pushUrl
     , replaceUrl
@@ -35,6 +36,11 @@ parser =
 fromUrl : Url -> Maybe Route
 fromUrl url =
     Parser.parse parser url
+
+
+back : Nav.Key -> Cmd msg
+back key =
+    Nav.back key 1
 
 
 pushUrl : Nav.Key -> Route -> Cmd msg

@@ -1,6 +1,7 @@
 module Example.MultiRoomChat exposing
     ( Model
     , Msg
+    , back
     , init
     , subscriptions
     , update
@@ -8,14 +9,17 @@ module Example.MultiRoomChat exposing
     )
 
 import Browser.Dom as Dom
+import Browser.Navigation as Nav
 import Configs exposing (joinConfig, pushConfig)
 import Device exposing (Device)
 import Element exposing (Element)
+import Example.ManageChannelMessages exposing (Model)
 import Example.Utils exposing (updatePhoenixWith)
 import Json.Decode as JD
 import Json.Encode as JE
 import Phoenix
 import Room exposing (Room)
+import Route
 import Task
 import Types exposing (Message, Presence, User, decodeMessages, decodeMetas, decodeUser, initUser)
 import View.MultiRoomChat.Lobby as Lobby
@@ -375,6 +379,23 @@ toUser model =
 
         InRoom _ user ->
             user
+
+
+
+{- Navigation -}
+
+
+back : Nav.Key -> Model -> ( Model, Cmd Msg )
+back key model =
+    case model.state of
+        InRoom _ user ->
+            ( { model | state = InLobby user }, Cmd.none )
+
+        InLobby _ ->
+            ( { model | state = Unregistered }, Cmd.none )
+
+        Unregistered ->
+            ( model, Route.back key )
 
 
 

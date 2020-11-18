@@ -54,7 +54,7 @@ type Example
 
 
 type Msg
-    = GotHomeBtnClick
+    = GotBackBtnClick
     | GotMultiRoomMsg MultiRoomChat.Msg
     | GotPhoenixMsg Phoenix.Msg
 
@@ -66,12 +66,9 @@ update msg model =
             Session.phoenix model.session
     in
     case ( msg, model.example ) of
-        ( GotHomeBtnClick, _ ) ->
-            ( model
-            , Route.pushUrl
-                (Session.navKey model.session)
-                Route.Home
-            )
+        ( GotBackBtnClick, MultiRoom subModel ) ->
+            MultiRoomChat.back (Session.navKey model.session) subModel
+                |> updateWith MultiRoom GotMultiRoomMsg model
 
         ( GotPhoenixMsg subMsg, _ ) ->
             Phoenix.update subMsg phoenix
@@ -142,7 +139,7 @@ view model =
     { title = "Chat Rooms Example"
     , content =
         Layout.init
-            |> Layout.homeMsg (Just GotHomeBtnClick)
+            |> Layout.homeMsg (Just GotBackBtnClick)
             |> Layout.title "Chat Rooms Example"
             |> Layout.body
                 (ExamplePage.init
