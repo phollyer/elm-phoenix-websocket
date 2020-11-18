@@ -51,6 +51,7 @@ view : Device -> Config -> Element msg
 view _ (Config config) =
     El.column
         [ El.spacing 10
+        , El.padding 10
         , El.height El.fill
         , El.width El.fill
         , Font.alignLeft
