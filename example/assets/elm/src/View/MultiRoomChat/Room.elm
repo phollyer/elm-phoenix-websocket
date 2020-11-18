@@ -153,13 +153,13 @@ introduction currentUser currentRoom =
             [ El.paragraph
                 [ El.width El.fill ]
                 [ El.text "Welcome to "
-                , El.text currentUser.username
+                , El.text currentRoom.owner.username
                 , El.text "'s room."
                 ]
             , El.paragraph
                 [ El.width El.fill ]
                 [ El.text "When "
-                , El.text currentUser.username
+                , El.text currentRoom.owner.username
                 , El.text " leaves the room it will close and all messages will be deleted."
                 ]
             ]
