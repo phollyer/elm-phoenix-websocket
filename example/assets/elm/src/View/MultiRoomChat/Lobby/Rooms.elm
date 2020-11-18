@@ -108,11 +108,9 @@ members : List User -> Element msg
 members users =
     El.paragraph
         [ El.width El.fill ]
-        (El.text "Members: "
-            :: List.map member users
-        )
-
-
-member : User -> Element msg
-member user =
-    El.text user.username
+        [ El.text "Members: "
+        , List.map .username users
+            |> List.intersperse ", "
+            |> String.concat
+            |> El.text
+        ]
