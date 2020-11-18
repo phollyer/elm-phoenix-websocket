@@ -1,12 +1,14 @@
 module View.MultiRoomChat.Lobby.Rooms exposing
     ( init
     , onClick
+    , onDelete
     , rooms
     , user
     , view
     )
 
 import Colors.Opaque as Color
+import Device exposing (Device)
 import Element as El exposing (Attribute, Element)
 import Element.Background as Background
 import Element.Border as Border
@@ -15,6 +17,7 @@ import Element.Font as Font
 import Room exposing (Room)
 import Types exposing (User, initUser)
 import View exposing (andMaybeEventWithArg)
+import View.Button as Button
 
 
 
@@ -26,6 +29,7 @@ type Config msg
         { rooms : List Room
         , user : User
         , onClick : Maybe (Room -> msg)
+        , onDelete : Maybe (Room -> msg)
         }
 
 
@@ -35,6 +39,7 @@ init =
         { rooms = []
         , user = initUser
         , onClick = Nothing
+        , onDelete = Nothing
         }
 
 
@@ -53,12 +58,17 @@ onClick toMsg (Config config) =
     Config { config | onClick = toMsg }
 
 
+onDelete : Maybe (Room -> msg) -> Config msg -> Config msg
+onDelete toMsg (Config config) =
+    Config { config | onDelete = toMsg }
+
+
 
 {- View -}
 
 
-view : Config msg -> Element msg
-view (Config config) =
+view : Device -> Config msg -> Element msg
+view device (Config config) =
     El.column
         [ Border.rounded 10
         , Background.color Color.steelblue
@@ -81,7 +91,7 @@ view (Config config) =
                 ]
             ]
             (orderRooms config.user config.rooms
-                |> List.map (toRoom config.onClick config.user)
+                |> List.map (toRoom device (Config config))
             )
 
 
@@ -107,18 +117,55 @@ orderRooms currentUser roomList =
             others
 
 
-toRoom : Maybe (Room -> msg) -> User -> Room -> Element msg
-toRoom maybeToMsg currentUser room =
-    let
-        attrs =
-            roomAttrs currentUser room
-                |> andMaybeEventWithArg maybeToMsg room Event.onClick
-    in
-    El.column
-        attrs
-        [ owner room.owner.username
-        , members room.members
+toRoom : Device -> Config msg -> Room -> Element msg
+toRoom device (Config config) room =
+    El.row
+        (roomAttrs config.user room)
+        [ El.column
+            [ El.width El.fill ]
+            [ owner room.owner.username
+            , members room.members
+            ]
+        , El.row
+            [ El.spacing 10 ]
+            [ maybeEnterBtn device config.onClick config.user room
+            , maybeDeleteBtn device config.onDelete config.user room
+            ]
         ]
+
+
+maybeDeleteBtn : Device -> Maybe (Room -> msg) -> User -> Room -> Element msg
+maybeDeleteBtn device maybeToOnDelete currentUser room =
+    if currentUser == room.owner then
+        case maybeToOnDelete of
+            Nothing ->
+                El.none
+
+            Just onDelete_ ->
+                Button.init
+                    |> Button.label "Delete"
+                    |> Button.onPress (Just (onDelete_ room))
+                    |> Button.view device
+
+    else
+        El.none
+
+
+maybeEnterBtn : Device -> Maybe (Room -> msg) -> User -> Room -> Element msg
+maybeEnterBtn device maybeToOnClick currentUser room =
+    if currentUser == room.owner || List.member room.owner room.members then
+        case maybeToOnClick of
+            Nothing ->
+                El.none
+
+            Just onClick_ ->
+                Button.init
+                    |> Button.label "Enter"
+                    |> Button.onPress (Just (onClick_ room))
+                    |> Button.view device
+
+    else
+        El.none
 
 
 roomAttrs : User -> Room -> List (Attribute msg)

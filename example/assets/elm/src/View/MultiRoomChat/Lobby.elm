@@ -2,6 +2,7 @@ module View.MultiRoomChat.Lobby exposing
     ( init
     , members
     , onCreateRoom
+    , onDeleteRoom
     , onEnterRoom
     , rooms
     , user
@@ -31,6 +32,7 @@ type Config msg
         { user : User
         , members : List Presence
         , onCreateRoom : Maybe msg
+        , onDeleteRoom : Maybe (Room -> msg)
         , onEnterRoom : Maybe (Room -> msg)
         , rooms : List Room
         }
@@ -42,6 +44,7 @@ init =
         { user = initUser
         , members = []
         , onCreateRoom = Nothing
+        , onDeleteRoom = Nothing
         , onEnterRoom = Nothing
         , rooms = []
         }
@@ -55,6 +58,11 @@ members members_ (Config config) =
 onCreateRoom : msg -> Config msg -> Config msg
 onCreateRoom msg (Config config) =
     Config { config | onCreateRoom = Just msg }
+
+
+onDeleteRoom : (Room -> msg) -> Config msg -> Config msg
+onDeleteRoom msg (Config config) =
+    Config { config | onDeleteRoom = Just msg }
 
 
 onEnterRoom : (Room -> msg) -> Config msg -> Config msg
@@ -94,7 +102,7 @@ view device (Config config) =
             , createRoomBtn device config.onCreateRoom
             ]
         , membersView device config.members
-        , roomsView (Config config)
+        , roomsView device (Config config)
         ]
 
 
@@ -143,10 +151,11 @@ toUsers presences =
 {- Rooms -}
 
 
-roomsView : Config msg -> Element msg
-roomsView (Config config) =
+roomsView : Device -> Config msg -> Element msg
+roomsView device (Config config) =
     LobbyRooms.init
         |> LobbyRooms.rooms config.rooms
         |> LobbyRooms.user config.user
         |> LobbyRooms.onClick config.onEnterRoom
-        |> LobbyRooms.view
+        |> LobbyRooms.onDelete config.onDeleteRoom
+        |> LobbyRooms.view device

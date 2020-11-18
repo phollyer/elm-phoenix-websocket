@@ -75,6 +75,7 @@ type Msg
     | GotUsernameChange String
     | GotJoinLobby
     | GotCreateRoom
+    | GotDeleteRoom Room
     | GotEnterRoom Room
     | GotMessageChange String
     | GotMemberStartedTyping User Room
@@ -95,6 +96,10 @@ update msg model =
 
         GotCreateRoom ->
             createRoom model.phoenix
+                |> updatePhoenixWith PhoenixMsg model
+
+        GotDeleteRoom room ->
+            deleteRoom room model.phoenix
                 |> updatePhoenixWith PhoenixMsg model
 
         GotEnterRoom room ->
@@ -229,6 +234,19 @@ createRoom phoenix =
         { pushConfig
             | topic = "example:lobby"
             , event = "create_room"
+        }
+        phoenix
+
+
+deleteRoom : Room -> Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
+deleteRoom room phoenix =
+    Phoenix.push
+        { pushConfig
+            | topic = "example:lobby"
+            , event = "delete_room"
+            , payload =
+                JE.object
+                    [ ( "room_id", JE.string room.id ) ]
         }
         phoenix
 
@@ -450,6 +468,7 @@ view device model =
                 |> Lobby.user user
                 |> Lobby.onCreateRoom GotCreateRoom
                 |> Lobby.onEnterRoom GotEnterRoom
+                |> Lobby.onDeleteRoom GotDeleteRoom
                 |> Lobby.members model.presences
                 |> Lobby.rooms model.rooms
                 |> Lobby.view device

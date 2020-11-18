@@ -50,6 +50,16 @@ defmodule ElmPhoenixWebSocketExampleWeb.ElmPhoenixWebSocketExampleChannel do
     broadcast_room_list()
   end
 
+  def handle_in("delete_room", %{"room_id" => room_id}, socket) do
+    {:ok, room} = Room.find(room_id)
+
+    Room.delete(room)
+
+    broadcast_room_list()
+
+    {:reply, :ok, socket}
+  end
+
   def handle_in("member_started_typing", user, socket) do
     broadcast(socket, "member_started_typing", user)
 
