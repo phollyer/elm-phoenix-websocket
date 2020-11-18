@@ -211,7 +211,9 @@ owner username =
 members : List User -> Element msg
 members users =
     El.paragraph
-        [ El.width El.fill ]
+        [ El.width El.fill
+        , Font.alignLeft
+        ]
         [ El.text "Members: "
         , List.map .username users
             |> List.intersperse ", "
