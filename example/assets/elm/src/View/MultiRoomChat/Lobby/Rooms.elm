@@ -59,18 +59,27 @@ view (Config config) =
         , El.width El.fill
         , Font.color Color.skyblue
         ]
-        (El.el
-            [ El.centerX ]
-            (El.text "Rooms")
-            :: List.map (toRoom config.onClick) config.rooms
-        )
+    <|
+        List.append
+            [ El.el
+                [ El.centerX ]
+                (El.text "Rooms")
+            , El.paragraph
+                [ El.spacing 5
+                , El.width El.fill
+                ]
+                [ El.text "A Room can only be joined after it has been opened. "
+                , El.text "A Room is opened when the owner of the Room enters it."
+                ]
+            ]
+            (List.map (toRoom config.onClick) config.rooms)
 
 
 toRoom : Maybe (Room -> msg) -> Room -> Element msg
 toRoom maybeToMsg room =
     let
         attrs =
-            roomAttrs
+            roomAttrs room
                 |> andMaybeEventWithArg maybeToMsg room Event.onClick
     in
     El.column
@@ -80,16 +89,29 @@ toRoom maybeToMsg room =
         ]
 
 
-roomAttrs : List (Attribute msg)
-roomAttrs =
-    [ Background.color Color.aliceblue
-    , Border.rounded 10
-    , Border.color Color.darkblue
-    , Border.width 1
-    , El.padding 10
-    , El.spacing 10
-    , El.width El.fill
-    ]
+roomAttrs : Room -> List (Attribute msg)
+roomAttrs room =
+    if List.member room.owner room.members then
+        [ Background.color Color.mediumseagreen
+        , Border.rounded 10
+        , Border.color Color.seagreen
+        , Border.width 1
+        , El.padding 10
+        , El.spacing 10
+        , El.width El.fill
+        , Font.color Color.lightgreen
+        ]
+
+    else
+        [ Background.color Color.lightcoral
+        , Border.rounded 10
+        , Border.color Color.firebrick
+        , Border.width 1
+        , El.padding 10
+        , El.spacing 10
+        , El.width El.fill
+        , Font.color Color.firebrick
+        ]
 
 
 owner : String -> Element msg
