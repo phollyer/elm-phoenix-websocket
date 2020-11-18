@@ -32,6 +32,16 @@ defmodule ElmPhoenixWebSocketExampleWeb.LobbyChannel do
   def terminate(_reason, socket) do
     {:ok, user} = User.find(socket.assigns.user.id)
 
+    Enum.map(user.rooms, &(Room.find(&1)))
+      |> Enum.each(fn result ->
+        case result do
+          {:ok, room} ->
+            broadcast(socket, "room_deleted", room)
+          :not_found ->
+            nil
+        end
+      end)
+
     User.delete(user)
 
     broadcast(socket, "room_list", %{rooms: Room.all()})

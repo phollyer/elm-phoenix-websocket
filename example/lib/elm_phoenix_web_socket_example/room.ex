@@ -41,6 +41,14 @@ defmodule ElmPhoenixWebSocketExample.Room do
     end
   end
 
+  def delete_member(room, user_id) do
+    {:ok, room} = find(room.id)
+
+    room = %{ room | members: Enum.reject(room.members, &(&1.id == user_id))}
+
+    :ets.insert(:rooms_table, {room.id, room})
+  end
+
   def add_message(id, message) do
     case find(id) do
       {:ok, room} ->
@@ -58,6 +66,10 @@ defmodule ElmPhoenixWebSocketExample.Room do
       :not_found ->
         []
     end
+  end
+
+  def delete(room) do
+   :ets.delete(:rooms_table, room.id)
   end
 
   def delete_list(list), do: Enum.each(list, &(:ets.delete(:rooms_table, &1)))

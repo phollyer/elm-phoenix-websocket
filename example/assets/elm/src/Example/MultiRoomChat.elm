@@ -174,6 +174,14 @@ update msg model =
                         Err _ ->
                             ( newModel, cmd )
 
+                Phoenix.ChannelEvent _ "room_deleted" payload ->
+                    case Room.decode payload of
+                        Ok room ->
+                            ( maybeLeaveRoom room newModel, cmd )
+
+                        Err _ ->
+                            ( newModel, cmd )
+
                 Phoenix.PresenceEvent (Phoenix.State "example:lobby" state) ->
                     ( { newModel | presences = toPresences state }, cmd )
 
@@ -224,6 +232,7 @@ joinRoom room state phoenix =
                             [ "message_list"
                             , "member_started_typing"
                             , "member_stopped_typing"
+                            , "room_deleted"
                             ]
                         , payload =
                             JE.object
@@ -289,6 +298,20 @@ updateRoom room model =
     case model.state of
         InRoom _ user ->
             { model | state = InRoom room user }
+
+        _ ->
+            model
+
+
+maybeLeaveRoom : Room -> Model -> Model
+maybeLeaveRoom room model =
+    case model.state of
+        InRoom room_ user ->
+            if room_.id == room.id then
+                { model | state = InLobby user }
+
+            else
+                model
 
         _ ->
             model

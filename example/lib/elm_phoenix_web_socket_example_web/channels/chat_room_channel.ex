@@ -27,12 +27,27 @@ defmodule ElmPhoenixWebSocketExampleWeb.ElmPhoenixWebSocketExampleChannel do
 
     push(socket, "message_list", %{messages: Room.messages(socket.assigns.room_id)})
 
-    ElmPhoenixWebSocketExampleWeb.Endpoint.broadcast("example:lobby", "room_list", %{rooms: Room.all()})
+    broadcast_room_list()
 
     {:noreply, socket}
   end
 
   def terminate(_reason, socket) do
+    case Room.find(socket.assigns.room_id) do
+      {:ok, room} ->
+        if socket.assigns.user_id == room.owner.id do
+          Room.delete(room)
+
+          broadcast(socket, "room_deleted", room)
+        else
+          Room.delete_member(room, socket.assigns.user_id)
+        end
+
+      :not_found ->
+        nil
+    end
+
+    broadcast_room_list()
   end
 
   def handle_in("member_started_typing", user, socket) do
@@ -55,5 +70,10 @@ defmodule ElmPhoenixWebSocketExampleWeb.ElmPhoenixWebSocketExampleChannel do
     broadcast(socket, "message_list", %{messages: Room.messages(socket.assigns.room_id)})
 
     {:reply, :ok, socket}
+  end
+
+
+  defp broadcast_room_list do
+    ElmPhoenixWebSocketExampleWeb.Endpoint.broadcast("example:lobby", "room_list", %{rooms: Room.all()})
   end
 end
