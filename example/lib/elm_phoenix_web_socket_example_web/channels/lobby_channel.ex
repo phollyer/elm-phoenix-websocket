@@ -5,6 +5,7 @@ defmodule ElmPhoenixWebSocketExampleWeb.LobbyChannel do
   alias ElmPhoenixWebSocketExample.User
   alias ElmPhoenixWebSocketExampleWeb.Presence
 
+
   def join("example:lobby", %{"username" => username}, socket) do
     {:ok, user} =
       User.create(username)

@@ -106,9 +106,9 @@ owner username =
 
 members : List User -> Element msg
 members users =
-    El.column
+    El.paragraph
         [ El.width El.fill ]
-        (El.text "Members"
+        (El.text "Members: "
             :: List.map member users
         )
 

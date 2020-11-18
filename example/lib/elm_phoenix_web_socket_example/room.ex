@@ -32,6 +32,15 @@ defmodule ElmPhoenixWebSocketExample.Room do
    |> Enum.map(fn {_, room} -> room end)
   end
 
+  def add_member(id, member) do
+    case find(id) do
+      {:ok, room} ->
+        :ets.insert(:rooms_table, {id, %{ room | members: [member | room.members]}})
+      :not_found ->
+        nil
+    end
+  end
+
   def add_message(id, message) do
     case find(id) do
       {:ok, room} ->

@@ -17,6 +17,18 @@ defmodule ElmPhoenixWebSocketExampleWeb.Presence do
     end
   end
 
+  def fetch("example:room:" <> room_id, presences) do
+    for {key, %{metas: metas}} <- presences, into: %{} do
+      case User.find(key) do
+        {:ok, user} ->
+          {key, %{metas: metas, user: user}}
+
+        :not_found ->
+          {key, %{metas: metas}}
+      end
+    end
+  end
+
   def fetch(_topic, presences) do
     for {key, %{metas: metas}} <- presences, into: %{} do
       {key, %{metas: metas}}
