@@ -206,7 +206,7 @@ owner currentUser room =
                 "You"
 
             else
-                currentUser.username
+                room.owner.username
     in
     El.row
         [ El.spacing 10
