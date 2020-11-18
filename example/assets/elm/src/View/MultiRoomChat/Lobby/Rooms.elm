@@ -126,7 +126,7 @@ toRoom device (Config config) room =
             , El.clipX
             ]
             [ owner config.user room
-            , members room.members
+            , members config.user room
             ]
         , El.row
             [ El.spacing 10 ]
@@ -218,15 +218,19 @@ owner currentUser room =
         ]
 
 
-members : List User -> Element msg
-members users =
-    El.paragraph
-        [ El.width El.fill
-        , Font.alignLeft
-        ]
-        [ El.text "Members: "
-        , List.map .username users
-            |> List.intersperse ", "
-            |> String.concat
-            |> El.text
-        ]
+members : User -> Room -> Element msg
+members currentUser room =
+    if currentUser == room.owner then
+        El.none
+
+    else
+        El.paragraph
+            [ El.width El.fill
+            , Font.alignLeft
+            ]
+            [ El.text "Members: "
+            , List.map .username room.members
+                |> List.intersperse ", "
+                |> String.concat
+                |> El.text
+            ]
