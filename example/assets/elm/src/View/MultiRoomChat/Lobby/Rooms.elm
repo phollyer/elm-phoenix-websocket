@@ -80,7 +80,31 @@ view (Config config) =
                 , El.text "A Room is opened when the owner of the Room enters it."
                 ]
             ]
-            (List.map (toRoom config.onClick config.user) config.rooms)
+            (orderRooms config.user config.rooms
+                |> List.map (toRoom config.onClick config.user)
+            )
+
+
+orderRooms : User -> List Room -> List Room
+orderRooms currentUser roomList =
+    let
+        ( ownersRooms, others ) =
+            List.partition (\room -> currentUser == room.owner) roomList
+    in
+    List.append ownersRooms <|
+        List.sortWith
+            (\room1 room2 ->
+                case compare room1.owner.username room2.owner.username of
+                    LT ->
+                        LT
+
+                    EQ ->
+                        EQ
+
+                    GT ->
+                        GT
+            )
+            others
 
 
 toRoom : Maybe (Room -> msg) -> User -> Room -> Element msg
