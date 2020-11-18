@@ -210,6 +210,11 @@ joinLobby username phoenix =
         |> Phoenix.join "example:lobby"
 
 
+leaveLobby : Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
+leaveLobby phoenix =
+    Phoenix.leave "example:lobby" phoenix
+
+
 createRoom : Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
 createRoom phoenix =
     Phoenix.push
@@ -246,6 +251,11 @@ joinRoom room state phoenix =
 
         _ ->
             ( phoenix, Cmd.none )
+
+
+leaveRoom : Room -> Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
+leaveRoom room phoenix =
+    Phoenix.leave ("example:room:" ++ room.id) phoenix
 
 
 memberStartedTyping : User -> Room -> Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
@@ -388,11 +398,15 @@ toUser model =
 back : Nav.Key -> Model -> ( Model, Cmd Msg )
 back key model =
     case model.state of
-        InRoom _ user ->
-            ( { model | state = InLobby user }, Cmd.none )
+        InRoom room user ->
+            leaveRoom room model.phoenix
+                |> updatePhoenixWith PhoenixMsg
+                    { model | state = InLobby user }
 
         InLobby _ ->
-            ( { model | state = Unregistered }, Cmd.none )
+            leaveLobby model.phoenix
+                |> updatePhoenixWith PhoenixMsg
+                    { model | state = Unregistered }
 
         Unregistered ->
             ( model, Route.back key )
