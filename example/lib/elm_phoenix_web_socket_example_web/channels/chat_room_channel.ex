@@ -36,9 +36,9 @@ defmodule ElmPhoenixWebSocketExampleWeb.ElmPhoenixWebSocketExampleChannel do
     case Room.find(socket.assigns.room_id) do
       {:ok, room} ->
         if socket.assigns.user_id == room.owner.id do
-          Room.delete(room)
+          Room.delete_all_members(room)
 
-          broadcast(socket, "room_deleted", room)
+          broadcast(socket, "room_closed", room)
         else
           Room.delete_member(room, socket.assigns.user_id)
         end

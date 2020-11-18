@@ -178,6 +178,14 @@ update msg model =
                         Err _ ->
                             ( newModel, cmd )
 
+                Phoenix.ChannelEvent _ "room_closed" payload ->
+                    case Room.decode payload of
+                        Ok room ->
+                            ( maybeLeaveRoom room newModel, cmd )
+
+                        Err _ ->
+                            ( newModel, cmd )
+
                 Phoenix.ChannelEvent _ "room_deleted" payload ->
                     case Room.decode payload of
                         Ok room ->
@@ -241,6 +249,7 @@ joinRoom room state phoenix =
                             [ "message_list"
                             , "member_started_typing"
                             , "member_stopped_typing"
+                            , "room_closed"
                             , "room_deleted"
                             ]
                         , payload =

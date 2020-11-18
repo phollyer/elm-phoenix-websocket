@@ -49,6 +49,12 @@ defmodule ElmPhoenixWebSocketExample.Room do
     :ets.insert(:rooms_table, {room.id, room})
   end
 
+  def delete_all_members(room) do
+    {:ok, room} = find(room.id)
+
+    :ets.insert(:rooms_table, {room.id, %{ room | members: []}})
+  end
+
   def add_message(id, message) do
     case find(id) do
       {:ok, room} ->
