@@ -142,7 +142,9 @@ introduction currentUser currentRoom =
                 [ El.text "Welcome to your room." ]
             , El.paragraph
                 [ El.width El.fill ]
-                [ El.text "When you leave the room it will close and all messages will be deleted." ]
+                [ El.text "When you leave the room it will close and all members will return to the lobby. "
+                , El.text "Messages will be retained until you delete the room or leave the lobby."
+                ]
             ]
 
     else
@@ -160,7 +162,10 @@ introduction currentUser currentRoom =
                 [ El.width El.fill ]
                 [ El.text "When "
                 , El.text currentRoom.owner.username
-                , El.text " leaves the room it will close and all messages will be deleted."
+                , El.text " leaves the room it will close and you will return to the lobby. "
+                , El.text "Messages will be retained until "
+                , El.text currentRoom.owner.username
+                , El.text " deletes the room or leaves the lobby."
                 ]
             ]
 
