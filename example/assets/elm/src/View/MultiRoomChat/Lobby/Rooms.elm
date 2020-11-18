@@ -11,7 +11,8 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
-import Types exposing (Room, User)
+import Room exposing (Room)
+import Types exposing (User)
 import View exposing (andMaybeEventWithArg)
 
 

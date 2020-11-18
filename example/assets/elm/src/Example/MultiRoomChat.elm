@@ -15,11 +15,12 @@ import Example.Utils exposing (updatePhoenixWith)
 import Json.Decode as JD
 import Json.Encode as JE
 import Phoenix
+import Room exposing (Room)
 import Task
-import Types exposing (Message, Presence, Room, User, decodeMessages, decodeMetas, decodeRoom, decodeRooms, decodeUser, initRoom, initUser)
+import Types exposing (Message, Presence, User, decodeMessages, decodeMetas, decodeUser, initUser)
 import View.MultiRoomChat.Lobby as Lobby
 import View.MultiRoomChat.Lobby.Registration as LobbyRegistration
-import View.MultiRoomChat.Room as Room
+import View.MultiRoomChat.Room as RoomView
 
 
 
@@ -127,7 +128,7 @@ update msg model =
                             ( newModel, cmd )
 
                 Phoenix.ChannelResponse (Phoenix.JoinOk _ payload) ->
-                    case decodeRoom payload of
+                    case Room.decode payload of
                         Ok room ->
                             ( updateRoom room newModel, cmd )
 
@@ -135,7 +136,7 @@ update msg model =
                             ( newModel, cmd )
 
                 Phoenix.ChannelEvent "example:lobby" "room_list" payload ->
-                    case decodeRooms payload of
+                    case Room.decodeRooms payload of
                         Ok rooms ->
                             ( { newModel | rooms = rooms }, cmd )
 
@@ -337,7 +338,7 @@ toRoom model =
             room
 
         _ ->
-            initRoom
+            Room.init
 
 
 toUser : Model -> User
@@ -387,14 +388,14 @@ view device model =
                 |> Lobby.view device
 
         InRoom room user ->
-            Room.init
-                |> Room.user user
-                |> Room.room room
-                |> Room.messages model.messages
-                |> Room.membersTyping model.membersTyping
-                |> Room.userText model.message
-                |> Room.onChange GotMessageChange
-                |> Room.onFocus (GotMemberStartedTyping user room)
-                |> Room.onLoseFocus (GotMemberStoppedTyping user room)
-                |> Room.onSubmit GotSendMessage
-                |> Room.view device
+            RoomView.init
+                |> RoomView.user user
+                |> RoomView.room room
+                |> RoomView.messages model.messages
+                |> RoomView.membersTyping model.membersTyping
+                |> RoomView.userText model.message
+                |> RoomView.onChange GotMessageChange
+                |> RoomView.onFocus (GotMemberStartedTyping user room)
+                |> RoomView.onLoseFocus (GotMemberStoppedTyping user room)
+                |> RoomView.onSubmit GotSendMessage
+                |> RoomView.view device

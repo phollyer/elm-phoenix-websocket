@@ -14,7 +14,8 @@ import Element as El exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Types exposing (Presence, Room, User, initUser)
+import Room exposing (Room)
+import Types exposing (Presence, User, initUser)
 import View.Button as Button
 import View.MultiRoomChat.Lobby.Members as LobbyMembers
 import View.MultiRoomChat.Lobby.Rooms as LobbyRooms

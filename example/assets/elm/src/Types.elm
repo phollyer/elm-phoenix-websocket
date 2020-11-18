@@ -2,16 +2,14 @@ module Types exposing
     ( Message
     , Meta
     , Presence
-    , Room
     , User
     , decodeMessage
     , decodeMessages
     , decodeMetas
-    , decodeRoom
-    , decodeRooms
     , decodeUser
-    , initRoom
     , initUser
+    , messageDecoder
+    , userDecoder
     )
 
 import Json.Decode as JD exposing (Value)
@@ -22,23 +20,6 @@ type alias Message =
     { text : String
     , owner : User
     , createdAt : Int
-    }
-
-
-type alias Room =
-    { id : String
-    , owner : User
-    , members : List User
-    , messages : List Message
-    }
-
-
-initRoom : Room
-initRoom =
-    { id = ""
-    , owner = initUser
-    , members = []
-    , messages = []
     }
 
 
@@ -112,30 +93,6 @@ messageDecoder =
         |> andMap (JD.field "text" JD.string)
         |> andMap (JD.field "owner" userDecoder)
         |> andMap (JD.field "created_at" JD.int)
-
-
-
-{- Rooms -}
-
-
-decodeRooms : Value -> Result JD.Error (List Room)
-decodeRooms payload =
-    JD.decodeValue (JD.field "rooms" (JD.list roomDecoder)) payload
-
-
-decodeRoom : Value -> Result JD.Error Room
-decodeRoom payload =
-    JD.decodeValue roomDecoder payload
-
-
-roomDecoder : JD.Decoder Room
-roomDecoder =
-    JD.succeed
-        Room
-        |> andMap (JD.field "id" JD.string)
-        |> andMap (JD.field "owner" userDecoder)
-        |> andMap (JD.field "members" (JD.list userDecoder))
-        |> andMap (JD.field "messages" (JD.list messageDecoder))
 
 
 
