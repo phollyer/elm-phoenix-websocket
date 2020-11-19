@@ -56,7 +56,8 @@ type alias Model =
 
 type Action
     = Push
-    | Cancel
+    | CancelRetry
+    | CancelPush
 
 
 type Info
@@ -94,10 +95,21 @@ update msg model =
                             }
                         |> updatePhoenixWith PhoenixMsg { model | pushSent = True }
 
-                Cancel ->
+                CancelRetry ->
                     ( { model
                         | phoenix =
                             Phoenix.dropTimeoutPush
+                                (\push_ -> push_.ref == Just "timeout_push")
+                                model.phoenix
+                        , pushSent = False
+                      }
+                    , Cmd.none
+                    )
+
+                CancelPush ->
+                    ( { model
+                        | phoenix =
+                            Phoenix.dropPush
                                 (\push_ -> push_.ref == Just "timeout_push")
                                 model.phoenix
                         , pushSent = False
@@ -176,7 +188,8 @@ controls device { phoenix, retryStrategy, pushSent } =
     Controls.init
         |> Controls.elements
             [ push device (not <| pushSent)
-            , cancel device (Phoenix.pushTimedOut (\push_ -> push_.ref == Just "timeout_push") phoenix)
+            , cancelRetry device (Phoenix.pushTimedOut (\push_ -> push_.ref == Just "timeout_push") phoenix)
+            , cancelPush device pushSent
             ]
         |> Controls.options
             (RadioSelection.init
@@ -190,6 +203,10 @@ controls device { phoenix, retryStrategy, pushSent } =
                     ]
                 |> RadioSelection.view device
             )
+        |> Controls.group
+            (Group.init
+                |> Group.layouts [ ( Phone, Portrait, [ 1, 2 ] ) ]
+            )
         |> Controls.view device
 
 
@@ -202,12 +219,21 @@ push device enabled =
         |> Button.view device
 
 
-cancel : Device -> Bool -> Element Msg
-cancel device enabled =
+cancelRetry : Device -> Bool -> Element Msg
+cancelRetry device enabled =
+    Button.init
+        |> Button.enabled enabled
+        |> Button.label "Cancel Retry"
+        |> Button.onPress (Just (GotControlClick CancelRetry))
+        |> Button.view device
+
+
+cancelPush : Device -> Bool -> Element Msg
+cancelPush device enabled =
     Button.init
         |> Button.enabled enabled
         |> Button.label "Cancel Push"
-        |> Button.onPress (Just (GotControlClick Cancel))
+        |> Button.onPress (Just (GotControlClick CancelPush))
         |> Button.view device
 
 
