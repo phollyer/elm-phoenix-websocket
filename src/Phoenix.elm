@@ -1031,10 +1031,16 @@ sendTimeoutPushes (Model model) =
                         Dict.map
                             (\_ internalConfig ->
                                 case internalConfig.retryStrategy of
-                                    Backoff (_ :: next :: tail) max ->
+                                    Backoff [] max ->
                                         internalConfig
                                             |> updateRetryStrategy
-                                                (Backoff (next :: tail) max)
+                                                (Backoff [] max)
+                                            |> updateTimeoutTick 0
+
+                                    Backoff list max ->
+                                        internalConfig
+                                            |> updateRetryStrategy
+                                                (Backoff (List.drop 1 list) max)
                                             |> updateTimeoutTick 0
 
                                     _ ->
@@ -2014,36 +2020,34 @@ This is useful if you want to show a countdown timer to your users.
 pushTimeoutCountdown : (Push -> Bool) -> Model -> Maybe Int
 pushTimeoutCountdown compareFunc (Model model) =
     let
-        internalPush =
+        maybeInternalPushConfig =
             model.timeoutPushes
                 |> Dict.partition
                     (\_ v -> compareFunc v.push)
                 |> Tuple.first
+                |> Dict.values
+                |> List.head
     in
-    if internalPush == Dict.empty then
-        Nothing
+    case maybeInternalPushConfig of
+        Nothing ->
+            Nothing
 
-    else
-        case Dict.values internalPush of
-            first :: _ ->
-                case first.push.retryStrategy of
-                    Drop ->
-                        Nothing
+        Just internalPushConfig ->
+            case internalPushConfig.retryStrategy of
+                Drop ->
+                    Nothing
 
-                    Every seconds ->
-                        Just (seconds - first.timeoutTick)
+                Every seconds ->
+                    Just (seconds - internalPushConfig.timeoutTick)
 
-                    Backoff (seconds :: _) _ ->
-                        Just (seconds - first.timeoutTick)
+                Backoff (seconds :: _) _ ->
+                    Just (seconds - internalPushConfig.timeoutTick)
 
-                    Backoff [] (Just max) ->
-                        Just (max - first.timeoutTick)
+                Backoff [] (Just max) ->
+                    Just (max - internalPushConfig.timeoutTick)
 
-                    Backoff [] Nothing ->
-                        Nothing
-
-            [] ->
-                Nothing
+                Backoff [] Nothing ->
+                    Nothing
 
 
 {-| Cancel a [Push](#Push), regardless of if it is in the queue to be sent when
