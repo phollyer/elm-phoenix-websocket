@@ -23,6 +23,7 @@ import View.Example.Feedback as Feedback
 import View.Example.Feedback.Content as FeedbackContent
 import View.Example.Feedback.Info as FeedbackInfo
 import View.Example.Feedback.Panel as FeedbackPanel
+import View.Example.LabelAndValue as LabelAndValue
 import View.Example.UsefulFunctions as UsefulFunctions
 import View.Group as Group
 import View.RadioSelection as RadioSelection
@@ -36,6 +37,7 @@ init : Phoenix.Model -> Model
 init phoenix =
     { phoenix = phoenix
     , retryStrategy = Phoenix.Drop
+    , pushSent = False
     , info = []
     }
 
@@ -47,13 +49,14 @@ init phoenix =
 type alias Model =
     { phoenix : Phoenix.Model
     , retryStrategy : Phoenix.RetryStrategy
+    , pushSent : Bool
     , info : List Info
     }
 
 
 type Action
     = Push
-    | Leave
+    | Cancel
 
 
 type Info
@@ -86,12 +89,21 @@ update msg model =
                             { pushConfig
                                 | topic = "example:send_and_receive"
                                 , event = "push_with_timeout"
+                                , ref = Just "timeout_push"
+                                , retryStrategy = model.retryStrategy
                             }
-                        |> updatePhoenixWith PhoenixMsg model
+                        |> updatePhoenixWith PhoenixMsg { model | pushSent = True }
 
-                Leave ->
-                    Phoenix.leave "example:send_and_receive" model.phoenix
-                        |> updatePhoenixWith PhoenixMsg model
+                Cancel ->
+                    ( { model
+                        | phoenix =
+                            Phoenix.dropTimeoutPush
+                                (\push_ -> push_.ref == Just "timeout_push")
+                                model.phoenix
+                        , pushSent = False
+                      }
+                    , Cmd.none
+                    )
 
         GotRetryStrategy retryStrategy ->
             ( { model | retryStrategy = retryStrategy }, Cmd.none )
@@ -160,53 +172,43 @@ description =
 
 
 controls : Device -> Model -> Element Msg
-controls device { phoenix, retryStrategy } =
+controls device { phoenix, retryStrategy, pushSent } =
     Controls.init
-        |> Controls.elements (buttons device phoenix)
-        |> Controls.options (controlOptions device retryStrategy)
+        |> Controls.elements
+            [ push device (not <| pushSent)
+            , cancel device (Phoenix.pushTimedOut (\push_ -> push_.ref == Just "timeout_push") phoenix)
+            ]
+        |> Controls.options
+            (RadioSelection.init
+                |> RadioSelection.onChange GotRetryStrategy
+                |> RadioSelection.selected retryStrategy
+                |> RadioSelection.label "Select a retry strategy"
+                |> RadioSelection.options
+                    [ ( Phoenix.Drop, "Drop" )
+                    , ( Phoenix.Every 5, "Every 5" )
+                    , ( Phoenix.Backoff [ 1, 2, 3, 4 ] (Just 5), "Backoff [ 1, 2, 3, 4 ] (Just 5)" )
+                    ]
+                |> RadioSelection.view device
+            )
         |> Controls.view device
 
 
-buttons : Device -> Phoenix.Model -> List (Element Msg)
-buttons device phoenix =
-    [ push device
-    , leave device (Phoenix.channelJoined "example:send_and_receive" phoenix)
-    ]
-
-
-push : Device -> Element Msg
-push device =
+push : Device -> Bool -> Element Msg
+push device enabled =
     Button.init
+        |> Button.enabled enabled
         |> Button.label "Push Event"
         |> Button.onPress (Just (GotControlClick Push))
         |> Button.view device
 
 
-leave : Device -> Bool -> Element Msg
-leave device enabled =
+cancel : Device -> Bool -> Element Msg
+cancel device enabled =
     Button.init
-        |> Button.label "Leave"
-        |> Button.onPress (Just (GotControlClick Leave))
         |> Button.enabled enabled
+        |> Button.label "Cancel Push"
+        |> Button.onPress (Just (GotControlClick Cancel))
         |> Button.view device
-
-
-
-{- Sub Controls -}
-
-
-controlOptions : Device -> Phoenix.RetryStrategy -> Element Msg
-controlOptions device retryStrategy =
-    RadioSelection.init
-        |> RadioSelection.onChange GotRetryStrategy
-        |> RadioSelection.selected retryStrategy
-        |> RadioSelection.label "Select a retry strategy"
-        |> RadioSelection.options
-            [ ( Phoenix.Drop, "Drop" )
-            , ( Phoenix.Every 5, "Every 5" )
-            , ( Phoenix.Backoff [ 1000, 2000, 3000, 4000 ] (Just 5000), "Backoff [ 1000, 2000, 3000, 4000 ] (Just 5000)" )
-            ]
-        |> RadioSelection.view device
 
 
 
@@ -214,11 +216,12 @@ controlOptions device retryStrategy =
 
 
 feedback : Device -> Model -> Element Msg
-feedback device { phoenix, info } =
+feedback device { phoenix, info, pushSent } =
     Feedback.init
         |> Feedback.elements
             [ FeedbackPanel.init
                 |> FeedbackPanel.title "Info"
+                |> FeedbackPanel.static (timeoutCountdown device phoenix pushSent)
                 |> FeedbackPanel.scrollable (infoView device info)
                 |> FeedbackPanel.view device
             , FeedbackPanel.init
@@ -235,6 +238,30 @@ feedback device { phoenix, info } =
                 |> Group.layouts [ ( Tablet, Portrait, [ 1, 2 ] ) ]
             )
         |> Feedback.view device
+
+
+timeoutCountdown : Device -> Phoenix.Model -> Bool -> List (Element Msg)
+timeoutCountdown device phoenix pushSent =
+    if not pushSent then
+        []
+
+    else
+        let
+            ( label, countdown ) =
+                case Phoenix.pushTimeoutCountdown (\push_ -> push_.ref == Just "timeout_push") phoenix of
+                    Nothing ->
+                        ( "Push Sent", "" )
+
+                    Just count ->
+                        ( "Time to next try:"
+                        , String.fromInt count ++ " s"
+                        )
+        in
+        [ LabelAndValue.init
+            |> LabelAndValue.label label
+            |> LabelAndValue.value countdown
+            |> LabelAndValue.view device
+        ]
 
 
 infoView : Device -> List Info -> List (Element Msg)
@@ -277,10 +304,10 @@ channelResponse device response =
                     )
                 |> FeedbackContent.view device
 
-        Phoenix.PushOk topic event ref payload ->
+        Phoenix.PushTimeout topic event ref payload ->
             FeedbackContent.init
                 |> FeedbackContent.title (Just "ChannelResponse")
-                |> FeedbackContent.label "PushOk"
+                |> FeedbackContent.label "PushTimeout"
                 |> FeedbackContent.element
                     (FeedbackInfo.init
                         |> FeedbackInfo.topic topic
