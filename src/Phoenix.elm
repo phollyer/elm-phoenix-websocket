@@ -2059,6 +2059,17 @@ dropPush compare model =
     model
         |> dropQueuedPush compare
         |> dropTimeoutPush compare
+        |> dropSentPush compare
+
+
+dropSentPush : (Push -> Bool) -> Model -> Model
+dropSentPush compare (Model model) =
+    updateSentPushes
+        (Dict.filter
+            (\_ internalPush -> not (compare internalPush.push))
+            model.sentPushes
+        )
+        (Model model)
 
 
 
