@@ -163,7 +163,7 @@ controls : Device -> Model -> Element Msg
 controls device { phoenix, retryStrategy } =
     Controls.init
         |> Controls.elements (buttons device phoenix)
-        |> Controls.subControls (subControls device retryStrategy)
+        |> Controls.options (controlOptions device retryStrategy)
         |> Controls.view device
 
 
@@ -195,8 +195,8 @@ leave device enabled =
 {- Sub Controls -}
 
 
-subControls : Device -> Phoenix.RetryStrategy -> Element Msg
-subControls device retryStrategy =
+controlOptions : Device -> Phoenix.RetryStrategy -> Element Msg
+controlOptions device retryStrategy =
     RadioSelection.init
         |> RadioSelection.onChange GotRetryStrategy
         |> RadioSelection.selected retryStrategy
