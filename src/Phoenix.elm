@@ -2000,6 +2000,8 @@ pushTimedOut compareFunc (Model model) =
         (\push -> push.topic == "topic:subTopic")
         model.phoenix
 
+This will only work after a `push` has timed out and before it is re-tried.
+
 -}
 dropTimeoutPush : (Push -> Bool) -> Model -> Model
 dropTimeoutPush compare (Model model) =
@@ -2051,8 +2053,11 @@ pushTimeoutCountdown compareFunc (Model model) =
                     Nothing
 
 
-{-| Cancel a [Push](#Push), regardless of if it is in the queue to be sent when
-its' Channel joins, or if it has timed out.
+{-| Cancel a [Push](#Push).
+
+This will cancel pushes that are queued to be sent when their Channel joins. It
+will also prevent pushes that timeout from being re-tried.
+
 -}
 dropPush : (Push -> Bool) -> Model -> Model
 dropPush compare model =
