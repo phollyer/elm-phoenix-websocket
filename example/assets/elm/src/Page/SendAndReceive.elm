@@ -13,6 +13,7 @@ import Device exposing (Device)
 import Element as El exposing (DeviceClass(..), Element, Orientation(..))
 import Example.PushMultipleEvents as PushMultipleEvents
 import Example.PushOneEvent as PushOneEvent
+import Example.PushWithTimeout as PushWithTimeout
 import Example.ReceiveEvents as ReceiveEvents
 import Phoenix
 import Route
@@ -53,6 +54,7 @@ type Example
     = PushOneEvent PushOneEvent.Model
     | PushMultipleEvents PushMultipleEvents.Model
     | ReceiveEvents ReceiveEvents.Model
+    | PushWithTimeout PushWithTimeout.Model
 
 
 
@@ -66,6 +68,7 @@ type Msg
     | GotPushOneEventMsg PushOneEvent.Msg
     | GotPushMultipleEventsMsg PushMultipleEvents.Msg
     | GotReceiveEventsMsg ReceiveEvents.Msg
+    | GotPushWithTimeoutMsg PushWithTimeout.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -102,6 +105,10 @@ update msg model =
         ( GotReceiveEventsMsg subMsg, ReceiveEvents subModel ) ->
             ReceiveEvents.update subMsg subModel
                 |> updateWith ReceiveEvents GotReceiveEventsMsg model
+
+        ( GotPushWithTimeoutMsg subMsg, PushWithTimeout subModel ) ->
+            PushWithTimeout.update subMsg subModel
+                |> updateWith PushWithTimeout GotPushWithTimeoutMsg model
 
         _ ->
             ( model, Cmd.none )
@@ -143,6 +150,11 @@ updateExample selectedExample ( model, cmd ) =
                         ReceiveEvents.init
                             (Session.phoenix model.session)
 
+                "Push With Timeout" ->
+                    PushWithTimeout <|
+                        PushWithTimeout.init
+                            (Session.phoenix model.session)
+
                 _ ->
                     PushOneEvent <|
                         PushOneEvent.init
@@ -175,6 +187,10 @@ subscriptions model =
                 ReceiveEvents subModel ->
                     Sub.map GotReceiveEventsMsg <|
                         ReceiveEvents.subscriptions subModel
+
+                PushWithTimeout subModel ->
+                    Sub.map GotPushWithTimeoutMsg <|
+                        PushWithTimeout.subscriptions subModel
     in
     Sub.batch
         [ exampleSub
@@ -253,11 +269,15 @@ menu device { example } =
 
                 ReceiveEvents _ ->
                     "Receive Events"
+
+                PushWithTimeout _ ->
+                    "Push With Timeout"
     in
     Menu.init
         |> Menu.options
             [ "Push One Event"
             , "Push Multiple Events"
+            , "Push With Timeout"
             , "Receive Events"
             ]
         |> Menu.selected selected
@@ -265,8 +285,8 @@ menu device { example } =
         |> Menu.group
             (Group.init
                 |> Group.layouts
-                    [ ( Phone, Landscape, [ 1, 2 ] )
-                    , ( Tablet, Portrait, [ 1, 2 ] )
+                    [ ( Phone, Landscape, [ 3, 1 ] )
+                    , ( Tablet, Portrait, [ 3, 1 ] )
                     ]
             )
         |> Menu.view device
@@ -290,3 +310,7 @@ viewExample device { example } =
         ReceiveEvents subModel ->
             ReceiveEvents.view device subModel
                 |> El.map GotReceiveEventsMsg
+
+        PushWithTimeout subModel ->
+            PushWithTimeout.view device subModel
+                |> El.map GotPushWithTimeoutMsg

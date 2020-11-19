@@ -3,6 +3,7 @@ module View.Example.Controls exposing
     , elements
     , group
     , init
+    , subControls
     , userId
     , view
     )
@@ -25,6 +26,7 @@ type Config msg
         { userId : Maybe String
         , elements : List (Element msg)
         , layout : Maybe (List Int)
+        , subControls : Element msg
         , group : Group.Config
         }
 
@@ -35,6 +37,7 @@ init =
         { userId = Nothing
         , elements = []
         , layout = Nothing
+        , subControls = El.none
         , group = Group.init
         }
 
@@ -47,6 +50,11 @@ userId maybeUserId_ (Config config) =
 elements : List (Element msg) -> Config msg -> Config msg
 elements list (Config config) =
     Config { config | elements = list }
+
+
+subControls : Element msg -> Config msg -> Config msg
+subControls element (Config config) =
+    Config { config | subControls = element }
 
 
 group : Group.Config -> Config msg -> Config msg
@@ -64,17 +72,21 @@ view device (Config config) =
         Nothing ->
             column
                 [ maybeUserId config.userId
+                , config.subControls
                 , toRow <|
                     Group.orderForDevice device config.elements config.group
                 ]
 
         Just layout ->
             column
-                (maybeUserId config.userId
-                    :: (Group.orderForDevice device config.elements config.group
-                            |> toRows layout
-                       )
-                )
+                [ maybeUserId config.userId
+                , config.subControls
+                , El.column
+                    [ El.width El.fill ]
+                  <|
+                    toRows layout <|
+                        Group.orderForDevice device config.elements config.group
+                ]
 
 
 column : List (Element msg) -> Element msg

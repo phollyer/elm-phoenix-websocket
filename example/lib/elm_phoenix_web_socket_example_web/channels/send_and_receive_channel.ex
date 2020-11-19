@@ -16,4 +16,10 @@ defmodule ElmPhoenixWebSocketExampleWeb.SendAndReceiveChannel do
 
     {:reply, :ok, socket}
   end
+
+  def handle_in("push_with_timeout", _, socket) do
+    :timer.sleep 10_000
+
+    {:reply, :ok, socket}
+  end
 end
