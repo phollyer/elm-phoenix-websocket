@@ -72,20 +72,32 @@ view device (Config config) =
         Nothing ->
             column
                 [ maybeUserId config.userId
-                , config.options
-                , toRow <|
-                    Group.orderForDevice device config.elements config.group
+                , El.column
+                    [ El.width El.fill
+                    , El.spacing 20
+                    ]
+                    [ config.options
+                    , toRow <|
+                        Group.orderForDevice device config.elements config.group
+                    ]
                 ]
 
         Just layout ->
             column
                 [ maybeUserId config.userId
-                , config.options
                 , El.column
-                    [ El.width El.fill ]
-                  <|
-                    toRows layout <|
-                        Group.orderForDevice device config.elements config.group
+                    [ El.width El.fill
+                    , El.spacing 20
+                    ]
+                    [ config.options
+                    , El.column
+                        [ El.width El.fill
+                        , El.spacing 10
+                        ]
+                      <|
+                        toRows layout <|
+                            Group.orderForDevice device config.elements config.group
+                    ]
                 ]
 
 
