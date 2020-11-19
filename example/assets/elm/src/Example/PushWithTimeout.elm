@@ -387,7 +387,10 @@ applicableFunctions device =
     ApplicableFunctions.init
         |> ApplicableFunctions.functions
             [ "Phoenix.push"
-            , "Phoenix.leave"
+            , "Phoenix.pushTimeoutCountdown"
+            , "Phoenix.dropTimeoutPush"
+            , "Phoenix.dropPush"
+            , "Phoenix.pushTimedOut"
             ]
         |> ApplicableFunctions.view device
 
