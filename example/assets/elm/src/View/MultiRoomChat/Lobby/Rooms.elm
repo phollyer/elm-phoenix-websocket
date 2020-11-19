@@ -181,7 +181,6 @@ roomAttrs currentUser room =
         , El.spacing 10
         , El.width El.fill
         , Font.color Color.lightgreen
-        , El.pointer
         , El.mouseOver
             [ Border.color Color.lawngreen ]
         ]
