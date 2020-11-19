@@ -1437,6 +1437,7 @@ update msg (Model model) =
 
         TimeoutTick _ ->
             Model model
+                |> updatePhoenixMsg NoOp
                 |> timeoutTick
                 |> sendTimeoutPushes
 
