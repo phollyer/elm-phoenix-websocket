@@ -1271,7 +1271,7 @@ update msg (Model model) =
                     )
 
                 Channel.PushTimeout topic event payload ref ->
-                    case Dict.get ref model.queuedPushes of
+                    case Dict.get ref model.sentPushes of
                         Just internalConfig ->
                             let
                                 pushRef =
