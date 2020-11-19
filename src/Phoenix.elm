@@ -1022,7 +1022,7 @@ sendTimeoutPushes (Model model) =
                         Drop ->
                             -- This branch should never match because
                             -- pushes with a Drop strategy should never
-                            -- end up in this list.
+                            -- end up in this Dict.
                             False
                 )
                 model.timeoutPushes
