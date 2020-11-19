@@ -36,6 +36,7 @@ import View.RadioSelection as RadioSelection
 init : Phoenix.Model -> Model
 init phoenix =
     { phoenix = phoenix
+    , pushConfig = pushConfig
     , retryStrategy = Phoenix.Drop
     , pushSent = False
     , info = []
@@ -48,6 +49,7 @@ init phoenix =
 
 type alias Model =
     { phoenix : Phoenix.Model
+    , pushConfig : Phoenix.Push
     , retryStrategy : Phoenix.RetryStrategy
     , pushSent : Bool
     , info : List Info
@@ -85,15 +87,21 @@ update msg model =
         GotControlClick action ->
             case action of
                 Push ->
-                    model.phoenix
-                        |> Phoenix.push
+                    let
+                        config =
                             { pushConfig
                                 | topic = "example:send_and_receive"
                                 , event = "push_with_timeout"
                                 , ref = Just "timeout_push"
                                 , retryStrategy = model.retryStrategy
                             }
-                        |> updatePhoenixWith PhoenixMsg { model | pushSent = True }
+                    in
+                    Phoenix.push config model.phoenix
+                        |> updatePhoenixWith PhoenixMsg
+                            { model
+                                | pushConfig = config
+                                , pushSent = True
+                            }
 
                 CancelRetry ->
                     ( { model
@@ -127,6 +135,18 @@ update msg model =
                         |> updatePhoenixWith PhoenixMsg model
             in
             case Phoenix.phoenixMsg newModel.phoenix of
+                Phoenix.ChannelResponse (Phoenix.PushTimeout topic event ref payload) ->
+                    if model.pushConfig.retryStrategy == Phoenix.Drop then
+                        ( { newModel
+                            | info = Response (Phoenix.PushTimeout topic event ref payload) :: newModel.info
+                            , pushSent = False
+                          }
+                        , cmd
+                        )
+
+                    else
+                        ( { newModel | info = Response (Phoenix.PushTimeout topic event ref payload) :: newModel.info }, cmd )
+
                 Phoenix.ChannelResponse response ->
                     ( { newModel | info = Response response :: newModel.info }, cmd )
 
