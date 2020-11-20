@@ -3,10 +3,6 @@ module Phoenix.Socket exposing
     , disconnect
     , ClosedInfo, Topic, Event, Payload, ChannelMessage, PresenceMessage, HeartbeatMessage, AllInfo, Info(..), InternalError(..), Msg(..), PortIn, subscriptions
     , connectionState, endPointURL, info, isConnected, makeRef, protocol
-    , allMessagesOn, allMessagesOff
-    , channelMessagesOn, channelMessagesOff
-    , presenceMessagesOn, presenceMessagesOff
-    , heartbeatOn, heartbeatOff
     , log, startLogging, stopLogging
     )
 
@@ -40,20 +36,6 @@ the Socket.
 Request information about the Socket.
 
 @docs connectionState, endPointURL, info, isConnected, makeRef, protocol
-
-
-# Message Control
-
-These functions enable control over what messages the PhoenixJS `onMessage`
-handler forwards on to Elm.
-
-@docs allMessagesOn, allMessagesOff
-
-@docs channelMessagesOn, channelMessagesOff
-
-@docs presenceMessagesOn, presenceMessagesOff
-
-@docs heartbeatOn, heartbeatOff
 
 
 # Logging
@@ -492,58 +474,6 @@ package msg =
     { msg = msg
     , payload = JE.null
     }
-
-
-
-{- Message Control -}
-
-
-{-| -}
-allMessagesOn : PortOut msg -> Cmd msg
-allMessagesOn portOut =
-    portOut (package "allMessagesOn")
-
-
-{-| -}
-allMessagesOff : PortOut msg -> Cmd msg
-allMessagesOff portOut =
-    portOut (package "allMessagesOff")
-
-
-{-| -}
-channelMessagesOn : PortOut msg -> Cmd msg
-channelMessagesOn portOut =
-    portOut (package "channelMessagesOn")
-
-
-{-| -}
-channelMessagesOff : PortOut msg -> Cmd msg
-channelMessagesOff portOut =
-    portOut (package "channelMessagesOff")
-
-
-{-| -}
-presenceMessagesOn : PortOut msg -> Cmd msg
-presenceMessagesOn portOut =
-    portOut (package "presenceMessagesOn")
-
-
-{-| -}
-presenceMessagesOff : PortOut msg -> Cmd msg
-presenceMessagesOff portOut =
-    portOut (package "presenceMessagesOff")
-
-
-{-| -}
-heartbeatOn : PortOut msg -> Cmd msg
-heartbeatOn portOut =
-    portOut (package "heartbeatOn")
-
-
-{-| -}
-heartbeatOff : PortOut msg -> Cmd msg
-heartbeatOff portOut =
-    portOut (package "heartbeatOff")
 
 
 

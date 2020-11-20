@@ -15,10 +15,6 @@ module Phoenix exposing
     , InternalError(..)
     , PhoenixMsg(..), phoenixMsg
     , socketState, socketStateToString, isConnected, connectionState, disconnectReason, endPointURL, protocol
-    , allSocketMessagesOn, allSocketMessagesOff
-    , socketChannelMessagesOn, socketChannelMessagesOff
-    , socketPresenceMessagesOn, socketPresenceMessagesOff
-    , heartbeatOn, heartbeatOff
     , queuedChannels, channelQueued, joinedChannels, channelJoined, topicParts
     , queuedPushes, pushQueued, dropQueuedPush
     , timeoutPushes, pushTimedOut, dropTimeoutPush, pushTimeoutCountdown
@@ -206,20 +202,6 @@ immediately.
 ## Socket Information
 
 @docs socketState, socketStateToString, isConnected, connectionState, disconnectReason, endPointURL, protocol
-
-
-## Socket Message Control
-
-These functions enable control over what messages the PhoenixJS `onMessage`
-handler forwards on to Elm.
-
-@docs allSocketMessagesOn, allSocketMessagesOff
-
-@docs socketChannelMessagesOn, socketChannelMessagesOff
-
-@docs socketPresenceMessagesOn, socketPresenceMessagesOff
-
-@docs heartbeatOn, heartbeatOff
 
 
 ## Channels
@@ -1770,58 +1752,6 @@ endPointURL (Model model) =
 protocol : Model -> String
 protocol (Model model) =
     model.socketInfo.protocol
-
-
-
-{- Socket Message Control -}
-
-
-{-| -}
-allSocketMessagesOn : Model -> Cmd Msg
-allSocketMessagesOn (Model model) =
-    Socket.allMessagesOn model.portConfig.phoenixSend
-
-
-{-| -}
-allSocketMessagesOff : Model -> Cmd Msg
-allSocketMessagesOff (Model model) =
-    Socket.allMessagesOff model.portConfig.phoenixSend
-
-
-{-| -}
-socketChannelMessagesOn : Model -> Cmd Msg
-socketChannelMessagesOn (Model model) =
-    Socket.channelMessagesOn model.portConfig.phoenixSend
-
-
-{-| -}
-socketChannelMessagesOff : Model -> Cmd Msg
-socketChannelMessagesOff (Model model) =
-    Socket.channelMessagesOff model.portConfig.phoenixSend
-
-
-{-| -}
-socketPresenceMessagesOn : Model -> Cmd Msg
-socketPresenceMessagesOn (Model model) =
-    Socket.presenceMessagesOn model.portConfig.phoenixSend
-
-
-{-| -}
-socketPresenceMessagesOff : Model -> Cmd Msg
-socketPresenceMessagesOff (Model model) =
-    Socket.presenceMessagesOff model.portConfig.phoenixSend
-
-
-{-| -}
-heartbeatOn : Model -> Cmd Msg
-heartbeatOn (Model model) =
-    Socket.heartbeatOn model.portConfig.phoenixSend
-
-
-{-| -}
-heartbeatOff : Model -> Cmd Msg
-heartbeatOff (Model model) =
-    Socket.heartbeatOff model.portConfig.phoenixSend
 
 
 
