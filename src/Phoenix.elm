@@ -16,7 +16,7 @@ module Phoenix exposing
     , PhoenixMsg(..)
     , socketState, socketStateToString, isConnected, connectionState, disconnectReason, endPointURL, protocol
     , queuedChannels, channelQueued, joinedChannels, channelJoined, topicParts
-    , allQueuedPushes, pushQueued, dropQueuedPush
+    , allQueuedPushes, queuedPushes, pushQueued, dropQueuedPush
     , timeoutPushes, pushTimedOut, dropTimeoutPush, pushTimeoutCountdown
     , dropPush
     , presenceState, presenceDiff, presenceJoins, presenceLeaves, lastPresenceJoin, lastPresenceLeave
@@ -210,7 +210,7 @@ immediately.
 
 ## Pushes
 
-@docs allQueuedPushes, pushQueued, dropQueuedPush
+@docs allQueuedPushes, queuedPushes, pushQueued, dropQueuedPush
 
 @docs timeoutPushes, pushTimedOut, dropTimeoutPush, pushTimeoutCountdown
 
@@ -274,7 +274,7 @@ type Model
         , presenceLeave : Dict Topic (List Presence)
         , presenceState : Dict Topic (List Presence)
         , pushCount : Int
-        , allQueuedPushes : Dict String InternalPush
+        , queuedPushes : Dict String InternalPush
         , sentPushes : Dict String InternalPush
         , socketInfo : SocketInfo.Info
         , socketState : SocketState
@@ -355,7 +355,7 @@ init portConfig =
         , presenceLeave = Dict.empty
         , presenceState = Dict.empty
         , pushCount = 0
-        , allQueuedPushes = Dict.empty
+        , queuedPushes = Dict.empty
         , sentPushes = Dict.empty
         , socketInfo = SocketInfo.init
         , socketState = Disconnected (Socket.ClosedInfo Nothing 0 False "" False)
@@ -948,14 +948,14 @@ push config (Model model) =
 addPushToQueue : InternalPush -> Model -> Model
 addPushToQueue config (Model model) =
     updateQueuedPushes
-        (Dict.insert config.ref config model.allQueuedPushes)
+        (Dict.insert config.ref config model.queuedPushes)
         (Model model)
 
 
 dropQueuedInternalPush : String -> Model -> Model
 dropQueuedInternalPush ref (Model model) =
     updateQueuedPushes
-        (Dict.remove ref model.allQueuedPushes)
+        (Dict.remove ref model.queuedPushes)
         (Model model)
 
 
@@ -1000,7 +1000,7 @@ addSentPush config (Model model) =
 
 sendQueuedPushes : Model -> ( Model, Cmd Msg )
 sendQueuedPushes (Model model) =
-    sendAllPushes model.allQueuedPushes (Model model)
+    sendAllPushes model.queuedPushes (Model model)
 
 
 sendQueuedPushesByTopic : Topic -> Model -> ( Model, Cmd Msg )
@@ -1009,7 +1009,7 @@ sendQueuedPushesByTopic topic (Model model) =
         ( toGo, toKeep ) =
             Dict.partition
                 (\_ internalConfig -> internalConfig.push.topic == topic)
-                model.allQueuedPushes
+                model.queuedPushes
     in
     Model model
         |> updateQueuedPushes toKeep
@@ -1281,7 +1281,7 @@ update msg (Model model) =
                 Channel.PushError topic event payload ref ->
                     let
                         pushRef =
-                            case Dict.get ref model.allQueuedPushes of
+                            case Dict.get ref model.queuedPushes of
                                 Just internalConfig ->
                                     internalConfig.push.ref
 
@@ -1877,7 +1877,23 @@ allQueuedPushes (Model model) =
                 queued
         )
         Dict.empty
-        model.allQueuedPushes
+        model.queuedPushes
+
+
+{-| Retrieve a list of pushes, by [Topic](#Topic), that are queued and waiting
+for their Channel to join before being sent.
+-}
+queuedPushes : Topic -> Model -> List PushConfig
+queuedPushes topic (Model model) =
+    Dict.values model.queuedPushes
+        |> List.filterMap
+            (\internalPushConfig ->
+                if internalPushConfig.push.topic == topic then
+                    Just internalPushConfig.push
+
+                else
+                    Nothing
+            )
 
 
 {-| Determine if a Push is in the queue to be sent when its' Channel joins.
@@ -1889,7 +1905,7 @@ allQueuedPushes (Model model) =
 -}
 pushQueued : (PushConfig -> Bool) -> Model -> Bool
 pushQueued compareFunc (Model model) =
-    model.allQueuedPushes
+    model.queuedPushes
         |> Dict.partition
             (\_ v -> compareFunc v.push)
         |> Tuple.first
@@ -1910,7 +1926,7 @@ dropQueuedPush compare (Model model) =
     updateQueuedPushes
         (Dict.filter
             (\_ internalPush -> not (compare internalPush.push))
-            model.allQueuedPushes
+            model.queuedPushes
         )
         (Model model)
 
@@ -2314,7 +2330,7 @@ updateQueuedPushes : Dict String InternalPush -> Model -> Model
 updateQueuedPushes allQueuedPushes_ (Model model) =
     Model
         { model
-            | allQueuedPushes = allQueuedPushes_
+            | queuedPushes = allQueuedPushes_
         }
 
 
