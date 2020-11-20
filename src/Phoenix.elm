@@ -1947,35 +1947,29 @@ This is useful if you want to show a countdown timer to your users.
 -}
 pushTimeoutCountdown : (Push -> Bool) -> Model -> Maybe Int
 pushTimeoutCountdown compareFunc (Model model) =
-    let
-        maybeInternalPushConfig =
-            model.timeoutPushes
-                |> Dict.partition
-                    (\_ v -> compareFunc v.push)
-                |> Tuple.first
-                |> Dict.values
-                |> List.head
-    in
-    case maybeInternalPushConfig of
-        Nothing ->
-            Nothing
+    model.timeoutPushes
+        |> Dict.filter
+            (\_ internalPushConfig -> compareFunc internalPushConfig.push)
+        |> Dict.values
+        |> List.head
+        |> Maybe.andThen
+            (\internalPushConfig ->
+                case internalPushConfig.retryStrategy of
+                    Drop ->
+                        Nothing
 
-        Just internalPushConfig ->
-            case internalPushConfig.retryStrategy of
-                Drop ->
-                    Nothing
+                    Every seconds ->
+                        Just (seconds - internalPushConfig.timeoutTick)
 
-                Every seconds ->
-                    Just (seconds - internalPushConfig.timeoutTick)
+                    Backoff (seconds :: _) _ ->
+                        Just (seconds - internalPushConfig.timeoutTick)
 
-                Backoff (seconds :: _) _ ->
-                    Just (seconds - internalPushConfig.timeoutTick)
+                    Backoff [] (Just max) ->
+                        Just (max - internalPushConfig.timeoutTick)
 
-                Backoff [] (Just max) ->
-                    Just (max - internalPushConfig.timeoutTick)
-
-                Backoff [] Nothing ->
-                    Nothing
+                    Backoff [] Nothing ->
+                        Nothing
+            )
 
 
 {-| Cancel a [Push](#Push).
