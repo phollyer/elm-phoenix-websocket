@@ -238,7 +238,10 @@ maxHeight { class, orientation, height } =
             height - 120
 
         ( Phone, Landscape ) ->
-            height - 150
+            height - 140
+
+        ( Tablet, _ ) ->
+            height - 140
 
         _ ->
-            height - 200
+            height - 220

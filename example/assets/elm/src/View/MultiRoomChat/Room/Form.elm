@@ -9,7 +9,7 @@ module View.MultiRoomChat.Room.Form exposing
     )
 
 import Device exposing (Device)
-import Element as El exposing (Element)
+import Element as El exposing (DeviceClass(..), Element, Orientation(..))
 import View.Button as Button
 import View.InputField as InputField
 
@@ -70,13 +70,26 @@ onSubmit maybeMsg (Config config) =
 
 view : Device -> Config msg -> Element msg
 view device config =
-    El.column
-        [ El.spacing 10
-        , El.width El.fill
-        ]
+    container device
         [ inputField device config
         , submitButton device config
         ]
+
+
+container : Device -> (List (Element msg) -> Element msg)
+container { class, orientation } =
+    case ( class, orientation ) of
+        ( Phone, Portrait ) ->
+            El.column
+                [ El.spacing 10
+                , El.width El.fill
+                ]
+
+        _ ->
+            El.row
+                [ El.spacing 10
+                , El.width El.fill
+                ]
 
 
 inputField : Device -> Config msg -> Element msg
@@ -93,8 +106,11 @@ inputField device (Config config) =
 
 submitButton : Device -> Config msg -> Element msg
 submitButton device (Config config) =
-    Button.init
-        |> Button.label "Send Message"
-        |> Button.onPress config.onSubmit
-        |> Button.enabled (String.trim config.text /= "")
-        |> Button.view device
+    El.el
+        [ El.alignBottom ]
+        (Button.init
+            |> Button.label "Send Message"
+            |> Button.onPress config.onSubmit
+            |> Button.enabled (String.trim config.text /= "")
+            |> Button.view device
+        )
