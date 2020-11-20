@@ -2,9 +2,9 @@ module Phoenix exposing
     ( Model
     , PortConfig, init
     , connect, addConnectOptions, setConnectOptions, Payload, setConnectParams, disconnect, disconnectAndReset
-    , Topic, join, Event, JoinConfig, setJoinConfig
+    , Topic, join, Event, JoinConfig, joinConfig, setJoinConfig
     , leave, LeaveConfig, setLeaveConfig
-    , RetryStrategy(..), PushConfig, push
+    , RetryStrategy(..), PushConfig, pushConfig, push
     , subscriptions
     , addEvent, addEvents, dropEvents
     , Msg, update, updateWith
@@ -122,7 +122,7 @@ function.
 If you want to send any params to the Channel when you join at the Elixir end
 you can use the [setJoinConfig](#setJoinConfig) function.
 
-@docs Topic, join, Event, JoinConfig, setJoinConfig
+@docs Topic, join, Event, JoinConfig, joinConfig, setJoinConfig
 
 
 # Leaving a Channel
@@ -146,7 +146,7 @@ immediately.
 
 ## Pushing
 
-@docs RetryStrategy, PushConfig, push
+@docs RetryStrategy, PushConfig, pushConfig, push
 
 
 ## Receiving
@@ -574,10 +574,10 @@ join topic (Model model) =
         case model.socketState of
             Connected ->
                 case Dict.get topic model.joinConfigs of
-                    Just joinConfig ->
+                    Just joinConfig_ ->
                         ( addChannelBeingJoined topic (Model model)
                         , Channel.join
-                            joinConfig
+                            joinConfig_
                             model.portConfig.phoenixSend
                         )
 
@@ -676,6 +676,26 @@ type alias JoinConfig =
     , payload : Payload
     , events : List Event
     , timeout : Maybe Int
+    }
+
+
+{-| A helper function for creating a [JoinConfig](#JoinConfig).
+
+    import Phoenix exposing (joinConfig)
+
+    Phoenix.setJoinConfig
+        { joinConfig
+        | topic = "topic:subTopic"
+        , events = [ "event1", "event2" ]
+        }
+
+-}
+joinConfig : JoinConfig
+joinConfig =
+    { topic = ""
+    , payload = JE.null
+    , events = []
+    , timeout = Nothing
     }
 
 
@@ -814,6 +834,28 @@ type alias PushConfig =
     }
 
 
+{-| A helper function for creating a [PushConfig](#PushConfig).
+
+    import Phoenix exposing (pushConfig)
+
+    Phoenix.push
+        { pushConfig
+        | topic = "topic:subTopic"
+        , event = "hello"
+        }
+
+-}
+pushConfig : PushConfig
+pushConfig =
+    { topic = ""
+    , event = ""
+    , payload = JE.null
+    , timeout = Nothing
+    , retryStrategy = Drop
+    , ref = Nothing
+    }
+
+
 type alias InternalPush =
     { push : PushConfig
     , ref : String
@@ -843,10 +885,10 @@ type alias InternalPush =
 
 -}
 push : PushConfig -> Model -> ( Model, Cmd Msg )
-push pushConfig (Model model) =
+push config (Model model) =
     let
         ( pushRef, pushCount ) =
-            case pushConfig.ref of
+            case config.ref of
                 Nothing ->
                     ( model.pushCount + 1 |> String.fromInt
                     , model.pushCount + 1
@@ -856,9 +898,9 @@ push pushConfig (Model model) =
                     ( ref, model.pushCount )
 
         internalConfig =
-            { push = pushConfig
+            { push = config
             , ref = pushRef
-            , retryStrategy = pushConfig.retryStrategy
+            , retryStrategy = config.retryStrategy
             , timeoutTick = 0
             }
     in
@@ -869,9 +911,9 @@ push pushConfig (Model model) =
 
 
 addPushToQueue : InternalPush -> Model -> Model
-addPushToQueue pushConfig (Model model) =
+addPushToQueue config (Model model) =
     updateQueuedPushes
-        (Dict.insert pushConfig.ref pushConfig model.queuedPushes)
+        (Dict.insert config.ref config model.queuedPushes)
         (Model model)
 
 
@@ -1010,11 +1052,11 @@ sendAllPushes pushConfigs model =
 
 
 batchPush : InternalPush -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-batchPush pushConfig ( model, cmd ) =
+batchPush internalPushConfig ( model, cmd ) =
     let
         ( model_, cmd_ ) =
             pushIfJoined
-                pushConfig
+                internalPushConfig
                 model
     in
     ( model_
@@ -2262,16 +2304,16 @@ updateSocketState state (Model model) =
 
 
 updateTimeoutPushes : Dict String InternalPush -> Model -> Model
-updateTimeoutPushes pushConfig (Model model) =
+updateTimeoutPushes timeoutPushes_ (Model model) =
     Model
         { model
-            | timeoutPushes = pushConfig
+            | timeoutPushes = timeoutPushes_
         }
 
 
 updateRetryStrategy : RetryStrategy -> InternalPush -> InternalPush
-updateRetryStrategy retryStrategy pushConfig =
-    { pushConfig
+updateRetryStrategy retryStrategy internalPushConfig =
+    { internalPushConfig
         | retryStrategy = retryStrategy
     }
 
