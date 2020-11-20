@@ -16,7 +16,7 @@ joinConfig =
     }
 
 
-pushConfig : Phoenix.Push
+pushConfig : Phoenix.PushConfig
 pushConfig =
     { topic = ""
     , event = ""

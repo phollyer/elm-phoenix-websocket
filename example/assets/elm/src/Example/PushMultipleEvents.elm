@@ -77,7 +77,7 @@ update msg model =
             case action of
                 Push ->
                     let
-                        pushes =
+                        pushConfigs =
                             List.range 1 3
                                 |> List.map
                                     (\index ->
@@ -89,7 +89,7 @@ update msg model =
                                     )
                                 |> List.reverse
                     in
-                    Phoenix.pushAll pushes model.phoenix
+                    Phoenix.batchParams [ ( Phoenix.push, pushConfigs ) ] model.phoenix
                         |> updatePhoenixWith PhoenixMsg model
 
                 Leave ->
@@ -297,7 +297,8 @@ applicableFunctions : Device -> Element Msg
 applicableFunctions device =
     ApplicableFunctions.init
         |> ApplicableFunctions.functions
-            [ "Phoenix.pushAll"
+            [ "Phoenix.batchParams"
+            , "Phoenix.push"
             , "Phoenix.leave"
             ]
         |> ApplicableFunctions.view device

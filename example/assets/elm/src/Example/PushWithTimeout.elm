@@ -48,7 +48,7 @@ init phoenix =
 
 type alias Model =
     { phoenix : Phoenix.Model
-    , pushConfig : Phoenix.Push
+    , pushConfig : Phoenix.PushConfig
     , retryStrategy : Phoenix.RetryStrategy
     , pushSent : Bool
     , info : List Info

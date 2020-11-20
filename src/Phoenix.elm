@@ -4,7 +4,7 @@ module Phoenix exposing
     , connect, addConnectOptions, setConnectOptions, Payload, setConnectParams, disconnect, disconnectAndReset
     , Topic, join, Event, JoinConfig, setJoinConfig
     , leave, LeaveConfig, setLeaveConfig
-    , RetryStrategy(..), Push, push, pushAll
+    , RetryStrategy(..), PushConfig, push
     , subscriptions
     , addEvent, addEvents, dropEvents
     , Msg, update, updateWith
@@ -146,7 +146,7 @@ immediately.
 
 ## Pushing
 
-@docs RetryStrategy, Push, push, pushAll
+@docs RetryStrategy, PushConfig, push
 
 
 ## Receiving
@@ -804,7 +804,7 @@ type RetryStrategy
     [pushTimeoutCountdown](#pushTimeoutCountdown).
 
 -}
-type alias Push =
+type alias PushConfig =
     { topic : Topic
     , event : Event
     , payload : Payload
@@ -815,7 +815,7 @@ type alias Push =
 
 
 type alias InternalPush =
-    { push : Push
+    { push : PushConfig
     , ref : String
     , retryStrategy : RetryStrategy
     , timeoutTick : Int
@@ -842,7 +842,7 @@ type alias InternalPush =
         model.phoenix
 
 -}
-push : Push -> Model -> ( Model, Cmd Msg )
+push : PushConfig -> Model -> ( Model, Cmd Msg )
 push pushConfig (Model model) =
     let
         ( pushRef, pushCount ) =
@@ -880,47 +880,6 @@ dropQueuedInternalPush ref (Model model) =
     updateQueuedPushes
         (Dict.remove ref model.queuedPushes)
         (Model model)
-
-
-{-| Send a list of [Push](#Push)es to their Channels.
-
-The [Push](#Push)es will be batched together and sent as a single `Cmd`. The
-order in which they will arrive at the Elixir end is unknown.
-
-As with a single [push](#push), if the Socket is not connected or the relevant
-Channels joined, any [push](#push)es that need to be queued, will be, and then
-sent when their respective Channels have joined.
-
--}
-pushAll : List Push -> Model -> ( Model, Cmd Msg )
-pushAll pushes model =
-    sendQueuedPushes <|
-        List.foldl
-            (\pushConfig (Model model_) ->
-                let
-                    ( pushRef, pushCount ) =
-                        case pushConfig.ref of
-                            Nothing ->
-                                ( model_.pushCount + 1 |> String.fromInt
-                                , model_.pushCount + 1
-                                )
-
-                            Just ref ->
-                                ( ref, model_.pushCount )
-
-                    internalConfig =
-                        { push = pushConfig
-                        , ref = pushRef
-                        , retryStrategy = pushConfig.retryStrategy
-                        , timeoutTick = 0
-                        }
-                in
-                Model model_
-                    |> addPushToQueue internalConfig
-                    |> updatePushCount pushCount
-            )
-            model
-            pushes
 
 
 pushIfJoined : InternalPush -> Model -> ( Model, Cmd Msg )
@@ -1823,7 +1782,7 @@ topicParts topic =
 {-| Pushes that are queued and waiting for their Channel to join before being
 sent.
 -}
-queuedPushes : Model -> Dict Topic (List Push)
+queuedPushes : Model -> Dict Topic (List PushConfig)
 queuedPushes (Model model) =
     Dict.foldl
         (\_ internalPush queued ->
@@ -1850,7 +1809,7 @@ queuedPushes (Model model) =
         model.phoenix
 
 -}
-pushQueued : (Push -> Bool) -> Model -> Bool
+pushQueued : (PushConfig -> Bool) -> Model -> Bool
 pushQueued compareFunc (Model model) =
     model.queuedPushes
         |> Dict.partition
@@ -1868,7 +1827,7 @@ pushQueued compareFunc (Model model) =
         model.phoenix
 
 -}
-dropQueuedPush : (Push -> Bool) -> Model -> Model
+dropQueuedPush : (PushConfig -> Bool) -> Model -> Model
 dropQueuedPush compare (Model model) =
     updateQueuedPushes
         (Dict.filter
@@ -1884,7 +1843,7 @@ with their [RetryStrategy](#RetryStrategy).
 Pushes with a [RetryStrategy](#RetryStrategy) of `Drop`, won't make it here.
 
 -}
-timeoutPushes : Model -> Dict String (List Push)
+timeoutPushes : Model -> Dict String (List PushConfig)
 timeoutPushes (Model model) =
     Dict.foldl
         (\_ internalPush queued ->
@@ -1912,7 +1871,7 @@ with it's [RetryStrategy](#RetryStrategy).
         model.phoenix
 
 -}
-pushTimedOut : (Push -> Bool) -> Model -> Bool
+pushTimedOut : (PushConfig -> Bool) -> Model -> Bool
 pushTimedOut compareFunc (Model model) =
     model.timeoutPushes
         |> Dict.partition
@@ -1931,7 +1890,7 @@ pushTimedOut compareFunc (Model model) =
 This will only work after a `push` has timed out and before it is re-tried.
 
 -}
-dropTimeoutPush : (Push -> Bool) -> Model -> Model
+dropTimeoutPush : (PushConfig -> Bool) -> Model -> Model
 dropTimeoutPush compare (Model model) =
     updateTimeoutPushes
         (Dict.filter
@@ -1948,7 +1907,7 @@ dropTimeoutPush compare (Model model) =
 This is useful if you want to show a countdown timer to your users.
 
 -}
-pushTimeoutCountdown : (Push -> Bool) -> Model -> Maybe Int
+pushTimeoutCountdown : (PushConfig -> Bool) -> Model -> Maybe Int
 pushTimeoutCountdown compareFunc (Model model) =
     model.timeoutPushes
         |> Dict.filter
@@ -1981,7 +1940,7 @@ This will cancel pushes that are queued to be sent when their Channel joins. It
 will also prevent pushes that timeout from being re-tried.
 
 -}
-dropPush : (Push -> Bool) -> Model -> Model
+dropPush : (PushConfig -> Bool) -> Model -> Model
 dropPush compare model =
     model
         |> dropQueuedPush compare
@@ -1989,7 +1948,7 @@ dropPush compare model =
         |> dropSentPush compare
 
 
-dropSentPush : (Push -> Bool) -> Model -> Model
+dropSentPush : (PushConfig -> Bool) -> Model -> Model
 dropSentPush compare (Model model) =
     updateSentPushes
         (Dict.filter
