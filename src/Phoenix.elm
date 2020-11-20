@@ -2129,15 +2129,15 @@ lastPresenceLeave topic (Model model) =
 
 -}
 batch : List (Model -> ( Model, Cmd Msg )) -> Model -> ( Model, Cmd Msg )
-batch list model =
-    List.foldl map ( model, Cmd.none ) list
+batch functions model =
+    List.foldl batchCmds ( model, Cmd.none ) functions
 
 
-map : (Model -> ( Model, Cmd Msg )) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-map func ( model, cmd ) =
-    func model
-        |> Tuple.mapSecond
-            (\cmd_ -> Cmd.batch [ cmd, cmd_ ])
+batchCmds : (Model -> ( Model, Cmd Msg )) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+batchCmds func ( model, cmd ) =
+    Tuple.mapSecond
+        (\cmd_ -> Cmd.batch [ cmd, cmd_ ])
+        (func model)
 
 
 {-| Batch a list of parameters onto their functions.
@@ -2155,9 +2155,7 @@ map func ( model, cmd ) =
 batchWithParams : List ( a -> Model -> ( Model, Cmd Msg ), List a ) -> Model -> ( Model, Cmd Msg )
 batchWithParams list model =
     batch
-        (List.map
-            (\( func, params ) -> List.map func params)
-            list
+        (List.map (\( func, params ) -> List.map func params) list
             |> List.concat
         )
         model
