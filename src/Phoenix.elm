@@ -20,7 +20,7 @@ module Phoenix exposing
     , timeoutPushes, pushTimedOut, dropTimeoutPush, pushTimeoutCountdown
     , dropPush
     , presenceState, presenceDiff, presenceJoins, presenceLeaves, lastPresenceJoin, lastPresenceLeave
-    , batch, batchParams
+    , batch, batchWithParams
     , log, startLogging, stopLogging
     )
 
@@ -224,7 +224,7 @@ immediately.
 
 ## Batching
 
-@docs batch, batchParams
+@docs batch, batchWithParams
 
 
 ## Logging
@@ -1388,7 +1388,7 @@ update msg (Model model) =
                     Model model
                         |> updateDisconnectReason Nothing
                         |> updateSocketState Connected
-                        |> batchParams
+                        |> batchWithParams
                             [ ( join, queuedChannels (Model model) )
                             , ( leave, queuedLeaves (Model model) )
                             ]
@@ -1398,7 +1398,7 @@ update msg (Model model) =
                     Model model
                         |> updateDisconnectReason closedInfo.reason
                         |> updateSocketState (Disconnected closedInfo)
-                        |> batchParams
+                        |> batchWithParams
                             [ ( join, queuedChannels (Model model) ) ]
                         |> toPhoenixMsg (SocketMessage (StateChange (Disconnected closedInfo)))
 
@@ -2144,7 +2144,7 @@ map func ( model, cmd ) =
 
     import Phoenix
 
-    Phoenix.batchParams
+    Phoenix.batchWithParams
         [ (Phoenix.join, [ "topic:subTopic1", "topic:subTopic2" ])
         , (Phoenix.leave, [ "topic:subTopic3", "topic:subTopic4" ])
         , (Phoenix.push, [ pushConfig1, pushConfig2, pushConfig3 ])
@@ -2152,8 +2152,8 @@ map func ( model, cmd ) =
         model.phoenix
 
 -}
-batchParams : List ( a -> Model -> ( Model, Cmd Msg ), List a ) -> Model -> ( Model, Cmd Msg )
-batchParams list model =
+batchWithParams : List ( a -> Model -> ( Model, Cmd Msg ), List a ) -> Model -> ( Model, Cmd Msg )
+batchWithParams list model =
     batch
         (List.map
             (\( func, params ) -> List.map func params)
