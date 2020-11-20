@@ -89,7 +89,7 @@ update msg model =
                                     )
                                 |> List.reverse
                     in
-                    Phoenix.batchParams [ ( Phoenix.push, pushConfigs ) ] model.phoenix
+                    Phoenix.batchWithParams [ ( Phoenix.push, pushConfigs ) ] model.phoenix
                         |> updatePhoenixWith PhoenixMsg model
 
                 Leave ->
