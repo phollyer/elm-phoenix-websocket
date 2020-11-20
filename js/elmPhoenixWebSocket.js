@@ -174,7 +174,7 @@ let ElmPhoenixWebSocket = {
 
         // Ensure this is set to false before trying to connect.
         this.allowReconnect = false
-
+        this.socketSend("Connecting", {})
         this.socket.connect()
     },
 
@@ -227,6 +227,7 @@ let ElmPhoenixWebSocket = {
         Disconnect from the socket.
     */
     disconnect( params ) {
+        this.socketSend("Disconnecting", {})
         this.socket.disconnect( () => {}, params.code)
     },
 
@@ -271,9 +272,9 @@ let ElmPhoenixWebSocket = {
 
     presenceMessagesOff() { this.socketMessages.presence = false },
 
-    heartbeatMessagesOn() { this.socketMessages.heartbeat = true },
+    heartbeatOn() { this.socketMessages.heartbeat = true },
 
-    heartbeatMessagesOff() { this.socketMessages.heartbeat = false },
+    heartbeatOff() { this.socketMessages.heartbeat = false },
 
     /***** Socket Information *****/
 
@@ -457,8 +458,6 @@ let ElmPhoenixWebSocket = {
         this.channels[params.topic] = channel
 
         this.allOn(params)
-
-        this.allOn({topic: params.topic, events: this.events[params.topic]})
 
         return channel
     },
