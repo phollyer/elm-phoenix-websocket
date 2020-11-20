@@ -78,7 +78,9 @@ type alias Payload =
 
   - `events` - A list of events to receive on the Channel.
 
-  - `payload` - Data to be sent to the Channel when joining. If nothing
+  - `payload` - Data to be sent to the Channel when joining. If no data is
+    required, set this to
+    [Json.Encode.null](https://package.elm-lang.org/packages/elm/json/latest/Json-Encode#null).
 
   - `timeout` - Optional timeout, in ms, before retrying to join if the previous
     attempt failed.
@@ -109,12 +111,13 @@ type alias PortOut msg =
 
 {-| Join a Channel.
 
+    import Json.Encode as JE
     import Phoenix.Channel as Channel
     import Ports.Phoenix as Port
 
     Channel.join
         { topic = "topic:subtopic"
-        , payload = Nothing
+        , payload = JE.null
         , events = []
         , timeout = Nothing
         }
