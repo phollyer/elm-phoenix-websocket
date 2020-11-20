@@ -125,7 +125,7 @@ update msg model =
 
                 Phoenix.SocketMessage (Phoenix.ChannelMessage { topic, event, payload }) ->
                     case ( Phoenix.topicParts topic, event ) of
-                        ( ( "example", "manage_presence_messages" ), "phx_reply" ) ->
+                        ( [ "example", "manage_presence_messages" ], "phx_reply" ) ->
                             case decodeExampleId payload of
                                 Ok exampleId ->
                                     Phoenix.leave "example:manage_presence_messages" newModel.phoenix
@@ -135,7 +135,7 @@ update msg model =
                                 Err _ ->
                                     ( newModel, cmd )
 
-                        ( ( "example", _ ), "phx_reply" ) ->
+                        ( [ "example", _ ], "phx_reply" ) ->
                             case decodeUserId payload of
                                 Ok userId ->
                                     ( { newModel | maybeUserId = Just userId }, cmd )

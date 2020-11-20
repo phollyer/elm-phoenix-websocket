@@ -1878,14 +1878,9 @@ dynamically created `subTopic`.
         ...
 
 -}
-topicParts : Topic -> ( String, String )
+topicParts : Topic -> List String
 topicParts topic =
-    case String.split ":" topic of
-        topic_ :: subTopic :: _ ->
-            ( topic_, subTopic )
-
-        _ ->
-            ( "", "" )
+    String.split ":" topic
 
 
 
