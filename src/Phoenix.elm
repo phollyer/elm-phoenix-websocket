@@ -1342,7 +1342,7 @@ update msg (Model model) =
                             [ ( join, queuedChannels (Model model) )
                             , ( leave, queuedLeaves (Model model) )
                             ]
-                        |> toPhoenixMsg (StateChanged Connected)
+                        |> toPhoenixMsg (SocketMessage (StateChange Connected))
 
                 Socket.Closed closedInfo ->
                     Model model
@@ -1350,24 +1350,18 @@ update msg (Model model) =
                         |> updateSocketState (Disconnected closedInfo)
                         |> batchList
                             [ ( join, queuedChannels (Model model) ) ]
-                        |> toPhoenixMsg (StateChanged (Disconnected closedInfo))
+                        |> toPhoenixMsg (SocketMessage (StateChange (Disconnected closedInfo)))
 
                 Socket.Connecting ->
                     ( updateSocketState Connecting (Model model)
                     , Cmd.none
-                    , StateChanged Connecting
+                    , SocketMessage (StateChange Connecting)
                     )
 
                 Socket.Disconnecting ->
                     ( updateSocketState Disconnecting (Model model)
                     , Cmd.none
-                    , StateChanged Disconnecting
-                    )
-
-                Socket.Error reason ->
-                    ( Model model
-                    , Cmd.none
-                    , Error (Socket reason)
+                    , SocketMessage (StateChange Disconnecting)
                     )
 
                 Socket.Channel message ->
@@ -1398,6 +1392,12 @@ update msg (Model model) =
 
                         _ ->
                             ( Model model, Cmd.none, NoOp )
+
+                Socket.Error reason ->
+                    ( Model model
+                    , Cmd.none
+                    , Error (Socket reason)
+                    )
 
                 Socket.InternalError errorType ->
                     case errorType of
@@ -1528,7 +1528,8 @@ type SocketState
 
 {-| -}
 type SocketMessage
-    = ChannelMessage
+    = StateChange SocketState
+    | ChannelMessage
         { topic : Topic
         , event : Event
         , payload : Value
@@ -1682,7 +1683,6 @@ type InternalError
 -}
 type PhoenixMsg
     = NoOp
-    | StateChanged SocketState
     | SocketMessage SocketMessage
     | ChannelResponse ChannelResponse
     | ChannelEvent Topic Event Payload

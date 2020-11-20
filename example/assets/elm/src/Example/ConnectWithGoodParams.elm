@@ -84,8 +84,8 @@ update msg model =
                         |> Phoenix.updateWith PhoenixMsg model
             in
             case phoenixMsg of
-                Phoenix.StateChanged response ->
-                    ( { newModel | responses = response :: newModel.responses }, cmd )
+                Phoenix.SocketMessage (Phoenix.StateChange state) ->
+                    ( { newModel | responses = state :: newModel.responses }, cmd )
 
                 _ ->
                     ( newModel, cmd )
@@ -204,8 +204,8 @@ info device responses =
 
 
 stateToString : Phoenix.SocketState -> String
-stateToString state =
-    case state of
+stateToString message =
+    case message of
         Phoenix.Connecting ->
             "Connecting"
 
