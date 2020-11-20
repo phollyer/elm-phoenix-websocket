@@ -9,6 +9,7 @@ module Example.SimpleConnect exposing
 
 import Device exposing (Device)
 import Element as El exposing (DeviceClass(..), Element, Orientation(..))
+import Example.Utils exposing (updatePhoenixWith)
 import Extra.String as String
 import Phoenix
 import View.Button as Button
@@ -27,7 +28,7 @@ import View.Group as Group
 
 init : Phoenix.Model -> Model
 init phoenix =
-    phoenix
+    { phoenix = phoenix }
 
 
 
@@ -35,7 +36,7 @@ init phoenix =
 
 
 type alias Model =
-    Phoenix.Model
+    { phoenix : Phoenix.Model }
 
 
 type Action
@@ -58,23 +59,20 @@ update msg model =
         GotControlClick action ->
             case action of
                 Connect ->
-                    Phoenix.connect model
-                        |> updateWith PhoenixMsg
+                    Phoenix.connect model.phoenix
+                        |> updatePhoenixWith PhoenixMsg model
 
                 Disconnect ->
-                    Phoenix.disconnect Nothing model
-                        |> updateWith PhoenixMsg
+                    Phoenix.disconnect Nothing model.phoenix
+                        |> updatePhoenixWith PhoenixMsg model
 
         PhoenixMsg subMsg ->
-            Phoenix.update subMsg model
-                |> updateWith PhoenixMsg
-
-
-updateWith : (Phoenix.Msg -> Msg) -> ( Phoenix.Model, Cmd Phoenix.Msg ) -> ( Model, Cmd Msg )
-updateWith toMsg ( phoenix, phoenixCmd ) =
-    ( phoenix
-    , Cmd.map toMsg phoenixCmd
-    )
+            let
+                ( newModel, cmd, phoenixMsg ) =
+                    Phoenix.update subMsg model.phoenix
+                        |> Phoenix.updateWith PhoenixMsg model
+            in
+            ( newModel, cmd )
 
 
 
@@ -84,7 +82,7 @@ updateWith toMsg ( phoenix, phoenixCmd ) =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.map PhoenixMsg <|
-        Phoenix.subscriptions model
+        Phoenix.subscriptions model.phoenix
 
 
 
@@ -114,7 +112,7 @@ description =
 
 
 controls : Device -> Model -> Element Msg
-controls device phoenix =
+controls device { phoenix } =
     Controls.init
         |> Controls.elements
             [ connect device phoenix
@@ -158,7 +156,7 @@ disconnect device phoenix =
 
 
 feedback : Device -> Model -> Element Msg
-feedback device phoenix =
+feedback device { phoenix } =
     Feedback.init
         |> Feedback.elements
             [ FeedbackPanel.init

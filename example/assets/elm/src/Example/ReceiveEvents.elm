@@ -97,11 +97,11 @@ update msg model =
 
         PhoenixMsg phxMsg ->
             let
-                ( newModel, cmd ) =
+                ( newModel, cmd, phoenixMsg ) =
                     Phoenix.update phxMsg model.phoenix
-                        |> updatePhoenixWith PhoenixMsg model
+                        |> Phoenix.updateWith PhoenixMsg model
             in
-            case Phoenix.phoenixMsg newModel.phoenix of
+            case phoenixMsg of
                 Phoenix.ChannelResponse response ->
                     ( { newModel | info = Response response :: newModel.info }, cmd )
 

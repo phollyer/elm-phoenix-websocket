@@ -45,7 +45,7 @@ update msg model =
     case msg of
         PhoenixMsg phoenixMsg ->
             let
-                ( phx, phxCmd ) =
+                ( phx, phxCmd, _ ) =
                     Phoenix.update phoenixMsg <|
                         Session.phoenix model
             in

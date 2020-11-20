@@ -94,13 +94,17 @@ update msg model =
                                 , ref = Just "timeout_push"
                                 , retryStrategy = model.retryStrategy
                             }
+
+                        ( phoenix, phoenixCmd ) =
+                            Phoenix.push config model.phoenix
                     in
-                    Phoenix.push config model.phoenix
-                        |> updatePhoenixWith PhoenixMsg
-                            { model
-                                | pushConfig = config
-                                , pushSent = True
-                            }
+                    ( { model
+                        | phoenix = phoenix
+                        , pushConfig = config
+                        , pushSent = True
+                      }
+                    , Cmd.map PhoenixMsg phoenixCmd
+                    )
 
                 CancelRetry ->
                     ( { model
@@ -129,11 +133,11 @@ update msg model =
 
         PhoenixMsg phxMsg ->
             let
-                ( newModel, cmd ) =
+                ( newModel, cmd, phoenixMsg ) =
                     Phoenix.update phxMsg model.phoenix
-                        |> updatePhoenixWith PhoenixMsg model
+                        |> Phoenix.updateWith PhoenixMsg model
             in
-            case Phoenix.phoenixMsg newModel.phoenix of
+            case phoenixMsg of
                 Phoenix.ChannelResponse (Phoenix.PushTimeout topic event ref payload) ->
                     if model.pushConfig.retryStrategy == Phoenix.Drop then
                         ( { newModel

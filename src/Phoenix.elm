@@ -7,13 +7,13 @@ module Phoenix exposing
     , RetryStrategy(..), Push, push, pushAll
     , subscriptions
     , addEvent, addEvents, dropEvents
-    , Msg, update
+    , Msg, update, updateWith
     , SocketState(..), SocketMessage(..)
     , OriginalPayload, PushRef, ChannelResponse(..)
     , Presence, PresenceDiff, PresenceEvent(..)
     , Error(..)
     , InternalError(..)
-    , PhoenixMsg(..), phoenixMsg
+    , PhoenixMsg(..)
     , socketState, socketStateToString, isConnected, connectionState, disconnectReason, endPointURL, protocol
     , queuedChannels, channelQueued, joinedChannels, channelJoined, topicParts
     , queuedPushes, pushQueued, dropQueuedPush
@@ -161,7 +161,7 @@ immediately.
 
 # Update
 
-@docs Msg, update
+@docs Msg, update, updateWith
 
 
 ## Pattern Matching
@@ -193,7 +193,7 @@ immediately.
 
 ### PhoenixMsg
 
-@docs PhoenixMsg, phoenixMsg
+@docs PhoenixMsg
 
 
 # Helpers
@@ -269,7 +269,6 @@ type Model
         , disconnectReason : Maybe String
         , joinConfigs : Dict Topic JoinConfig
         , leaveConfigs : Dict Topic LeaveConfig
-        , phoenixMsg : PhoenixMsg
         , portConfig : PortConfig
         , presenceDiff : Dict Topic (List PresenceDiff)
         , presenceJoin : Dict Topic (List Presence)
@@ -346,7 +345,6 @@ init portConfig =
         , disconnectReason = Nothing
         , joinConfigs = Dict.empty
         , leaveConfigs = Dict.empty
-        , phoenixMsg = NoOp
         , portConfig = portConfig
         , presenceDiff = Dict.empty
         , presenceJoin = Dict.empty
@@ -1168,7 +1166,7 @@ type Msg
     | TimeoutTick Time.Posix
 
 
-{-| This is a standard `update` function that you should be used to.
+{-| Update.
 
     import Phoenix
 
@@ -1176,55 +1174,59 @@ type Msg
         = PhoenixMsg Phoenix.Msg
         | ...
 
-    update : Msg -> Model -> (Model, Cmd Msg)
+    update : Msg -> Model -> (Model, Cmd Msg, PhoenixMsg)
     update msg model =
         case msg of
             PhoenixMsg subMsg ->
                 let
-                    (phoenix, phoenixCmd) =
+                    (phoenix, phoenixCmd, phoenixMsg) =
                         Phoenix.update subMsg model.phoenix
                 in
-                ( { model | phoenix = phoenix}
-                , Cmd.map PhoenixMsg phoenixCmd
-                )
+                case phoenixMsg of
+                    ChannelClosed topic ->
+                        ( { model | phoenix = phoenix}
+                        , Cmd.map PhoenixMsg phoenixCmd
+                        )
+
+                    ...
 
             ...
 
 -}
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg, PhoenixMsg )
 update msg (Model model) =
     case msg of
         ReceivedChannelMsg channelMsg ->
             case channelMsg of
                 Channel.Closed topic ->
-                    ( updatePhoenixMsg (ChannelClosed topic) (Model model), Cmd.none )
+                    ( Model model, Cmd.none, ChannelClosed topic )
 
                 Channel.Error topic ->
-                    ( updatePhoenixMsg (Error (Channel topic)) (Model model), Cmd.none )
+                    ( Model model, Cmd.none, Error (Channel topic) )
 
                 Channel.JoinError topic payload ->
-                    ( updatePhoenixMsg (ChannelResponse (JoinError topic payload)) (Model model), Cmd.none )
+                    ( Model model, Cmd.none, ChannelResponse (JoinError topic payload) )
 
                 Channel.JoinOk topic payload ->
                     Model model
                         |> addJoinedChannel topic
                         |> dropChannelBeingJoined topic
-                        |> updatePhoenixMsg (ChannelResponse (JoinOk topic payload))
                         |> sendQueuedPushesByTopic topic
+                        |> toPhoenixMsg (ChannelResponse (JoinOk topic payload))
 
                 Channel.JoinTimeout topic payload ->
-                    ( updatePhoenixMsg (ChannelResponse (JoinTimeout topic payload)) (Model model), Cmd.none )
+                    ( Model model, Cmd.none, ChannelResponse (JoinTimeout topic payload) )
 
                 Channel.LeaveOk topic ->
                     ( Model model
                         |> dropJoinedChannel topic
                         |> dropChannelBeingLeft topic
-                        |> updatePhoenixMsg (ChannelResponse (LeaveOk topic))
                     , Cmd.none
+                    , ChannelResponse (LeaveOk topic)
                     )
 
                 Channel.Message topic event payload ->
-                    ( updatePhoenixMsg (ChannelEvent topic event payload) (Model model), Cmd.none )
+                    ( Model model, Cmd.none, ChannelEvent topic event payload )
 
                 Channel.PushError topic event payload ref ->
                     let
@@ -1236,10 +1238,9 @@ update msg (Model model) =
                                 Nothing ->
                                     Nothing
                     in
-                    ( Model model
-                        |> dropQueuedInternalPush ref
-                        |> updatePhoenixMsg (ChannelResponse (PushError topic event pushRef payload))
+                    ( dropQueuedInternalPush ref (Model model)
                     , Cmd.none
+                    , ChannelResponse (PushError topic event pushRef payload)
                     )
 
                 Channel.PushOk topic event payload ref ->
@@ -1252,91 +1253,83 @@ update msg (Model model) =
                                 Nothing ->
                                     Nothing
                     in
-                    ( Model model
-                        |> dropQueuedInternalPush ref
-                        |> updatePhoenixMsg (ChannelResponse (PushOk topic event pushRef payload))
+                    ( dropQueuedInternalPush ref (Model model)
                     , Cmd.none
+                    , ChannelResponse (PushOk topic event pushRef payload)
                     )
 
                 Channel.PushTimeout topic event payload ref ->
                     case Dict.get ref model.sentPushes of
                         Just internalConfig ->
-                            let
-                                pushRef =
-                                    internalConfig.push.ref
-
-                                responseModel =
-                                    Model model
-                                        |> dropQueuedInternalPush ref
-                                        |> updatePhoenixMsg
-                                            (ChannelResponse (PushTimeout topic event pushRef payload))
-                            in
-                            case internalConfig.retryStrategy of
+                            ( case internalConfig.retryStrategy of
                                 Drop ->
-                                    ( responseModel, Cmd.none )
+                                    dropQueuedInternalPush ref (Model model)
 
                                 _ ->
-                                    ( addTimeoutPush internalConfig responseModel, Cmd.none )
+                                    dropQueuedInternalPush ref (Model model)
+                                        |> addTimeoutPush internalConfig
+                            , Cmd.none
+                            , ChannelResponse (PushTimeout topic event internalConfig.push.ref payload)
+                            )
 
                         Nothing ->
-                            ( updatePhoenixMsg
-                                (ChannelResponse (PushTimeout topic event Nothing payload))
-                                (Model model)
+                            ( Model model
                             , Cmd.none
+                            , ChannelResponse (PushTimeout topic event Nothing payload)
                             )
 
                 Channel.InternalError errorType ->
                     case errorType of
                         Channel.DecoderError error ->
-                            ( updatePhoenixMsg (InternalError (DecoderError ("Channel : " ++ error))) (Model model)
+                            ( Model model
                             , Cmd.none
+                            , InternalError (DecoderError ("Channel : " ++ error))
                             )
 
                         Channel.InvalidMessage topic error _ ->
-                            ( updatePhoenixMsg (InternalError (InvalidMessage ("Channel : " ++ topic ++ " : " ++ error))) (Model model)
+                            ( Model model
                             , Cmd.none
+                            , InternalError (InvalidMessage ("Channel : " ++ topic ++ " : " ++ error))
                             )
 
         ReceivedPresenceMsg presenceMsg ->
             case presenceMsg of
                 Presence.Diff topic diff ->
-                    ( Model model
-                        |> addPresenceDiff topic diff
-                        |> updatePhoenixMsg (PresenceEvent (Diff topic diff))
+                    ( addPresenceDiff topic diff (Model model)
                     , Cmd.none
+                    , PresenceEvent (Diff topic diff)
                     )
 
                 Presence.Join topic join_ ->
-                    ( Model model
-                        |> addPresenceJoin topic join_
-                        |> updatePhoenixMsg (PresenceEvent (Join topic join_))
+                    ( addPresenceJoin topic join_ (Model model)
                     , Cmd.none
+                    , PresenceEvent (Join topic join_)
                     )
 
                 Presence.Leave topic leave_ ->
-                    ( Model model
-                        |> addPresenceLeave topic leave_
-                        |> updatePhoenixMsg (PresenceEvent (Leave topic leave_))
+                    ( addPresenceLeave topic leave_ (Model model)
                     , Cmd.none
+                    , PresenceEvent (Leave topic leave_)
                     )
 
                 Presence.State topic state ->
-                    ( Model model
-                        |> replacePresenceState topic state
-                        |> updatePhoenixMsg (PresenceEvent (State topic state))
+                    ( replacePresenceState topic state (Model model)
                     , Cmd.none
+                    , PresenceEvent (State topic state)
                     )
 
                 Presence.InternalError errorType ->
                     case errorType of
                         Presence.DecoderError error ->
-                            ( updatePhoenixMsg (InternalError (DecoderError ("Presence : " ++ error))) (Model model)
+                            ( Model model
                             , Cmd.none
+                            , InternalError (DecoderError ("Presence : " ++ error))
                             )
 
                         Presence.InvalidMessage topic error ->
-                            ( updatePhoenixMsg (InternalError (InvalidMessage ("Presence : " ++ topic ++ " : " ++ error))) (Model model)
+                            ( Model model
                             , Cmd.none
+                            , InternalError (InvalidMessage ("Presence : " ++ topic ++ " : " ++ error))
                             )
 
         ReceivedSocketMsg subMsg ->
@@ -1345,83 +1338,91 @@ update msg (Model model) =
                     Model model
                         |> updateDisconnectReason Nothing
                         |> updateSocketState Connected
-                        |> updatePhoenixMsg (StateChanged Connected)
                         |> batchList
                             [ ( join, queuedChannels (Model model) )
                             , ( leave, queuedLeaves (Model model) )
                             ]
+                        |> toPhoenixMsg (StateChanged Connected)
 
                 Socket.Closed closedInfo ->
                     Model model
                         |> updateDisconnectReason closedInfo.reason
                         |> updateSocketState (Disconnected closedInfo)
-                        |> updatePhoenixMsg (StateChanged (Disconnected closedInfo))
                         |> batchList
                             [ ( join, queuedChannels (Model model) ) ]
+                        |> toPhoenixMsg (StateChanged (Disconnected closedInfo))
 
                 Socket.Connecting ->
-                    ( Model model
-                        |> updateSocketState Connecting
-                        |> updatePhoenixMsg (StateChanged Connecting)
+                    ( updateSocketState Connecting (Model model)
                     , Cmd.none
+                    , StateChanged Connecting
                     )
 
                 Socket.Disconnecting ->
-                    ( Model model
-                        |> updateSocketState Disconnecting
-                        |> updatePhoenixMsg (StateChanged Disconnecting)
+                    ( updateSocketState Disconnecting (Model model)
                     , Cmd.none
+                    , StateChanged Disconnecting
                     )
 
                 Socket.Error reason ->
-                    ( updatePhoenixMsg (Error (Socket reason)) (Model model)
+                    ( Model model
                     , Cmd.none
+                    , Error (Socket reason)
                     )
 
                 Socket.Channel message ->
-                    ( updatePhoenixMsg (SocketMessage (ChannelMessage message)) (Model model)
+                    ( Model model
                     , Cmd.none
+                    , SocketMessage (ChannelMessage message)
                     )
 
                 Socket.Presence message ->
-                    ( updatePhoenixMsg (SocketMessage (PresenceMessage message)) (Model model)
+                    ( Model model
                     , Cmd.none
+                    , SocketMessage (PresenceMessage message)
                     )
 
                 Socket.Heartbeat message ->
-                    ( updatePhoenixMsg (SocketMessage (Heartbeat message)) (Model model)
+                    ( Model model
                     , Cmd.none
+                    , SocketMessage (Heartbeat message)
                     )
 
                 Socket.Info socketInfo ->
                     case socketInfo of
                         Socket.All info ->
-                            ( Model model
-                                |> updateSocketInfo info
-                                |> updatePhoenixMsg NoOp
+                            ( updateSocketInfo info (Model model)
                             , Cmd.none
+                            , NoOp
                             )
 
                         _ ->
-                            ( Model model, Cmd.none )
+                            ( Model model, Cmd.none, NoOp )
 
                 Socket.InternalError errorType ->
                     case errorType of
                         Socket.DecoderError error ->
-                            ( updatePhoenixMsg (InternalError (DecoderError ("Socket : " ++ error))) (Model model)
+                            ( Model model
                             , Cmd.none
+                            , InternalError (DecoderError ("Socket : " ++ error))
                             )
 
                         Socket.InvalidMessage error ->
-                            ( updatePhoenixMsg (InternalError (InvalidMessage ("Socket : " ++ error))) (Model model)
+                            ( Model model
                             , Cmd.none
+                            , InternalError (InvalidMessage ("Socket : " ++ error))
                             )
 
         TimeoutTick _ ->
             Model model
-                |> updatePhoenixMsg NoOp
                 |> timeoutTick
                 |> sendTimeoutPushes
+                |> toPhoenixMsg NoOp
+
+
+toPhoenixMsg : PhoenixMsg -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg, PhoenixMsg )
+toPhoenixMsg phoenixMsg ( model, cmd ) =
+    ( model, cmd, phoenixMsg )
 
 
 timeoutTick : Model -> Model
@@ -1436,6 +1437,43 @@ timeoutTick (Model model) =
             model.timeoutPushes
         )
         (Model model)
+
+
+{-| Helper function to use after [update](#update).
+
+    import Phoenix
+
+    type alias Model =
+        { phoenix : Phoenix.Model
+          ...
+        }
+
+    type Msg
+        = PhoenixMsg Phoenix.Msg
+
+    update : Msg -> Model -> (Model, Cmd Msg)
+    update msg model =
+        case msg of
+            PhoenixMsg subMsg ->
+                let
+                    (model, cmd, phoenixMsg) =
+                        Phoenix.update subMsg model.phoenix
+                            |> Phoenix.updateWith PhoenixMsg model
+                in
+                case phoenixMsg of
+                    ...
+
+-}
+updateWith :
+    (Msg -> msg)
+    -> { model | phoenix : Model }
+    -> ( Model, Cmd Msg, PhoenixMsg )
+    -> ( { model | phoenix : Model }, Cmd msg, PhoenixMsg )
+updateWith toMsg model ( phoenix, phoenixCmd, phoenixMsg ) =
+    ( { model | phoenix = phoenix }
+    , Cmd.map toMsg phoenixCmd
+    , phoenixMsg
+    )
 
 
 addPresenceDiff : Topic -> PresenceDiff -> Model -> Model
@@ -1645,48 +1683,6 @@ type PhoenixMsg
     | PresenceEvent PresenceEvent
     | Error Error
     | InternalError InternalError
-
-
-{-| Retrieve the [PhoenixMsg](#PhoenixMsg). Use it to pattern match on.
-
-    import Phoenix
-
-    type alias Model =
-        { phoenix : Phoenix.Model
-        ...
-        }
-
-    type Msg
-        = ReceivedPhoenixMsg Phoenix.Msg
-        | ...
-
-    update : Msg -> Model -> (Model, Cmd Msg)
-    update msg model =
-        case msg of
-            ReceivedPhoenixMsg subMsg ->
-                let
-                    (phoenix, phoenixCmd) =
-                        Phoenix.update subMsg model.phoenix
-                in
-                case Phoenix.phoenixMsg phoenix of
-                    ChannelResponse (JoinOk "topic:subTopic" payload) ->
-                        ...
-
-                    StateChange state ->
-                        case state of
-                            Connected ->
-                                ...
-
-                            Disconnected {reason, code, wasClean} ->
-                                ...
-
-                    ChannelEvent topic event payload ->
-                        ...
-
--}
-phoenixMsg : Model -> PhoenixMsg
-phoenixMsg (Model model) =
-    model.phoenixMsg
 
 
 
@@ -2206,14 +2202,6 @@ updateLeaveConfigs configs (Model model) =
     Model
         { model
             | leaveConfigs = configs
-        }
-
-
-updatePhoenixMsg : PhoenixMsg -> Model -> Model
-updatePhoenixMsg msg (Model model) =
-    Model
-        { model
-            | phoenixMsg = msg
         }
 
 

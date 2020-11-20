@@ -14,6 +14,7 @@ import Element as El exposing (DeviceClass(..), Element, Orientation(..))
 import Example.ConnectWithBadParams as ConnectWithBadParams
 import Example.ConnectWithGoodParams as ConnectWithGoodParams
 import Example.SimpleConnect as SimpleConnect
+import Page.Utils exposing (updatePhoenixSessionWith)
 import Phoenix
 import Route
 import Session exposing (Session)
@@ -89,7 +90,7 @@ update msg model =
 
         ( GotPhoenixMsg subMsg, _ ) ->
             Phoenix.update subMsg phoenix
-                |> updatePhoenix model
+                |> updatePhoenixSessionWith GotPhoenixMsg model
 
         ( GotSimpleConnectMsg subMsg, SimpleConnect subModel ) ->
             SimpleConnect.update subMsg subModel

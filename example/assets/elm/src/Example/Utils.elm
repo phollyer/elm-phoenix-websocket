@@ -3,7 +3,7 @@ module Example.Utils exposing
     , updatePhoenixWith
     )
 
-import Phoenix
+import Phoenix exposing (PhoenixMsg)
 
 
 batch : List (Cmd msg) -> ( model, Cmd msg ) -> ( model, Cmd msg )
@@ -13,12 +13,8 @@ batch cmds ( model, cmd ) =
     )
 
 
-updatePhoenixWith :
-    (Phoenix.Msg -> msg)
-    -> { model | phoenix : Phoenix.Model }
-    -> ( Phoenix.Model, Cmd Phoenix.Msg )
-    -> ( { model | phoenix : Phoenix.Model }, Cmd msg )
-updatePhoenixWith toMsg model ( phoenix, phoenixMsg ) =
+updatePhoenixWith : (Phoenix.Msg -> msg) -> { model | phoenix : Phoenix.Model } -> ( Phoenix.Model, Cmd Phoenix.Msg ) -> ( { model | phoenix : Phoenix.Model }, Cmd msg )
+updatePhoenixWith toMsg model ( phoenix, phoenixCmd ) =
     ( { model | phoenix = phoenix }
-    , Cmd.map toMsg phoenixMsg
+    , Cmd.map toMsg phoenixCmd
     )

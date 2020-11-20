@@ -74,11 +74,11 @@ update msg model =
 
         PhoenixMsg subMsg ->
             let
-                ( newModel, cmd ) =
+                ( newModel, cmd, phoenixMsg ) =
                     Phoenix.update subMsg model.phoenix
-                        |> updatePhoenixWith PhoenixMsg model
+                        |> Phoenix.updateWith PhoenixMsg model
             in
-            case Phoenix.phoenixMsg newModel.phoenix of
+            case phoenixMsg of
                 Phoenix.ChannelResponse response ->
                     case response of
                         Phoenix.JoinError _ _ ->

@@ -73,11 +73,11 @@ update msg model =
 
         PhoenixMsg subMsg ->
             let
-                ( newModel, cmd ) =
+                ( newModel, cmd, phoenixMsg ) =
                     Phoenix.update subMsg model.phoenix
-                        |> updatePhoenixWith PhoenixMsg model
+                        |> Phoenix.updateWith PhoenixMsg model
             in
-            case Phoenix.phoenixMsg newModel.phoenix of
+            case phoenixMsg of
                 Phoenix.Error (Phoenix.Socket error) ->
                     ( { newModel | errors = error :: newModel.errors }, cmd )
 

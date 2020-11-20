@@ -15,6 +15,7 @@ import Example.JoinMultipleChannels as JoinMultipleChannels
 import Example.JoinWithBadParams as JoinWithBadParams
 import Example.JoinWithGoodParams as JoinWithGoodParams
 import Example.SimpleJoinAndLeave as SimpleJoinAndLeave
+import Page.Utils exposing (updatePhoenixSessionWith)
 import Phoenix
 import Route
 import Session exposing (Session)
@@ -92,7 +93,7 @@ update msg model =
 
         ( GotPhoenixMsg subMsg, _ ) ->
             Phoenix.update subMsg phoenix
-                |> updatePhoenix model
+                |> updatePhoenixSessionWith GotPhoenixMsg model
 
         ( GotSimpleJoinAndLeaveMsg subMsg, SimpleJoinAndLeave subModel ) ->
             SimpleJoinAndLeave.update subMsg subModel
