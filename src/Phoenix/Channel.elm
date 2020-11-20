@@ -179,7 +179,7 @@ leave { topic, timeout } portOut =
 {-| Push to a Channel.
 
 The optional `ref` is returned with the response to the Push so that you can
-use it to identify the push later on if needed.
+use it to identify the response later on if needed.
 
     import Json.Encode as JE
     import Phoenix.Channel as Channel
