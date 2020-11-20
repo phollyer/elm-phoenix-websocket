@@ -65,11 +65,11 @@ type Example
 type Msg
     = GotHomeBtnClick
     | GotMenuItem String
-    | GotPhoenixMsg Phoenix.Msg
     | GotPushOneEventMsg PushOneEvent.Msg
     | GotPushMultipleEventsMsg PushMultipleEvents.Msg
     | GotReceiveEventsMsg ReceiveEvents.Msg
     | GotPushWithTimeoutMsg PushWithTimeout.Msg
+    | PhoenixMsg Phoenix.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -91,9 +91,9 @@ update msg model =
                 |> updatePhoenix model
                 |> updateExample example
 
-        ( GotPhoenixMsg subMsg, _ ) ->
+        ( PhoenixMsg subMsg, _ ) ->
             Phoenix.update subMsg phoenix
-                |> updatePhoenixSessionWith GotPhoenixMsg model
+                |> updatePhoenixSessionWith PhoenixMsg model
 
         ( GotPushOneEventMsg subMsg, PushOneEvent subModel ) ->
             PushOneEvent.update subMsg subModel
@@ -127,7 +127,7 @@ updatePhoenix model ( phoenix, phoenixCmd ) =
     ( { model
         | session = Session.updatePhoenix phoenix model.session
       }
-    , Cmd.map GotPhoenixMsg phoenixCmd
+    , Cmd.map PhoenixMsg phoenixCmd
     )
 
 
@@ -195,7 +195,7 @@ subscriptions model =
     in
     Sub.batch
         [ exampleSub
-        , Sub.map GotPhoenixMsg <|
+        , Sub.map PhoenixMsg <|
             Phoenix.subscriptions (Session.phoenix model.session)
         ]
 
