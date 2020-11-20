@@ -393,8 +393,6 @@ let ElmPhoenixWebSocket = {
                 Optional timeout in ms.
     */
     join(params) {
-        let self = this
-
         let channel = this.createChannel(params)
 
         let join = {}
@@ -408,18 +406,18 @@ let ElmPhoenixWebSocket = {
 
         join
             .receive("ok", (payload) => this.channelSend(params.topic, "JoinOk", payload))
-            .receive("error", (payload) => self.channelSend(params.topic, "JoinError", payload))
-            .receive("timeout", () => self.channelSend(params.topic, "JoinTimeout", params.payload))
+            .receive("error", (payload) => this.channelSend(params.topic, "JoinError", payload))
+            .receive("timeout", () => this.channelSend(params.topic, "JoinTimeout", params.payload))
     },
 
     createChannel(params) {
         let channel = this.socket.channel(params.topic, params.payload)
 
-        channel.onClose( () => self.channelSend(params.topic, "Closed", {}))
-        channel.onError( () => self.channelSend(params.topic, "Error", {}))
+        channel.onClose( () => this.channelSend(params.topic, "Closed", {}))
+        channel.onError( () => this.channelSend(params.topic, "Error", {}))
 
-        channel.on("presence_diff", diff => self.onDiff(params.topic, diff))
-        channel.on("presence_state", state => self.onState(params.topic, state))
+        channel.on("presence_diff", diff => this.onDiff(params.topic, diff))
+        channel.on("presence_state", state => this.onState(params.topic, state))
 
         // Add the channel to the map of channels with the
         // topic as the key, so that it can be selected by
@@ -449,8 +447,6 @@ let ElmPhoenixWebSocket = {
                 The timeout before retrying.
     */
     push(params) {
-        self = this
-
         // Select the channel to push to.
         let channel = this.find(params.topic)
 
@@ -466,9 +462,9 @@ let ElmPhoenixWebSocket = {
         }
 
         push
-            .receive("ok", (payload) => self.channelSend(params.topic, "PushOk", {event: params.event, payload: payload, ref: params.ref}))
-            .receive("error", (payload) => self.channelSend(params.topic, "PushError", {event: params.event, payload: payload, ref: params.ref}))
-            .receive("timeout", () => self.channelSend(params.topic, "PushTimeout", {event: params.event, payload: params.payload, ref: params.ref}))
+            .receive("ok", (payload) => this.channelSend(params.topic, "PushOk", {event: params.event, payload: payload, ref: params.ref}))
+            .receive("error", (payload) => this.channelSend(params.topic, "PushError", {event: params.event, payload: payload, ref: params.ref}))
+            .receive("timeout", () => this.channelSend(params.topic, "PushTimeout", {event: params.event, payload: params.payload, ref: params.ref}))
     },
 
     /* on
@@ -486,11 +482,10 @@ let ElmPhoenixWebSocket = {
                 The event to subscribe to.
     */
     on(params) {
-        self = this
         let channel = this.find(params.topic)
 
         if (channel) {
-            channel.on(params.event, payload => self.channelSend(params.topic, "Message", {event: params.event, payload: payload}))
+            channel.on(params.event, payload => this.channelSend(params.topic, "Message", {event: params.event, payload: payload}))
 
         }
 
@@ -512,13 +507,11 @@ let ElmPhoenixWebSocket = {
                 The events to subscribe to.
     */
     allOn(params) {
-        self = this
-
         let channel = this.find(params.topic)
 
         if (channel) {
             for (let i = 0; i < params.events.length; i++) {
-                channel.on(params.events[i], payload => self.channelSend(params.topic, "Message", {event: params.events[i], payload: payload}))
+                channel.on(params.events[i], payload => this.channelSend(params.topic, "Message", {event: params.events[i], payload: payload}))
             }
         }
 
@@ -552,8 +545,6 @@ let ElmPhoenixWebSocket = {
                 The event to unsubscribe to.
     */
     off(params) {
-        self = this
-
         let channel = this.find(params.topic)
 
         if (channel) {
@@ -575,8 +566,6 @@ let ElmPhoenixWebSocket = {
                 The events to subscribe to.
     */
     allOff(params) {
-        self = this
-
         let channel = this.find(params.topic)
 
         if (channel) {
@@ -683,15 +672,13 @@ let ElmPhoenixWebSocket = {
             The diff received from Phoenix Presence.
     */
     onDiff(topic, diff) {
-        let self = this
-
         let currentPresence = this.presences[topic] || {}
 
         let newPresence = this.phoenixPresence.syncDiff(
             currentPresence,
             diff,
-            (id, current, newPres) => self.presenceSend(topic, "Join", (this.packageForElm(id, newPres))),
-            (id, current, leftPres) => self.presenceSend(topic, "Leave", (this.packageForElm(id, leftPres)))
+            (id, current, newPres) => this.presenceSend(topic, "Join", (this.packageForElm(id, newPres))),
+            (id, current, leftPres) => this.presenceSend(topic, "Leave", (this.packageForElm(id, leftPres)))
         )
 
         this.presenceSend(topic, "Diff", {leaves: this.toList(diff.leaves), joins: this.toList(diff.joins)})
@@ -712,15 +699,13 @@ let ElmPhoenixWebSocket = {
             The state received from Phoenix Presence.
     */
     onState(topic, state) {
-        let self = this
-
         let currentPresence = this.presences[topic]
 
         let newPresence = this.phoenixPresence.syncState(
             currentPresence,
             state,
-            (id, current, newPres) => self.presenceSend(topic, "Join", (this.packageForElm(id, newPres))),
-            (id, current, leftPres) => self.presenceSend(topic, "Leave", (this.packageForElm(id, leftPres)))
+            (id, current, newPres) => this.presenceSend(topic, "Join", (this.packageForElm(id, newPres))),
+            (id, current, leftPres) => this.presenceSend(topic, "Leave", (this.packageForElm(id, leftPres)))
         )
 
         this.presenceSend(topic, "State",{list: this.phoenixPresence.list(newPresence, (id, presence) => (this.packageForElm(id, presence)))})
