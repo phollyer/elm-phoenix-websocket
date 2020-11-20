@@ -6,7 +6,7 @@ module Phoenix exposing
     , leave, LeaveConfig, setLeaveConfig
     , RetryStrategy(..), PushConfig, pushConfig, push
     , subscriptions
-    , addEvent, addEvents, dropEvents
+    , addEvent, addEvents, dropEvent, dropEvents
     , Msg, update, updateWith
     , SocketState(..), SocketMessage(..)
     , OriginalPayload, PushRef, ChannelResponse(..)
@@ -68,12 +68,12 @@ configuring this module is as simple as this:
         case msg of
             PhoenixMsg subMsg ->
                 let
-                    (phoenix, phoenixCmd) =
+                    (newModel, cmd, phoenixMsg) =
                         Phoenix.update subMsg model.phoenix
+                            |> Phoenix.updateWith PhoenixMsg model
                 in
-                ( { model | phoenix = phoenix}
-                , Cmd.map PhoenixMsg phoenixCmd
-                )
+                case phoenixMsg of
+                    ...
             ...
 
 
@@ -82,8 +82,7 @@ configuring this module is as simple as this:
     subscriptions : Model -> Sub Msg
     subscriptions model =
         Sub.map PhoenixMsg <|
-            Phoenix.subscriptions
-                model.phoenix
+            Phoenix.subscriptions model.phoenix
 
 
 # Model
@@ -156,7 +155,7 @@ immediately.
 
 ### Incoming Events
 
-@docs addEvent, addEvents, dropEvents
+@docs addEvent, addEvents, dropEvent, dropEvents
 
 
 # Update
@@ -284,6 +283,11 @@ type Model
 
 
 {-| A type alias representing the ports that are needed to communicate with JS.
+
+This is for reference only, you won't need this if you copy
+[this file](https://github.com/phollyer/elm-phoenix-websocket/tree/master/ports)
+into your `src`.
+
 -}
 type alias PortConfig =
     { phoenixSend :
@@ -435,10 +439,10 @@ Socket when it is created.
     init =
         { phoenix =
             Phoenix.init Ports.config
+                |> Phoenix.addConnectOptions
+                    [ Socket.HeartbeatIntervalMillis 2000 ]
                 |> Phoenix.setConnectOptions
-                    [ Socket.Timeout 7000
-                    , Socket.HeartbeatIntervalMillis 2000
-                    ]
+                    [ Socket.Timeout 7000 ]
                 |> Phoenix.setConnectOptions
                     [ Socket.Timeout 5000 ]
         ...
@@ -467,8 +471,9 @@ type alias Payload =
 end.
 
     import Json.Encode as JE
+    import Phoenix
 
-    setConnectParams
+    Phoenix.setConnectParams
         ( JE.object
             [ ("username", JE.string "username")
             , ("password", JE.string "password")
@@ -607,31 +612,6 @@ join topic (Model model) =
                     |> connect
 
 
-{-| -}
-leave : Topic -> Model -> ( Model, Cmd Msg )
-leave topic (Model model) =
-    case model.socketState of
-        Connected ->
-            case Dict.get topic model.leaveConfigs of
-                Just config ->
-                    ( addChannelBeingLeft topic (Model model)
-                    , Channel.leave config model.portConfig.phoenixSend
-                    )
-
-                Nothing ->
-                    Model model
-                        |> setLeaveConfig
-                            { topic = topic
-                            , timeout = Nothing
-                            }
-                        |> leave topic
-
-        _ ->
-            ( addChannelBeingLeft topic (Model model)
-            , Cmd.none
-            )
-
-
 {-| A type alias representing an event that is sent to, or received from, a
 Channel.
 
@@ -643,9 +623,9 @@ So if you have this handler in your Elixir Channel:
       {:reply, :ok, socket}
     end
 
-You would [Push](#Push) the `"new_msg"` `Event` and pattern match on the
+You would [push](#push) the `"new_msg"` `Event` and pattern match on the
 `"send_msg"` `Event` when you handle the [ChannelEvent](#PhoenixMsg) in your
-`update` function.
+[update](#update) function.
 
 -}
 type alias Event =
@@ -688,6 +668,7 @@ type alias JoinConfig =
         | topic = "topic:subTopic"
         , events = [ "event1", "event2" ]
         }
+        model.phoenix
 
 -}
 joinConfig : JoinConfig
@@ -701,12 +682,59 @@ joinConfig =
 
 {-| Set a [JoinConfig](#JoinConfig) to be used when joining a Channel
 referenced by the [Topic](#Topic).
+
+    import Phoenix exposing (joinConfig)
+    import Ports.Phoenix as Port
+
+    type alias Model =
+        { phoenix : Phoenix.Model
+        ...
+        }
+
+    init : Model
+    init =
+        { phoenix =
+            Phoenix.init Port.config
+                |> setJoinConfig
+                    { joinConfig
+                    | topic = "topic:subTopic"
+                    , events = [ "event1", "event2" ]
+                    }
+        ...
+        }
+
 -}
 setJoinConfig : JoinConfig -> Model -> Model
 setJoinConfig config (Model model) =
     updateJoinConfigs
         (Dict.insert config.topic config model.joinConfigs)
         (Model model)
+
+
+{-| Leave a Channel referenced by the [Topic](#Topic).
+-}
+leave : Topic -> Model -> ( Model, Cmd Msg )
+leave topic (Model model) =
+    case model.socketState of
+        Connected ->
+            case Dict.get topic model.leaveConfigs of
+                Just config ->
+                    ( addChannelBeingLeft topic (Model model)
+                    , Channel.leave config model.portConfig.phoenixSend
+                    )
+
+                Nothing ->
+                    Model model
+                        |> setLeaveConfig
+                            { topic = topic
+                            , timeout = Nothing
+                            }
+                        |> leave topic
+
+        _ ->
+            ( addChannelBeingLeft topic (Model model)
+            , Cmd.none
+            )
 
 
 {-| A type alias representing the optional config to use when leaving a
@@ -784,7 +812,8 @@ dropJoinedChannel topic (Model model) =
 
 {-| The retry strategy to use if a push times out.
 
-  - `Drop` - Drop the push and don't try again.
+  - `Drop` - Drop the push and don't try again. This is the default if no
+    strategy is set.
 
   - `Every second` - The number of seconds to wait between retries.
 
@@ -811,16 +840,14 @@ type RetryStrategy
   - `payload` - The params to send with the push. If you don't need to send
     any params, set this to
     [Json.Encode.null](https://package.elm-lang.org/packages/elm/json/latest/Json-Encode#null).
-    I decided not to make this a `Maybe` because it is expected that most of
-    the time something will be sent.
 
   - `timeout` - Optional timeout in milliseconds to set on the push request.
 
   - `retryStrategy` - The retry strategy to use if the push times out.
 
-  - `ref` - Optional reference you can provide that you can later use to
-    identify the push. This is useful when using functions that need to find
-    the push in order to do their thing, such as [dropPush](#dropPush) or
+  - `ref` - Optional reference that can later be used to identify the push.
+    This is useful when using functions that need to find the push in order to
+    do their thing, such as [dropPush](#dropPush) or
     [pushTimeoutCountdown](#pushTimeoutCountdown).
 
 -}
@@ -843,6 +870,7 @@ type alias PushConfig =
         | topic = "topic:subTopic"
         , event = "hello"
         }
+        model.phoenix
 
 -}
 pushConfig : PushConfig
@@ -867,7 +895,14 @@ type alias InternalPush =
 {-| Push a message to a Channel.
 
     import Json.Encode as JE
-    import Phoenix
+    import Phoenix exposing (pushConfig)
+
+    Phoenix.push
+        { pushConfig
+        | topic = "topic:subTopic"
+        , event = "event1"
+        }
+        model.phoenix
 
     Phoenix.push
         { topic = "post:elm_phoenix_websocket"
@@ -1086,8 +1121,7 @@ addTimeoutPush internalConfig (Model model) =
     subscriptions : Model -> Sub Msg
     subscriptions model =
         Sub.map PhoenixMsg <|
-            Phoenix.subscriptions
-                model.phoenix
+            Phoenix.subscriptions model.phoenix
 
 -}
 subscriptions : Model -> Sub Msg
@@ -1134,6 +1168,18 @@ addEvents topic events (Model model) =
         model.portConfig.phoenixSend
 
 
+{-| Remove an [Event](#Event) you no longer want to receive from the Channel
+identified by [Topic](#Topic).
+-}
+dropEvent : Topic -> Event -> Model -> Cmd Msg
+dropEvent topic event (Model model) =
+    Channel.off
+        { topic = topic
+        , event = event
+        }
+        model.portConfig.phoenixSend
+
+
 {-| Remove [Event](#Event)s you no longer want to receive from the Channel
 identified by [Topic](#Topic).
 -}
@@ -1156,8 +1202,7 @@ This is an opaque type as it carries the _raw_ `Msg` data from the lower level
 [Socket](Phoenix.Socket#Msg), [Channel](Phoenix.Channel#Msg) and
 [Presence](Phoenix.Presence#Msg) `Msg`s.
 
-For pattern matching, use the [phoenixMsg](#phoenixMsg) function to return a
-[PhoenixMsg](#PhoenixMsg) which has nicer pattern matching options.
+For pattern matching use [PhoenixMsg](#PhoenixMsg).
 
 -}
 type Msg
@@ -1167,27 +1212,31 @@ type Msg
     | TimeoutTick Time.Posix
 
 
-{-| Update.
+{-|
 
     import Phoenix
+
+    type alias Model =
+        { phoenix : Phoenix.Model
+        ...
+        }
 
     type Msg
         = PhoenixMsg Phoenix.Msg
         | ...
 
-    update : Msg -> Model -> (Model, Cmd Msg, PhoenixMsg)
+    update : Msg -> Model -> (Model, Cmd Msg)
     update msg model =
         case msg of
             PhoenixMsg subMsg ->
                 let
-                    (phoenix, phoenixCmd, phoenixMsg) =
+                    (newModel, cmd, phoenixMsg) =
                         Phoenix.update subMsg model.phoenix
+                            |> Phoenix.updateWith PhoenixMsg model
                 in
                 case phoenixMsg of
                     ChannelClosed topic ->
-                        ( { model | phoenix = phoenix}
-                        , Cmd.map PhoenixMsg phoenixCmd
-                        )
+                        ( newModel , cmd )
 
                     ...
 
@@ -1797,20 +1846,7 @@ channelJoined topic (Model model) =
     Set.member topic model.joinedChannels
 
 
-{-| Split a topic into a `( topic, subTopic)` Tuple.
-
-This is intended to ease pattern matching when using a Channel with a
-dynamically created `subTopic`.
-
-    case Phoenix.topicParts topic of
-        ("topic1", subTopic) ->
-            ...
-
-        ("topic2", subTopic) ->
-            ...
-
-        ...
-
+{-| Split a topic into it's component parts.
 -}
 topicParts : Topic -> List String
 topicParts topic =
