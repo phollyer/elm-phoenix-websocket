@@ -20,7 +20,7 @@ module Phoenix exposing
     , timeoutPushes, pushTimedOut, dropTimeoutPush, pushTimeoutCountdown
     , dropPush
     , presenceState, presenceDiff, presenceJoins, presenceLeaves, lastPresenceJoin, lastPresenceLeave
-    , batch, batchList
+    , batch, batchParams
     , log, startLogging, stopLogging
     )
 
@@ -225,7 +225,7 @@ immediately.
 
 ## Batching
 
-@docs batch, batchList
+@docs batch, batchParams
 
 
 ## Logging
@@ -1338,7 +1338,7 @@ update msg (Model model) =
                     Model model
                         |> updateDisconnectReason Nothing
                         |> updateSocketState Connected
-                        |> batchList
+                        |> batchParams
                             [ ( join, queuedChannels (Model model) )
                             , ( leave, queuedLeaves (Model model) )
                             ]
@@ -1348,7 +1348,7 @@ update msg (Model model) =
                     Model model
                         |> updateDisconnectReason closedInfo.reason
                         |> updateSocketState (Disconnected closedInfo)
-                        |> batchList
+                        |> batchParams
                             [ ( join, queuedChannels (Model model) ) ]
                         |> toPhoenixMsg (SocketMessage (StateChange (Disconnected closedInfo)))
 
@@ -2060,26 +2060,24 @@ lastPresenceLeave topic (Model model) =
 
 
 {-| Batch a list of functions together.
+
+    import Phoenix exposing (pushConfig)
+
+    Phoenix.batch
+        [ Phoenix.join "topic:subTopic3"
+        , Phoenix.leave "topic:subTopic2"
+        , Phoenix.push
+            { pushConfig
+            | topic = "topic:subTopic1"
+            , event = "hello"
+            }
+        ]
+        model.phoenix
+
 -}
 batch : List (Model -> ( Model, Cmd Msg )) -> Model -> ( Model, Cmd Msg )
 batch list model =
     List.foldl map ( model, Cmd.none ) list
-
-
-{-| Batch a list of arguments onto their functions.
--}
-batchList : List ( a -> Model -> ( Model, Cmd Msg ), List a ) -> Model -> ( Model, Cmd Msg )
-batchList list model =
-    batch
-        (List.map batchArgs list
-            |> List.concat
-        )
-        model
-
-
-batchArgs : ( a -> Model -> ( Model, Cmd Msg ), List a ) -> List (Model -> ( Model, Cmd Msg ))
-batchArgs ( func, args ) =
-    List.map func args
 
 
 map : (Model -> ( Model, Cmd Msg )) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
@@ -2087,6 +2085,29 @@ map func ( model, cmd ) =
     func model
         |> Tuple.mapSecond
             (\cmd_ -> Cmd.batch [ cmd, cmd_ ])
+
+
+{-| Batch a list of parameters onto their functions.
+
+    import Phoenix
+
+    Phoenix.batchParams
+        [ (Phoenix.join, [ "topic:subTopic1", "topic:subTopic2" ])
+        , (Phoenix.leave, [ "topic:subTopic3", "topic:subTopic4" ])
+        , (Phoenix.push, [ pushConfig1, pushConfig2, pushConfig3 ])
+        ]
+        model.phoenix
+
+-}
+batchParams : List ( a -> Model -> ( Model, Cmd Msg ), List a ) -> Model -> ( Model, Cmd Msg )
+batchParams list model =
+    batch
+        (List.map
+            (\( func, params ) -> List.map func params)
+            list
+            |> List.concat
+        )
+        model
 
 
 
