@@ -12,11 +12,9 @@ import Device exposing (Device)
 import Element as El exposing (Attribute, Element)
 import Element.Background as Background
 import Element.Border as Border
-import Element.Events as Event
 import Element.Font as Font
 import Room exposing (Room)
 import Types exposing (User, initUser)
-import View exposing (andMaybeEventWithArg)
 import View.Button as Button
 
 

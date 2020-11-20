@@ -13,7 +13,6 @@ import Device exposing (Device)
 import Element as El exposing (Element)
 import Example.MultiRoomChat as MultiRoomChat
 import Phoenix
-import Route
 import Session exposing (Session)
 import View.Example.Page as ExamplePage
 import View.Layout as Layout

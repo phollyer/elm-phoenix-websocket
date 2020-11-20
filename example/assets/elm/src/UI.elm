@@ -6,7 +6,6 @@ module UI exposing
 import Colors.Opaque as Color
 import Element as El exposing (Element)
 import Element.Background as Background
-import Element.Border as Border
 import Element.Font as Font
 
 
