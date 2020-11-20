@@ -13,7 +13,6 @@ import Browser.Navigation as Nav
 import Configs exposing (joinConfig, pushConfig)
 import Device exposing (Device)
 import Element exposing (Element)
-import Example.ManageChannelMessages exposing (Model)
 import Example.Utils exposing (updatePhoenixWith)
 import Json.Decode as JD
 import Json.Encode as JE

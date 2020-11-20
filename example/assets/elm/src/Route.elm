@@ -16,7 +16,6 @@ type Route
     | Root
     | ChatRooms
     | ControlTheSocketConnection
-    | HandleSocketMessages
     | JoinAndLeaveChannels
     | SendAndReceive
 
@@ -27,7 +26,6 @@ parser =
         [ Parser.map Home Parser.top
         , Parser.map ChatRooms (s "ChatRooms")
         , Parser.map ControlTheSocketConnection (s "ControlTheSocketConnection")
-        , Parser.map HandleSocketMessages (s "HandleSocketMessages")
         , Parser.map JoinAndLeaveChannels (s "JoinAndLeaveChannels")
         , Parser.map SendAndReceive (s "SendAndReceive")
         ]
@@ -67,9 +65,6 @@ routeToString route =
 
         ControlTheSocketConnection ->
             "/ControlTheSocketConnection"
-
-        HandleSocketMessages ->
-            "/HandleSocketMessages"
 
         JoinAndLeaveChannels ->
             "/JoinAndLeaveChannels"

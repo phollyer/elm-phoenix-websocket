@@ -10,7 +10,6 @@ import Page
 import Page.Blank as Blank
 import Page.ChatRooms as ChatRooms
 import Page.ControlTheSocketConnection as ControlTheSocketConnection
-import Page.HandleSocketMessages as HandleSocketMessages
 import Page.Home as Home
 import Page.JoinAndLeaveChannels as JoinAndLeaveChannels
 import Page.NotFound as NotFound
@@ -55,10 +54,6 @@ changeRouteTo maybeRoute model =
             ControlTheSocketConnection.init session
                 |> updateWith ControlTheSocketConnection GotControlTheSocketConnectionMsg
 
-        Just Route.HandleSocketMessages ->
-            HandleSocketMessages.init session
-                |> updateWith HandleSocketMessages GotHandleSocketMessagesMsg
-
         Just Route.JoinAndLeaveChannels ->
             JoinAndLeaveChannels.init session
                 |> updateWith JoinAndLeaveChannels GotJoinAndLeaveChannelsMsg
@@ -78,7 +73,6 @@ type Model
     | Home Home.Model
     | ChatRooms ChatRooms.Model
     | ControlTheSocketConnection ControlTheSocketConnection.Model
-    | HandleSocketMessages HandleSocketMessages.Model
     | JoinAndLeaveChannels JoinAndLeaveChannels.Model
     | SendAndReceive SendAndReceive.Model
 
@@ -94,7 +88,6 @@ type Msg
     | GotHomeMsg Home.Msg
     | GotChatRoomsMsg ChatRooms.Msg
     | GotControlTheSocketConnectionMsg ControlTheSocketConnection.Msg
-    | GotHandleSocketMessagesMsg HandleSocketMessages.Msg
     | GotJoinAndLeaveChannelsMsg JoinAndLeaveChannels.Msg
     | GotSendAndReceiveMsg SendAndReceive.Msg
 
@@ -140,10 +133,6 @@ update msg model =
             ControlTheSocketConnection.update subMsg subModel
                 |> updateWith ControlTheSocketConnection GotControlTheSocketConnectionMsg
 
-        ( GotHandleSocketMessagesMsg subMsg, HandleSocketMessages subModel ) ->
-            HandleSocketMessages.update subMsg subModel
-                |> updateWith HandleSocketMessages GotHandleSocketMessagesMsg
-
         ( GotJoinAndLeaveChannelsMsg subMsg, JoinAndLeaveChannels subModel ) ->
             JoinAndLeaveChannels.update subMsg subModel
                 |> updateWith JoinAndLeaveChannels GotJoinAndLeaveChannelsMsg
@@ -185,9 +174,6 @@ toSession model =
         ControlTheSocketConnection subModel ->
             ControlTheSocketConnection.toSession subModel
 
-        HandleSocketMessages subModel ->
-            HandleSocketMessages.toSession subModel
-
         JoinAndLeaveChannels subModel ->
             JoinAndLeaveChannels.toSession subModel
 
@@ -215,10 +201,6 @@ updateSession session model =
         ControlTheSocketConnection subModel ->
             ControlTheSocketConnection <|
                 ControlTheSocketConnection.updateSession session subModel
-
-        HandleSocketMessages subModel ->
-            HandleSocketMessages <|
-                HandleSocketMessages.updateSession session subModel
 
         JoinAndLeaveChannels subModel ->
             JoinAndLeaveChannels <|
@@ -272,13 +254,6 @@ subscriptions model =
                 , onResize WindowResized
                 ]
 
-        HandleSocketMessages subModel ->
-            Sub.batch
-                [ Sub.map GotHandleSocketMessagesMsg <|
-                    HandleSocketMessages.subscriptions subModel
-                , onResize WindowResized
-                ]
-
         JoinAndLeaveChannels subModel ->
             Sub.batch
                 [ Sub.map GotJoinAndLeaveChannelsMsg <|
@@ -319,9 +294,6 @@ view model =
 
         ControlTheSocketConnection subModel ->
             viewPage device GotControlTheSocketConnectionMsg (ControlTheSocketConnection.view subModel)
-
-        HandleSocketMessages subModel ->
-            viewPage device GotHandleSocketMessagesMsg (HandleSocketMessages.view subModel)
 
         JoinAndLeaveChannels subModel ->
             viewPage device GotJoinAndLeaveChannelsMsg (JoinAndLeaveChannels.view subModel)
