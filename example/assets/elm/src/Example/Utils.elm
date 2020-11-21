@@ -3,7 +3,7 @@ module Example.Utils exposing
     , updatePhoenixWith
     )
 
-import Phoenix exposing (PhoenixMsg)
+import Phoenix
 
 
 batch : List (Cmd msg) -> ( model, Cmd msg ) -> ( model, Cmd msg )

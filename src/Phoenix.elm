@@ -998,11 +998,6 @@ addSentPush config (Model model) =
         (Model model)
 
 
-sendQueuedPushes : Model -> ( Model, Cmd Msg )
-sendQueuedPushes (Model model) =
-    sendAllPushes model.queuedPushes (Model model)
-
-
 sendQueuedPushesByTopic : Topic -> Model -> ( Model, Cmd Msg )
 sendQueuedPushesByTopic topic (Model model) =
     let
