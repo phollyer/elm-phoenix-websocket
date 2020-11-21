@@ -92,10 +92,6 @@ let ElmPhoenixWebSocket = {
         this.phoenixSocket = socket
         this.phoenixPresence = presence
 
-        if(!this.events["hello"]) {
-            console.log("No")
-        }
-
         this.socket = new this.phoenixSocket(this.url, {})
         this.info()
     },
