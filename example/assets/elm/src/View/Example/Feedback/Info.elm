@@ -10,8 +10,7 @@ module View.Example.Feedback.Info exposing
     )
 
 import Colors.Opaque as Color
-import Device exposing (Device)
-import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))
+import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
 import Element.Font as Font
 import Json.Encode as JE exposing (Value)
 

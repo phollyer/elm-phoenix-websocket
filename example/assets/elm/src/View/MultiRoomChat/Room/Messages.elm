@@ -6,8 +6,7 @@ module View.MultiRoomChat.Room.Messages exposing
     )
 
 import Colors.Opaque as Color
-import Device exposing (Device)
-import Element as El exposing (Attribute, Color, Element)
+import Element as El exposing (Attribute, Color, Device, Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font

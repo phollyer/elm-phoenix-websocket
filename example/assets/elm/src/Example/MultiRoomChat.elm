@@ -12,8 +12,7 @@ import Browser.Dom as Dom
 import Browser.Events exposing (onResize)
 import Browser.Navigation as Nav
 import Configs exposing (joinConfig, pushConfig)
-import Device exposing (Device)
-import Element exposing (Element)
+import Element exposing (Device, Element)
 import Example.Utils exposing (updatePhoenixWith)
 import Json.Decode as JD
 import Json.Encode as JE

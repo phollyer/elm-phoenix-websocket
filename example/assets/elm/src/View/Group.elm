@@ -7,8 +7,7 @@ module View.Group exposing
     , orderForDevice
     )
 
-import Device exposing (Device)
-import Element exposing (DeviceClass, Orientation)
+import Element exposing (Device, DeviceClass, Orientation)
 import List.Extra as List
 
 

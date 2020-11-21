@@ -6,8 +6,7 @@ module View.MultiRoomChat.Lobby.Form exposing
     , view
     )
 
-import Device exposing (Device)
-import Element as El exposing (Element)
+import Element as El exposing (Device, Element)
 import View.Button as Button
 import View.InputField as InputField
 

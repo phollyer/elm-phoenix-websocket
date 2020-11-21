@@ -7,8 +7,7 @@ module Example.ConnectWithBadParams exposing
     , view
     )
 
-import Device exposing (Device)
-import Element as El exposing (Element)
+import Element as El exposing (Device, Element)
 import Example.Utils exposing (updatePhoenixWith)
 import Extra.String as String
 import Json.Encode as JE

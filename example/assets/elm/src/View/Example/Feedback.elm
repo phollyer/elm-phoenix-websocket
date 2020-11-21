@@ -6,8 +6,7 @@ module View.Example.Feedback exposing
     , view
     )
 
-import Device exposing (Device)
-import Element as El exposing (DeviceClass(..), Element, Orientation(..))
+import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import List.Extra as List
 import View.Group as Group
 

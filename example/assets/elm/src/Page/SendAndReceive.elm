@@ -9,8 +9,7 @@ module Page.SendAndReceive exposing
     , view
     )
 
-import Device exposing (Device)
-import Element as El exposing (DeviceClass(..), Element, Orientation(..))
+import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Example.PushMultipleEvents as PushMultipleEvents
 import Example.PushOneEvent as PushOneEvent
 import Example.PushWithTimeout as PushWithTimeout

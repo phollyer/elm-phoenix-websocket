@@ -9,8 +9,7 @@ module Page.ChatRooms exposing
     , view
     )
 
-import Device exposing (Device)
-import Element as El exposing (Element)
+import Element as El exposing (Device, Element)
 import Example.MultiRoomChat as MultiRoomChat
 import Session exposing (Session)
 import View.Example.Page as ExamplePage

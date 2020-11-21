@@ -8,8 +8,7 @@ module View.MultiRoomChat.Room.Form exposing
     , view
     )
 
-import Device exposing (Device)
-import Element as El exposing (DeviceClass(..), Element, Orientation(..))
+import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import View.Button as Button
 import View.InputField as InputField
 

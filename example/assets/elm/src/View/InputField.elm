@@ -9,8 +9,7 @@ module View.InputField exposing
     , view
     )
 
-import Device exposing (Device)
-import Element as El exposing (Attribute, Element)
+import Element as El exposing (Attribute, Device, Element)
 import Element.Border as Border
 import Element.Events as Event
 import Element.Input as Input

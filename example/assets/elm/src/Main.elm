@@ -3,8 +3,7 @@ module Main exposing (main)
 import Browser exposing (Document)
 import Browser.Events exposing (onResize)
 import Browser.Navigation as Nav
-import Device exposing (Device)
-import Element exposing (Element)
+import Element exposing (Device, Element, classifyDevice)
 import Html
 import Page
 import Page.Blank as Blank
@@ -26,7 +25,7 @@ import Url exposing (Url)
 init : { width : Int, height : Int } -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url navKey =
     changeRouteTo (Route.fromUrl url)
-        (Redirect (Session.init navKey (Device.classify flags)))
+        (Redirect (Session.init navKey (classifyDevice flags)))
 
 
 changeRouteTo : Maybe Route -> Model -> ( Model, Cmd Msg )
@@ -114,7 +113,7 @@ update msg model =
             let
                 session =
                     Session.updateDevice
-                        (Device.classify { width = width, height = height })
+                        (classifyDevice { width = width, height = height })
                         (toSession model)
             in
             ( updateSession session model

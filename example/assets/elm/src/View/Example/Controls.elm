@@ -9,8 +9,7 @@ module View.Example.Controls exposing
     )
 
 import Colors.Opaque as Color
-import Device exposing (Device)
-import Element as El exposing (DeviceClass(..), Element, Orientation(..))
+import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Element.Border as Border
 import Element.Font as Font
 import List.Extra as List

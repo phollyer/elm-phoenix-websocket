@@ -8,8 +8,7 @@ module View.Example.Feedback.Content exposing
     )
 
 import Colors.Opaque as Color
-import Device exposing (Device)
-import Element as El exposing (Element)
+import Element as El exposing (Device, Element)
 import Element.Font as Font
 
 

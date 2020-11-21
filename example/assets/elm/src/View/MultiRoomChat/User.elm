@@ -5,8 +5,7 @@ module View.MultiRoomChat.User exposing
     , view
     )
 
-import Device exposing (Device)
-import Element as El exposing (Element)
+import Element as El exposing (Device, Element)
 import Element.Font as Font
 
 

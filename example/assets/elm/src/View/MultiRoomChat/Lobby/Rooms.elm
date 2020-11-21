@@ -8,8 +8,7 @@ module View.MultiRoomChat.Lobby.Rooms exposing
     )
 
 import Colors.Opaque as Color
-import Device exposing (Device)
-import Element as El exposing (Attribute, Element)
+import Element as El exposing (Attribute, Device, Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font

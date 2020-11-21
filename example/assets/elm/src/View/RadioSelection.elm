@@ -8,8 +8,7 @@ module View.RadioSelection exposing
     , view
     )
 
-import Device exposing (Device)
-import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))
+import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
 import Element.Font as Font
 import Element.Input as Input
 

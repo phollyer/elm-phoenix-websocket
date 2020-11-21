@@ -8,8 +8,7 @@ module Example.PushMultipleEvents exposing
     )
 
 import Configs exposing (pushConfig)
-import Device exposing (Device)
-import Element as El exposing (DeviceClass(..), Element, Orientation(..))
+import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Example.Utils exposing (updatePhoenixWith)
 import Extra.String as String
 import Json.Encode exposing (Value)

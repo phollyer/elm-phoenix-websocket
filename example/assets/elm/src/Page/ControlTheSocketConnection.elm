@@ -9,8 +9,7 @@ module Page.ControlTheSocketConnection exposing
     , view
     )
 
-import Device exposing (Device)
-import Element as El exposing (DeviceClass(..), Element, Orientation(..))
+import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Example.ConnectWithBadParams as ConnectWithBadParams
 import Example.ConnectWithGoodParams as ConnectWithGoodParams
 import Example.SimpleConnect as SimpleConnect

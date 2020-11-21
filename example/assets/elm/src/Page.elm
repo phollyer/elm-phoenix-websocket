@@ -5,8 +5,7 @@ module Page exposing
 
 import Browser exposing (Document)
 import Colors.Opaque as Color
-import Device exposing (Device)
-import Element as El exposing (Attribute, DeviceClass(..), Element)
+import Element as El exposing (Attribute, Device, DeviceClass(..), Element)
 import Element.Background as Background
 import Element.Border as Border
 

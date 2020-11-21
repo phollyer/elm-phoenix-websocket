@@ -4,8 +4,7 @@ module View.Example.ApplicableFunctions exposing
     , view
     )
 
-import Device exposing (Device)
-import Element as El exposing (Attribute, DeviceClass(..), Element)
+import Element as El exposing (Attribute, Device, DeviceClass(..), Element)
 import UI
 
 

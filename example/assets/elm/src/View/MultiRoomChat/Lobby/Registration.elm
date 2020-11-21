@@ -7,8 +7,7 @@ module View.MultiRoomChat.Lobby.Registration exposing
     )
 
 import Colors.Opaque as Color
-import Device exposing (Device)
-import Element as El exposing (Element)
+import Element as El exposing (Device, Element)
 import Element.Background as Background
 import Element.Border as Border
 import View.MultiRoomChat.Lobby.Form as Form
