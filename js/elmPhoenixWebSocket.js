@@ -42,10 +42,8 @@ let ElmPhoenixWebSocket = {
     */
     channels: {},
 
-    /* A map of lists of events channel events with the topic as the key.
+    /* A map of lists of incoming channel events with the topic as the key.
 
-       This is used to store the events so that they can be sent over from
-       Elm prior to the relevant channel being created.
     */
     events: {},
 
@@ -93,6 +91,10 @@ let ElmPhoenixWebSocket = {
 
         this.phoenixSocket = socket
         this.phoenixPresence = presence
+
+        if(!this.events["hello"]) {
+            console.log("No")
+        }
 
         this.socket = new this.phoenixSocket(this.url, {})
         this.info()
@@ -484,12 +486,16 @@ let ElmPhoenixWebSocket = {
     on(params) {
         let channel = this.find(params.topic)
 
-        if (channel) {
-            channel.on(params.event, payload => this.channelSend(params.topic, "Message", {event: params.event, payload: payload}))
+        let events = this.events[params.topic]
 
+        if( channel && !events ) {
+            this.events[params.topic] = [params.event]
+            subscribe(channel, params.topic, params.event)
+
+        } else if (channel && events && events.indexOf(params.event) == -1) {
+            events.push(params.event)
+            subscribe(channel, params.topic, params.event)
         }
-
-        this.addEvents({topic: params.topic, events: [params.event]})
     },
 
     /* allOn
@@ -507,30 +513,15 @@ let ElmPhoenixWebSocket = {
                 The events to subscribe to.
     */
     allOn(params) {
-        let channel = this.find(params.topic)
-
-        if (channel) {
-            for (let i = 0; i < params.events.length; i++) {
-                channel.on(params.events[i], payload => this.channelSend(params.topic, "Message", {event: params.events[i], payload: payload}))
-            }
-        }
-
-        this.addEvents(params)
-    },
-
-    addEvents(params) {
-        if (this.events[params.topic]) {
-            this.events[params.topic].reduce((events, msg) => {
-                if(!events.includes(msg)) {
-                    events.push(msg)
-                }
-
-                return events
-            }, params.events)
-        } else {
-            this.events[params.topic] = params.events
+        for( let i = 0; i < params.events.length; i++) {
+            this.on( {topic: params.topic, params.events[i]} )
         }
     },
+
+    subscribe(channel, topic, event) {
+        channel.on(event, payload => this.channelSend(topic, "Message", {event: event, payload: payload}))
+    },
+
 
 
     /* off
@@ -547,11 +538,12 @@ let ElmPhoenixWebSocket = {
     off(params) {
         let channel = this.find(params.topic)
 
-        if (channel) {
-            channel.off(params.event)
-        }
+        let events = this.events[params.topic]
 
-        this.dropEvents({topic: params.topic, events: [params.event]})
+        if(channel && events && events.indexOf(params.event) != -1) {
+            channel.off(params.event)
+            events.splice(events.indexOf(params.event), 1)
+        }
     },
 
     /* allOff
@@ -566,22 +558,8 @@ let ElmPhoenixWebSocket = {
                 The events to subscribe to.
     */
     allOff(params) {
-        let channel = this.find(params.topic)
-
-        if (channel) {
-            for (let i = 0; i < params.events.length; i++) {
-                channel.off(params.events[i])
-            }
-        }
-
-        this.dropEvents(params)
-    },
-
-    dropEvents(params) {
-        let events = this.events[params.topic]
-
-        if (events) {
-            events.filter( event => !params.events.includes(event))
+        for( let i = 0; i < params.events.length; i++ ) {
+            this.off( {topic: params.topic, event: params.events[i]} )
         }
     },
 
