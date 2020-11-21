@@ -486,11 +486,11 @@ let ElmPhoenixWebSocket = {
 
         if( channel && !events ) {
             this.events[params.topic] = [params.event]
-            subscribe(channel, params.topic, params.event)
+            this.subscribe(channel, params.topic, params.event)
 
         } else if (channel && events && events.indexOf(params.event) == -1) {
             events.push(params.event)
-            subscribe(channel, params.topic, params.event)
+            this.subscribe(channel, params.topic, params.event)
         }
     },
 
