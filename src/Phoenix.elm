@@ -1,18 +1,21 @@
 module Phoenix exposing
     ( Model
     , PortConfig, init
-    , connect, addConnectOptions, setConnectOptions, Payload, setConnectParams, disconnect, disconnectAndReset
-    , Topic, join, Event, JoinConfig, joinConfig, setJoinConfig
-    , leave, LeaveConfig, setLeaveConfig
-    , RetryStrategy(..), PushConfig, pushConfig, push
-    , subscriptions
-    , addEvent, addEvents, dropEvent, dropEvents
-    , Msg, update, updateWith
+    , Msg
     , SocketState(..), SocketMessage(..)
-    , OriginalPayload, PushRef, ChannelResponse(..)
+    , Topic, Event, Payload, OriginalPayload, PushRef, ChannelResponse(..)
     , Presence, PresenceDiff, PresenceEvent(..)
     , InternalError(..)
-    , PhoenixMsg(..)
+    , PhoenixMsg(..), update, updateWith
+    , RetryStrategy(..), PushConfig, pushConfig, push
+    , subscriptions
+    , connect
+    , addConnectOptions, setConnectOptions
+    , setConnectParams
+    , disconnect, disconnectAndReset
+    , join, JoinConfig, joinConfig, setJoinConfig
+    , leave, LeaveConfig, setLeaveConfig
+    , addEvent, addEvents, dropEvent, dropEvents
     , socketState, socketStateToString, isConnected, connectionState, disconnectReason, endPointURL, protocol
     , queuedChannels, channelQueued, joinedChannels, channelJoined, topicParts
     , allQueuedPushes, queuedPushes, pushQueued, dropQueuedPush
@@ -99,41 +102,22 @@ configuring this module is as simple as this:
 @docs PortConfig, init
 
 
-# Connecting to the Socket
+# Update
 
-Connecting to the Socket is automatic on the first [push](#push) to a Channel.
-However, if you want to connect before hand, you can use the
-[connect](#connect) function.
+@docs Msg
 
-If you want to set any [ConnectOption](Phoenix.Socket#ConnectOption)s on the
-socket you can use the [addConnectOptions](#addConnectOptions) or
-[setConnectOptions](#setConnectOptions) functions.
+@docs SocketState, SocketMessage
 
-If you want to send any params to the Socket when it connects at the Elixir
-end, such as authenticating a user for example, then you can use the
-[setConnectParams](#setConnectParams) function.
+@docs Topic, Event, Payload, OriginalPayload, PushRef, ChannelResponse
 
-@docs connect, addConnectOptions, setConnectOptions, Payload, setConnectParams, disconnect, disconnectAndReset
+@docs Presence, PresenceDiff, PresenceEvent
+
+@docs InternalError
+
+@docs PhoenixMsg, update, updateWith
 
 
-# Joining a Channel
-
-Joining a Channel is automatic on the first [push](#push) to the Channel.
-However, if you want to join before hand, you can use the [join](#join)
-function.
-
-If you want to send any params to the `join` function at the Elixir end you can
-use the [setJoinConfig](#setJoinConfig) function.
-
-@docs Topic, join, Event, JoinConfig, joinConfig, setJoinConfig
-
-
-# Leaving a Channel
-
-@docs leave, LeaveConfig, setLeaveConfig
-
-
-# Talking to Channels
+# Pushing
 
 When pushing an event to a Channel, opening the Socket, and joining the
 Channel is handled automatically. Pushes will be queued until the Channel has
@@ -146,52 +130,59 @@ and joining manually.
 If the Socket is open and the Channel already joined, the push will be sent
 immediately.
 
-
-## Pushing
-
 @docs RetryStrategy, PushConfig, pushConfig, push
 
 
-## Receiving
+# Subscriptions
 
 @docs subscriptions
 
 
-### Incoming Events
+# Connecting to the Socket
+
+Connecting to the Socket is automatic on the first [push](#push) to a Channel,
+and also when a [join](#join) is attempted. However, if it is necessary to
+connect before hand, the [connect](#connect) function is available.
+
+@docs connect
+
+
+## Setting connect options
+
+@docs addConnectOptions, setConnectOptions
+
+
+## Sending data when connecting
+
+@docs setConnectParams
+
+
+# Disconnecting from the Socket
+
+@docs disconnect, disconnectAndReset
+
+
+# Joining a Channel
+
+Joining a Channel is automatic on the first [push](#push) to the Channel.
+However, if it is necessary to join before hand, the [join](#join) function is
+available.
+
+@docs join, JoinConfig, joinConfig, setJoinConfig
+
+
+# Leaving a Channel
+
+@docs leave, LeaveConfig, setLeaveConfig
+
+
+# Incoming Events
+
+Setting up incoming events to receive on a Channel can be done when setting a
+[JoinConfig](#JoinConfig), but if it is necessary to switch events on and off
+intermittently, then the following functions are available.
 
 @docs addEvent, addEvents, dropEvent, dropEvents
-
-
-# Update
-
-@docs Msg, update, updateWith
-
-
-## Pattern Matching
-
-
-### Socket
-
-@docs SocketState, SocketMessage
-
-
-### Channel
-
-@docs OriginalPayload, PushRef, ChannelResponse
-
-### Phoenix Presence
-
-@docs Presence, PresenceDiff, PresenceEvent
-
-
-### Internal Errors
-
-@docs InternalError
-
-
-### PhoenixMsg
-
-@docs PhoenixMsg
 
 
 # Helpers
@@ -403,6 +394,12 @@ Socket when it is created.
     import Phoenix.Socket as Socket
     import Ports.Phoenix as Ports
 
+    type alias Model =
+        { phoenix : Phoenix.Model
+            ...
+        }
+
+    init : Model
     init =
         { phoenix =
             Phoenix.init Ports.config
@@ -428,13 +425,19 @@ addConnectOptions options (Model model) =
 {-| Provide the [ConnectOption](Phoenix.Socket#ConnectOption)s to set on the
 Socket when it is created.
 
-**Note:** This will replace _all_ current
-[ConnectOption](Phoenix.Socket.ConnectOption)s that have already been set.
+**Note:** This will replace _all_ previously set
+[ConnectOption](Phoenix.Socket.ConnectOption)s.
 
     import Phoenix
     import Phoenix.Socket as Socket
     import Ports.Phoenix as Ports
 
+    type alias Model =
+        { phoenix : Phoenix.Model
+            ...
+        }
+
+    init : Model
     init =
         { phoenix =
             Phoenix.init Ports.config
@@ -455,12 +458,8 @@ setConnectOptions options model =
     updateConnectOptions options model
 
 
-{-| A type alias representing custom data that is sent to the Socket and your
-Channels, and received from your Channels.
-
-It is a
-[Json.Encode.Value](https://package.elm-lang.org/packages/elm/json/latest/Json-Encode#Value).
-
+{-| A type alias representing data that is sent to, or received from, a
+Channel.
 -}
 type alias Payload =
     Value
@@ -471,16 +470,24 @@ type alias Payload =
     import Json.Encode as JE
     import Phoenix
 
-    Phoenix.setConnectParams
-        ( JE.object
-            [ ("username", JE.string "username")
-            , ("password", JE.string "password")
-            ]
-        )
-        model.phoenix
+    type alias Model =
+        { phoenix : Phoenix.Model
+            ...
+        }
+
+    init : Model
+    init =
+        { phoenix =
+            Phoenix.init Ports.config
+                |> Phoenix.setConnectParams
+                    ( JE.object
+                        [ ("username", JE.string "username")
+                        , ("password", JE.string "password")
+                        ]
+                    )
 
 -}
-setConnectParams : Payload -> Model -> Model
+setConnectParams : Value -> Model -> Model
 setConnectParams params model =
     updateConnectParams params model
 
@@ -560,10 +567,10 @@ type alias Topic =
 
 {-| Join a Channel referenced by the [Topic](#Topic).
 
-Connecting to the Socket is automatic if it has not already been opened.
+Connecting to the Socket is automatic if it has not already been done.
 
-If the Socket is not open, the `join` will be queued, and the Socket will
-connect. Once the Socket is open, any queued `join`s will be attempted.
+If the Socket is not open, the `join` will be queued, and the Socket will try
+to connect. Once the Socket is open, any queued `join`s will be attempted.
 
 If the Socket is already open, the `join` will be attempted immediately.
 
@@ -637,9 +644,9 @@ If a `JoinConfig` is not set prior to joining a Channel, the defaults will be us
 
 -}
 type alias JoinConfig =
-    { topic : Topic
-    , payload : Payload
-    , events : List Event
+    { topic : String
+    , payload : Value
+    , events : List String
     , timeout : Maybe Int
     }
 
@@ -647,13 +654,24 @@ type alias JoinConfig =
 {-| A helper function for creating a [JoinConfig](#JoinConfig).
 
     import Phoenix exposing (joinConfig)
+    import Ports.Phoenix as Port
 
-    Phoenix.setJoinConfig
-        { joinConfig
-        | topic = "topic:subTopic"
-        , events = [ "event1", "event2" ]
+    type alias Model =
+        { phoenix : Phoenix.Model
+            ...
         }
-        model.phoenix
+
+    init : Model
+    init =
+        { phoenix =
+            Phoenix.init Port.config
+                |> Phoenix.setJoinConfig
+                    { joinConfig
+                    | topic = "topic:subTopic"
+                    , events = [ "event1", "event2" ]
+                    }
+            ...
+        }
 
 -}
 joinConfig : JoinConfig
@@ -672,19 +690,19 @@ joinConfig =
 
     type alias Model =
         { phoenix : Phoenix.Model
-        ...
+            ...
         }
 
     init : Model
     init =
         { phoenix =
             Phoenix.init Port.config
-                |> setJoinConfig
+                |> Phoenix.setJoinConfig
                     { joinConfig
                     | topic = "topic:subTopic"
                     , events = [ "event1", "event2" ]
                     }
-        ...
+            ...
         }
 
 -}
@@ -740,6 +758,26 @@ type alias LeaveConfig =
 
 {-| Set a [LeaveConfig](#LeaveConfig) to be used when leaving a Channel
 referenced by the [Topic](#Topic).
+
+    import Phoenix
+    import Ports.Phoenix as Port
+
+    type alias Model =
+        { phoenix : Phoenix.Model
+            ...
+        }
+
+    init : Model
+    init =
+        { phoenix =
+            Phoenix.init Port.config
+                |> Phoenix.setLeaveConfig
+                    { topic = "topic:subTopic"
+                    , timeout = Just 5000
+                    }
+            ...
+        }
+
 -}
 setLeaveConfig : LeaveConfig -> Model -> Model
 setLeaveConfig config (Model model) =
@@ -821,8 +859,8 @@ type RetryStrategy
 
   - `event` - The event to send to the Channel.
 
-  - `payload` - The params to send with the push. If you don't need to send
-    any params, set this to
+  - `payload` - The data to send with the push. If you don't need to send any
+    data, set this to
     [Json.Encode.null](https://package.elm-lang.org/packages/elm/json/latest/Json-Encode#null).
 
   - `timeout` - Optional timeout in milliseconds to set on the push request.
@@ -836,9 +874,9 @@ type RetryStrategy
 
 -}
 type alias PushConfig =
-    { topic : Topic
-    , event : Event
-    , payload : Payload
+    { topic : String
+    , event : String
+    , payload : Value
     , timeout : Maybe Int
     , retryStrategy : RetryStrategy
     , ref : Maybe String
@@ -1082,6 +1120,11 @@ addTimeoutPush internalConfig (Model model) =
 
     import Phoenix
 
+    type alias Model =
+        { phoenix : Phoenix.Model
+            ...
+        }
+
     type Msg
         = PhoenixMsg Phoenix.Msg
         | ...
@@ -1182,7 +1225,7 @@ type Msg
 
     type alias Model =
         { phoenix : Phoenix.Model
-        ...
+            ...
         }
 
     type Msg
@@ -1194,15 +1237,16 @@ type Msg
         case msg of
             PhoenixMsg subMsg ->
                 let
-                    (newModel, cmd, phoenixMsg) =
+                    (phoenix, phoenixCmd, phoenixMsg) =
                         Phoenix.update subMsg model.phoenix
-                            |> Phoenix.updateWith PhoenixMsg model
                 in
                 case phoenixMsg of
                     ...
 
                 _ ->
-                    (newModel, cmd)
+                    ( { model | phoenix = phoenix }
+                    , Cmd.map PhoenixMsg phoenixCmd
+                    )
 
             _ ->
                 (model, Cmd.none)
@@ -1458,36 +1502,43 @@ timeoutTick (Model model) =
         (Model model)
 
 
-{-| Helper function to use after [update](#update).
-
-    import Phoenix
-
-    type alias Model =
-        { phoenix : Phoenix.Model
-          ...
-        }
-
-    type Msg
-        = GotPhoenixMsg Phoenix.Msg
-
-    update : Msg -> Model -> (Model, Cmd Msg)
-    update msg model =
-        case msg of
-            GotPhoenixMsg subMsg ->
-                let
-                    (newModel, cmd, phoenixMsg) =
-                        Phoenix.update subMsg model.phoenix
-                            |> Phoenix.updateWith GotPhoenixMsg model
-                in
-                case phoenixMsg of
-                    ...
-
-This function will:
+{-| Helper function to use with [update](#update) in order to:
 
   - update the `phoenix` field on the `Model`
   - map the `Cmd Phoenix.Msg` generated by `Phoenix.update` to a `Cmd Msg`.
 
-To use this function, `Phoenix.Model` needs to be stored on field `phoenix` on
+```
+import Phoenix
+
+type alias Model =
+    { phoenix : Phoenix.Model
+        ...
+    }
+
+type Msg
+    = PhoenixMsg Phoenix.Msg
+    | ...
+
+update : Msg -> Model -> (Model, Cmd Msg)
+update msg model =
+    case msg of
+        PhoenixMsg subMsg ->
+            let
+                (newModel, cmd, phoenixMsg) =
+                  Phoenix.update subMsg model.phoenix
+                        |> Phoenix.updateWith PhoenixMsg model
+            in
+            case phoenixMsg of
+                ...
+
+            _ ->
+                (newModel, cmd)
+
+        _ ->
+            (model, Cmd.none)
+```
+
+**Note:** To use this function, `Phoenix.Model` needs to be stored on field `phoenix` on
 the `Model`.
 
 -}
@@ -1550,15 +1601,15 @@ type SocketMessage
     = StateChange SocketState
     | SocketError String
     | ChannelMessage
-        { topic : Topic
-        , event : Event
+        { topic : String
+        , event : String
         , payload : Value
         , joinRef : Maybe String
         , ref : Maybe String
         }
     | PresenceMessage
-        { topic : Topic
-        , event : Event
+        { topic : String
+        , event : String
         , payload : Value
         }
     | Heartbeat
@@ -1569,17 +1620,17 @@ type SocketMessage
         }
 
 
-{-| A type alias representing the `ref` set on the original [push](#PushConfig).
+{-| A type alias representing the `ref` set on a [push](#PushConfig).
 -}
 type alias PushRef =
     Maybe String
 
 
-{-| A type alias representing the original payload that was sent with the
+{-| A type alias representing the original payload that was sent with a
 [push](#PushConfig).
 -}
 type alias OriginalPayload =
-    Payload
+    Value
 
 
 {-| -}
