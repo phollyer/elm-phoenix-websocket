@@ -1,6 +1,5 @@
 module View.MultiRoomChat.Room.Form exposing
-    ( id
-    , init
+    ( init
     , onChange
     , onFocus
     , onLoseFocus
@@ -22,8 +21,7 @@ import View.InputField as InputField
 
 type Config msg
     = Config
-        { id : String
-        , text : String
+        { text : String
         , onChange : Maybe (String -> msg)
         , onFocus : Maybe msg
         , onLoseFocus : Maybe msg
@@ -34,18 +32,12 @@ type Config msg
 init : Config msg
 init =
     Config
-        { id = ""
-        , text = ""
+        { text = ""
         , onChange = Nothing
         , onFocus = Nothing
         , onLoseFocus = Nothing
         , onSubmit = Nothing
         }
-
-
-id : String -> Config msg -> Config msg
-id id_ (Config config) =
-    Config { config | id = id_ }
 
 
 text : String -> Config msg -> Config msg
@@ -80,14 +72,13 @@ onSubmit maybeMsg (Config config) =
 view : Device -> Config msg -> Element msg
 view device config =
     container device
-        config
         [ inputField device config
         , submitButton device config
         ]
 
 
-container : Device -> Config msg -> (List (Element msg) -> Element msg)
-container { class, orientation } (Config config) =
+container : Device -> (List (Element msg) -> Element msg)
+container { class, orientation } =
     let
         container_ =
             case ( class, orientation ) of
@@ -98,9 +89,7 @@ container { class, orientation } (Config config) =
                     El.row
     in
     container_
-        [ El.htmlAttribute <|
-            Attr.id config.id
-        , El.spacing 10
+        [ El.spacing 10
         , El.paddingEach
             { left = 0
             , top = 10

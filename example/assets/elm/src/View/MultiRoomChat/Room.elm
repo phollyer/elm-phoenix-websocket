@@ -3,7 +3,7 @@ module View.MultiRoomChat.Room exposing
     , introduction
     , membersTyping
     , messages
-    , messagesMaxHeight
+    , messagesContainerMaxHeight
     , onChange
     , onFocus
     , onLoseFocus
@@ -38,7 +38,7 @@ type Config msg
         , userText : String
         , membersTyping : List String
         , messages : List Message
-        , messagesMaxHeight : Int
+        , messagesContainerMaxHeight : Int
         , onChange : Maybe (String -> msg)
         , onFocus : Maybe msg
         , onLoseFocus : Maybe msg
@@ -54,7 +54,7 @@ init =
         , userText = ""
         , membersTyping = []
         , messages = []
-        , messagesMaxHeight = 0
+        , messagesContainerMaxHeight = 0
         , onChange = Nothing
         , onFocus = Nothing
         , onLoseFocus = Nothing
@@ -87,9 +87,9 @@ messages messages_ (Config config) =
     Config { config | messages = messages_ }
 
 
-messagesMaxHeight : Int -> Config msg -> Config msg
-messagesMaxHeight height (Config config) =
-    Config { config | messagesMaxHeight = height }
+messagesContainerMaxHeight : Int -> Config msg -> Config msg
+messagesContainerMaxHeight height (Config config) =
+    Config { config | messagesContainerMaxHeight = height }
 
 
 onChange : (String -> msg) -> Config msg -> Config msg
@@ -119,16 +119,13 @@ onSubmit msg (Config config) =
 view : Device -> Config msg -> Element msg
 view device (Config config) =
     El.column
-        [ El.htmlAttribute <|
-            Attr.id "room"
-        , El.height El.fill
+        [ El.height El.fill
         , El.width El.fill
         ]
         [ introduction config.user config.room
         , El.column
-            [ El.htmlAttribute <|
-                Attr.id "message-list-and-form"
-            , El.height El.fill
+            [ El.height <|
+                El.maximum config.messagesContainerMaxHeight El.fill
             , El.width El.fill
             ]
             [ messagesView device (Config config)
@@ -193,9 +190,7 @@ membersTypingView membersTyping_ =
 
     else
         El.paragraph
-            [ El.htmlAttribute <|
-                Attr.id "members-typing"
-            , El.paddingEach
+            [ El.paddingEach
                 { left = 0
                 , top = 10
                 , right = 0
@@ -224,8 +219,7 @@ messagesView device (Config config) =
         , Border.rounded 10
         , El.htmlAttribute <|
             Attr.id "message-list"
-        , El.height <|
-            El.maximum config.messagesMaxHeight El.fill
+        , El.height El.fill
         , El.width El.fill
         , El.clipY
         , El.scrollbarY
@@ -244,30 +238,9 @@ messagesView device (Config config) =
 form : Device -> Config msg -> Element msg
 form device (Config config) =
     MessageForm.init
-        |> MessageForm.id "form"
         |> MessageForm.text config.userText
         |> MessageForm.onChange config.onChange
         |> MessageForm.onFocus config.onFocus
         |> MessageForm.onLoseFocus config.onLoseFocus
         |> MessageForm.onSubmit config.onSubmit
         |> MessageForm.view device
-
-
-
-{- Max Height -}
-
-
-maxHeight : Device -> Int
-maxHeight { class, orientation, height } =
-    case ( class, orientation ) of
-        ( Phone, Portrait ) ->
-            height - 120
-
-        ( Phone, Landscape ) ->
-            height - 140
-
-        ( Tablet, _ ) ->
-            height - 140
-
-        _ ->
-            height - 220

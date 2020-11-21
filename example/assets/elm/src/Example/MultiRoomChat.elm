@@ -43,10 +43,7 @@ init phoenix =
     , membersTyping = []
     , layoutHeight = 0
     , headerHeight = 0
-    , messageListAndFormHeight = 0
     , introductionHeight = 0
-    , membersTypingHeight = 0
-    , formHeight = 0
     }
 
 
@@ -66,9 +63,6 @@ type alias Model =
     , layoutHeight : Float
     , headerHeight : Float
     , introductionHeight : Float
-    , messageListAndFormHeight : Float
-    , membersTypingHeight : Float
-    , formHeight : Float
     }
 
 
@@ -98,8 +92,6 @@ type Msg
     | LayoutHeight (Result Dom.Error Dom.Element)
     | HeaderHeight (Result Dom.Error Dom.Element)
     | IntroductionHeight (Result Dom.Error Dom.Element)
-    | MembersTypingHeight (Result Dom.Error Dom.Element)
-    | FormHeight (Result Dom.Error Dom.Element)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -134,22 +126,6 @@ update msg model =
                 _ ->
                     ( model, Cmd.none )
 
-        MembersTypingHeight result ->
-            case result of
-                Ok { element } ->
-                    ( { model | membersTypingHeight = element.height }, Cmd.none )
-
-                _ ->
-                    ( { model | membersTypingHeight = 0 }, Cmd.none )
-
-        FormHeight result ->
-            case result of
-                Ok { element } ->
-                    ( { model | formHeight = element.height }, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
-
         GotUsernameChange name ->
             ( { model | username = name }, Cmd.none )
 
@@ -177,20 +153,11 @@ update msg model =
                     )
 
         GotMessageChange message ->
-            ( { model | message = message }
-            , getElementHeights
-            )
+            ( { model | message = message }, Cmd.none )
 
         GotSendMessage ->
             sendMessage model.message (toRoom model) model.phoenix
                 |> updatePhoenixWith PhoenixMsg { model | message = "" }
-                |> Tuple.mapSecond
-                    (\cmd ->
-                        Cmd.batch
-                            [ cmd
-                            , getElementHeights
-                            ]
-                    )
 
         GotMemberStartedTyping user room ->
             memberStartedTyping user room model.phoenix
@@ -234,12 +201,7 @@ update msg model =
                 Phoenix.ChannelEvent _ "member_started_typing" payload ->
                     case JD.decodeValue (JD.field "username" JD.string) payload of
                         Ok username ->
-                            ( addMemberTyping username newModel
-                            , Cmd.batch
-                                [ cmd
-                                , getElementHeights
-                                ]
-                            )
+                            ( addMemberTyping username newModel, cmd )
 
                         Err _ ->
                             ( newModel, cmd )
@@ -247,12 +209,7 @@ update msg model =
                 Phoenix.ChannelEvent _ "member_stopped_typing" payload ->
                     case JD.decodeValue (JD.field "username" JD.string) payload of
                         Ok username ->
-                            ( dropMemberTyping username newModel
-                            , Cmd.batch
-                                [ cmd
-                                , getElementHeights
-                                ]
-                            )
+                            ( dropMemberTyping username newModel, cmd )
 
                         Err _ ->
                             ( newModel, cmd )
@@ -304,8 +261,6 @@ getElementHeights =
         [ Task.attempt LayoutHeight (Dom.getElement "layout")
         , Task.attempt HeaderHeight (Dom.getElement "header")
         , Task.attempt IntroductionHeight (Dom.getElement "introduction")
-        , Task.attempt MembersTypingHeight (Dom.getElement "members-typing")
-        , Task.attempt FormHeight (Dom.getElement "form")
         ]
 
 
@@ -581,7 +536,7 @@ view device model =
                 |> RoomView.user user
                 |> RoomView.room room
                 |> RoomView.messages model.messages
-                |> RoomView.messagesMaxHeight (messagesMaxHeight model)
+                |> RoomView.messagesContainerMaxHeight (maxHeight model)
                 |> RoomView.membersTyping model.membersTyping
                 |> RoomView.userText model.message
                 |> RoomView.onChange GotMessageChange
@@ -591,7 +546,7 @@ view device model =
                 |> RoomView.view device
 
 
-messagesMaxHeight : Model -> Int
-messagesMaxHeight model =
+maxHeight : Model -> Int
+maxHeight model =
     floor <|
-        (model.layoutHeight - model.headerHeight - model.introductionHeight - model.membersTypingHeight - model.formHeight - 10)
+        (model.layoutHeight - model.headerHeight - model.introductionHeight - 10)
