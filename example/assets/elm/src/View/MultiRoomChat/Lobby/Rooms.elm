@@ -13,8 +13,7 @@ import Element as El exposing (Attribute, Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Room exposing (Room)
-import Types exposing (User, initUser)
+import Types exposing (Room, User, initUser)
 import View.Button as Button
 
 

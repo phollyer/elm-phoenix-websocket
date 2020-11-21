@@ -21,8 +21,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Html.Attributes as Attr
-import Room exposing (Room)
-import Types exposing (Message, User, initUser)
+import Types exposing (Message, Room, User, initRoom, initUser)
 import View.MultiRoomChat.Room.Form as MessageForm
 import View.MultiRoomChat.Room.Messages as Messages
 
@@ -50,7 +49,7 @@ init : Config msg
 init =
     Config
         { user = initUser
-        , room = Room.init
+        , room = initRoom
         , userText = ""
         , membersTyping = []
         , messages = []
