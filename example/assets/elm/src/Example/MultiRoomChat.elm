@@ -88,8 +88,6 @@ type Msg
     | PhoenixMsg Phoenix.Msg
     | OnResize Int Int
     | LayoutHeight (Result Dom.Error Dom.Element)
-    | HeaderHeight (Result Dom.Error Dom.Element)
-    | IntroductionHeight (Result Dom.Error Dom.Element)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -97,29 +95,13 @@ update msg model =
     case msg of
         OnResize _ _ ->
             ( model
-            , getElementHeights
+            , getLayoutHeight
             )
 
         LayoutHeight result ->
             case result of
                 Ok { element } ->
                     ( { model | layoutHeight = element.height }, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
-
-        HeaderHeight result ->
-            case result of
-                Ok { element } ->
-                    ( { model | headerHeight = element.height }, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
-
-        IntroductionHeight result ->
-            case result of
-                Ok { element } ->
-                    ( { model | introductionHeight = element.height }, Cmd.none )
 
                 _ ->
                     ( model, Cmd.none )
@@ -146,7 +128,7 @@ update msg model =
                     (\cmd ->
                         Cmd.batch
                             [ cmd
-                            , getElementHeights
+                            , getLayoutHeight
                             ]
                     )
 
@@ -253,13 +235,9 @@ update msg model =
             ( model, Cmd.none )
 
 
-getElementHeights : Cmd Msg
-getElementHeights =
-    Cmd.batch
-        [ Task.attempt LayoutHeight (Dom.getElement "layout")
-        , Task.attempt HeaderHeight (Dom.getElement "header")
-        , Task.attempt IntroductionHeight (Dom.getElement "introduction")
-        ]
+getLayoutHeight : Cmd Msg
+getLayoutHeight =
+    Task.attempt LayoutHeight (Dom.getElement "layout")
 
 
 joinLobby : String -> Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
@@ -547,4 +525,4 @@ view device model =
 maxHeight : Model -> Int
 maxHeight model =
     floor <|
-        (model.layoutHeight - model.headerHeight - model.introductionHeight - 10)
+        (model.layoutHeight - 20)
