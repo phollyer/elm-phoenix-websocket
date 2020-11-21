@@ -29,7 +29,7 @@ import View.Example.UsefulFunctions as UsefulFunctions
 init : Phoenix.Model -> Model
 init phoenix =
     { phoenix = phoenix
-    , errors = []
+    , responses = []
     }
 
 
@@ -39,12 +39,17 @@ init phoenix =
 
 type alias Model =
     { phoenix : Phoenix.Model
-    , errors : List String
+    , responses : List Response
     }
 
 
 type Action
     = Connect
+
+
+type Response
+    = StateChange Phoenix.SocketState
+    | Error String
 
 
 
@@ -77,8 +82,11 @@ update msg model =
                         |> Phoenix.updateWith PhoenixMsg model
             in
             case phoenixMsg of
-                Phoenix.Error (Phoenix.Socket error) ->
-                    ( { newModel | errors = error :: newModel.errors }, cmd )
+                Phoenix.SocketMessage (Phoenix.SocketError error) ->
+                    ( { newModel | responses = Error error :: newModel.responses }, cmd )
+
+                Phoenix.SocketMessage (Phoenix.StateChange state) ->
+                    ( { newModel | responses = StateChange state :: newModel.responses }, cmd )
 
                 _ ->
                     ( newModel, cmd )
@@ -149,12 +157,12 @@ connect device phoenix =
 
 
 feedback : Device -> Model -> Element Msg
-feedback device { phoenix, errors } =
+feedback device { phoenix, responses } =
     Feedback.init
         |> Feedback.elements
             [ FeedbackPanel.init
                 |> FeedbackPanel.title "Info"
-                |> FeedbackPanel.scrollable (info device errors)
+                |> FeedbackPanel.scrollable (info device responses)
                 |> FeedbackPanel.view device
             , FeedbackPanel.init
                 |> FeedbackPanel.title "Applicable Functions"
@@ -168,22 +176,42 @@ feedback device { phoenix, errors } =
         |> Feedback.view device
 
 
-info : Device -> List String -> List (Element Msg)
-info device errors =
-    List.filterMap
-        (\error ->
-            if error == "" then
-                Nothing
+info : Device -> List Response -> List (Element Msg)
+info device responses =
+    List.map
+        (\response ->
+            case response of
+                StateChange state ->
+                    FeedbackContent.init
+                        |> FeedbackContent.title (Just "SocketMessage")
+                        |> FeedbackContent.label "StateChange"
+                        |> FeedbackContent.element (El.text (socketStateToString state))
+                        |> FeedbackContent.view device
 
-            else
-                FeedbackContent.init
-                    |> FeedbackContent.title (Just "Error")
-                    |> FeedbackContent.label "Socket"
-                    |> FeedbackContent.element (El.text error)
-                    |> FeedbackContent.view device
-                    |> Just
+                Error error ->
+                    FeedbackContent.init
+                        |> FeedbackContent.title (Just "SocketMessage")
+                        |> FeedbackContent.label "SocketError"
+                        |> FeedbackContent.element (El.text error)
+                        |> FeedbackContent.view device
         )
-        errors
+        responses
+
+
+socketStateToString : Phoenix.SocketState -> String
+socketStateToString state =
+    case state of
+        Phoenix.Connecting ->
+            "Connecting"
+
+        Phoenix.Connected ->
+            "Connected"
+
+        Phoenix.Disconnecting ->
+            "Disconnecting"
+
+        Phoenix.Disconnected _ ->
+            "Disconnected"
 
 
 applicableFunctions : Device -> Element Msg
@@ -192,7 +220,6 @@ applicableFunctions device =
         |> ApplicableFunctions.functions
             [ "Phoenix.setConnectParams"
             , "Phoenix.connect"
-            , "Phoenix.disconnect"
             ]
         |> ApplicableFunctions.view device
 
