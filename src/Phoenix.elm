@@ -11,7 +11,6 @@ module Phoenix exposing
     , SocketState(..), SocketMessage(..)
     , OriginalPayload, PushRef, ChannelResponse(..)
     , Presence, PresenceDiff, PresenceEvent(..)
-    , Error(..)
     , InternalError(..)
     , PhoenixMsg(..)
     , socketState, socketStateToString, isConnected, connectionState, disconnectReason, endPointURL, protocol
@@ -178,11 +177,6 @@ immediately.
 ### Phoenix Presence
 
 @docs Presence, PresenceDiff, PresenceEvent
-
-
-### Errors
-
-@docs Error
 
 
 ### Internal Errors
@@ -1247,7 +1241,7 @@ update msg (Model model) =
                     ( Model model, Cmd.none, ChannelClosed topic )
 
                 Channel.Error topic ->
-                    ( Model model, Cmd.none, Error (Channel topic) )
+                    ( Model model, Cmd.none, ChannelResponse (ChannelError topic) )
 
                 Channel.JoinError topic payload ->
                     ( Model model, Cmd.none, ChannelResponse (JoinError topic payload) )
@@ -1441,7 +1435,7 @@ update msg (Model model) =
                 Socket.Error reason ->
                     ( Model model
                     , Cmd.none
-                    , Error (Socket reason)
+                    , SocketMessage (SocketError reason)
                     )
 
                 Socket.InternalError errorType ->
@@ -1574,6 +1568,7 @@ type SocketState
 {-| -}
 type SocketMessage
     = StateChange SocketState
+    | SocketError String
     | ChannelMessage
         { topic : Topic
         , event : Event
@@ -1609,7 +1604,8 @@ type alias OriginalPayload =
 
 {-| -}
 type ChannelResponse
-    = JoinOk Topic Payload
+    = ChannelError Topic
+    | JoinOk Topic Payload
     | JoinError Topic Payload
     | JoinTimeout Topic OriginalPayload
     | PushOk Topic Event PushRef Payload
@@ -1699,19 +1695,6 @@ type PresenceEvent
     | Diff Topic PresenceDiff
 
 
-{-| The `Error` type is received when the JS `onError` function fires for the
-Socket or a Channel. No useful information is provided by the Socket or the
-Channel, so all that can be returned to Elm is the Channel [Topic](#Topic).
-
-`JoinError`s or `PushError`s received by a [ChannelResponse](#ChannelResponse)
-are not considered errors in this context.
-
--}
-type Error
-    = Channel Topic
-    | Socket String
-
-
 {-| An `InternalError` should never happen, but if it does, it is because the
 JS is out of sync with this package.
 
@@ -1733,7 +1716,6 @@ type PhoenixMsg
     | ChannelEvent Topic Event Payload
     | ChannelClosed Topic
     | PresenceEvent PresenceEvent
-    | Error Error
     | InternalError InternalError
 
 
