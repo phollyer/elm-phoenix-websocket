@@ -510,7 +510,7 @@ let ElmPhoenixWebSocket = {
     */
     allOn(params) {
         for( let i = 0; i < params.events.length; i++) {
-            this.on( {topic: params.topic, params.events[i]} )
+            this.on( {topic: params.topic, event: params.events[i]} )
         }
     },
 
