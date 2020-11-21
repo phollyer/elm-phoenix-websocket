@@ -1423,10 +1423,6 @@ update msg (Model model) =
                     )
 
                 Socket.Heartbeat message ->
-                    let
-                        _ =
-                            Debug.log "" message
-                    in
                     ( Model model
                     , Cmd.none
                     , SocketMessage (Heartbeat message)
