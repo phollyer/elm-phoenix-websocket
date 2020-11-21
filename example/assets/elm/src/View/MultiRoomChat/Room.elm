@@ -3,6 +3,7 @@ module View.MultiRoomChat.Room exposing
     , introduction
     , membersTyping
     , messages
+    , messagesMaxHeight
     , onChange
     , onFocus
     , onLoseFocus
@@ -37,6 +38,7 @@ type Config msg
         , userText : String
         , membersTyping : List String
         , messages : List Message
+        , messagesMaxHeight : Int
         , onChange : Maybe (String -> msg)
         , onFocus : Maybe msg
         , onLoseFocus : Maybe msg
@@ -52,6 +54,7 @@ init =
         , userText = ""
         , membersTyping = []
         , messages = []
+        , messagesMaxHeight = 0
         , onChange = Nothing
         , onFocus = Nothing
         , onLoseFocus = Nothing
@@ -84,6 +87,11 @@ messages messages_ (Config config) =
     Config { config | messages = messages_ }
 
 
+messagesMaxHeight : Int -> Config msg -> Config msg
+messagesMaxHeight height (Config config) =
+    Config { config | messagesMaxHeight = height }
+
+
 onChange : (String -> msg) -> Config msg -> Config msg
 onChange toMsg (Config config) =
     Config { config | onChange = Just toMsg }
@@ -111,19 +119,19 @@ onSubmit msg (Config config) =
 view : Device -> Config msg -> Element msg
 view device (Config config) =
     El.column
-        [ El.spacing 10
+        [ El.htmlAttribute <|
+            Attr.id "room"
         , El.height El.fill
         , El.width El.fill
         ]
         [ introduction config.user config.room
         , El.column
-            [ El.alignBottom
-            , El.spacing 10
+            [ El.htmlAttribute <|
+                Attr.id "message-list-and-form"
+            , El.height El.fill
             , El.width El.fill
-            , El.height <|
-                El.maximum (maxHeight device) El.fill
             ]
-            [ messagesView device config.user config.messages
+            [ messagesView device (Config config)
             , membersTypingView config.membersTyping
             , form device (Config config)
             ]
@@ -132,42 +140,50 @@ view device (Config config) =
 
 introduction : User -> Room -> Element msg
 introduction currentUser currentRoom =
-    if currentUser.id == currentRoom.owner.id then
-        El.column
-            [ El.width El.fill
-            , El.spacing 10
-            ]
-            [ El.paragraph
-                [ El.width El.fill ]
-                [ El.text "Welcome to your room." ]
-            , El.paragraph
-                [ El.width El.fill ]
-                [ El.text "When you leave the room it will close and all members will return to the lobby. "
-                , El.text "Messages will be retained until you delete the room or leave the lobby."
+    let
+        paragraphs =
+            if currentUser.id == currentRoom.owner.id then
+                [ El.paragraph
+                    [ El.width El.fill ]
+                    [ El.text "Welcome to your room." ]
+                , El.paragraph
+                    [ El.width El.fill ]
+                    [ El.text "When you leave the room it will close and all members will return to the lobby. "
+                    , El.text "Messages will be retained until you delete the room or leave the lobby."
+                    ]
                 ]
-            ]
 
-    else
-        El.column
-            [ El.width El.fill
-            , El.spacing 10
-            ]
-            [ El.paragraph
-                [ El.width El.fill ]
-                [ El.text "Welcome to "
-                , El.text currentRoom.owner.username
-                , El.text "'s room."
+            else
+                [ El.paragraph
+                    [ El.width El.fill ]
+                    [ El.text "Welcome to "
+                    , El.text currentRoom.owner.username
+                    , El.text "'s room."
+                    ]
+                , El.paragraph
+                    [ El.width El.fill ]
+                    [ El.text "When "
+                    , El.text currentRoom.owner.username
+                    , El.text " leaves the room it will close and you will return to the lobby. "
+                    , El.text "Messages will be retained until "
+                    , El.text currentRoom.owner.username
+                    , El.text " deletes the room or leaves the lobby."
+                    ]
                 ]
-            , El.paragraph
-                [ El.width El.fill ]
-                [ El.text "When "
-                , El.text currentRoom.owner.username
-                , El.text " leaves the room it will close and you will return to the lobby. "
-                , El.text "Messages will be retained until "
-                , El.text currentRoom.owner.username
-                , El.text " deletes the room or leaves the lobby."
-                ]
-            ]
+    in
+    El.column
+        [ El.htmlAttribute <|
+            Attr.id "introduction"
+        , El.width El.fill
+        , El.spacing 10
+        , El.paddingEach
+            { left = 0
+            , top = 0
+            , right = 0
+            , bottom = 10
+            }
+        ]
+        paragraphs
 
 
 membersTypingView : List String -> Element msg
@@ -177,7 +193,15 @@ membersTypingView membersTyping_ =
 
     else
         El.paragraph
-            [ El.width El.fill
+            [ El.htmlAttribute <|
+                Attr.id "members-typing"
+            , El.paddingEach
+                { left = 0
+                , top = 10
+                , right = 0
+                , bottom = 0
+                }
+            , El.width El.fill
             , Font.alignLeft
             ]
             [ El.el
@@ -193,21 +217,22 @@ membersTypingView membersTyping_ =
 {- Messages -}
 
 
-messagesView : Device -> User -> List Message -> Element msg
-messagesView device currentUser messages_ =
+messagesView : Device -> Config msg -> Element msg
+messagesView device (Config config) =
     El.el
         [ Background.color Color.white
         , Border.rounded 10
         , El.htmlAttribute <|
             Attr.id "message-list"
-        , El.height El.fill
+        , El.height <|
+            El.maximum config.messagesMaxHeight El.fill
         , El.width El.fill
         , El.clipY
         , El.scrollbarY
         ]
         (Messages.init
-            |> Messages.user currentUser
-            |> Messages.messages messages_
+            |> Messages.user config.user
+            |> Messages.messages config.messages
             |> Messages.view device
         )
 
@@ -219,6 +244,7 @@ messagesView device currentUser messages_ =
 form : Device -> Config msg -> Element msg
 form device (Config config) =
     MessageForm.init
+        |> MessageForm.id "form"
         |> MessageForm.text config.userText
         |> MessageForm.onChange config.onChange
         |> MessageForm.onFocus config.onFocus

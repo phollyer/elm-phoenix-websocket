@@ -12,6 +12,7 @@ import Device exposing (Device)
 import Element as El exposing (Attribute, DeviceClass(..), Element, Orientation(..))
 import Element.Font as Font
 import Element.Input as Input
+import Html.Attributes as Attr
 
 
 
@@ -57,12 +58,13 @@ body body_ (Config config) =
 view : Device -> Config msg -> Element msg
 view device (Config config) =
     El.column
-        [ El.inFront (homeButton device config.homeMsg)
+        [ El.htmlAttribute <|
+            Attr.id "layout"
+        , El.inFront (homeButton device config.homeMsg)
         , El.height El.fill
         , El.width El.fill
         , El.clip
         , El.scrollbars
-        , El.spacing 10
         ]
         [ header device config.title
         , config.body
@@ -73,6 +75,14 @@ header : Device -> String -> Element msg
 header device text =
     El.row
         [ fontSize device
+        , El.htmlAttribute <|
+            Attr.id "header"
+        , El.paddingEach
+            { left = 0
+            , top = 0
+            , right = 0
+            , bottom = 10
+            }
         , El.width El.fill
         , Font.bold
         , Font.underline

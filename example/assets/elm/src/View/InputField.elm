@@ -115,7 +115,7 @@ multilineAttrs : List (Attribute msg)
 multilineAttrs =
     [ Border.rounded 5
     , El.height <|
-        El.maximum 200 El.fill
+        El.maximum 150 El.fill
     , El.width El.fill
     ]
 
