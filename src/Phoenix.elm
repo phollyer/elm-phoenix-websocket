@@ -43,7 +43,7 @@ configuring this module is as simple as this:
 
     type alias Model =
         { phoenix : Phoenix.Model
-        ...
+            ...
         }
 
 
@@ -52,7 +52,7 @@ configuring this module is as simple as this:
     init : Model
     init =
         { phoenix = Phoenix.init Ports.config
-        ...
+            ...
         }
 
 
@@ -70,15 +70,16 @@ configuring this module is as simple as this:
         case msg of
             PhoenixMsg subMsg ->
                 let
-                    (newModel, cmd, phoenixMsg) =
+                    (phoenix, phoenixCmd, phoenixMsg) =
                         Phoenix.update subMsg model.phoenix
-                            |> Phoenix.updateWith PhoenixMsg model
                 in
                 case phoenixMsg of
                     ...
 
                 _ ->
-                    (newModel, cmd)
+                    ({ model | phoenix = phoenix }
+                    , Cmd.map PhoenixMsg phoenixCmd
+                    )
 
             _ ->
                 (model, Cmd.none)
@@ -324,7 +325,7 @@ into your `src`, and then use its `config` function as follows:
     init : Model
     init =
         { phoenix = Phoenix.init Ports.config
-        ...
+            ...
         }
 
 -}
@@ -391,7 +392,7 @@ Socket when it is created.
 [ConnectOption](Phoenix.Socket.ConnectOption)s that have already been set.
 
     import Phoenix
-    import Phoenix.Socket as Socket
+    import Phoenix.Socket exposing (ConnectOption(..))
     import Ports.Phoenix as Ports
 
     type alias Model =
@@ -404,15 +405,15 @@ Socket when it is created.
         { phoenix =
             Phoenix.init Ports.config
                 |> Phoenix.addConnectOptions
-                    [ Socket.Timeout 7000
-                    , Socket.HeartbeatIntervalMillis 2000
+                    [ Timeout 7000
+                    , HeartbeatIntervalMillis 2000
                     ]
                 |> Phoenix.addConnectOptions
-                    [ Socket.Timeout 5000 ]
-        ...
+                    [ Timeout 5000 ]
+            ...
         }
 
-    -- List ConnectOption == [ Socket.Timeout 5000, Socket.HeartbeatIntervalMillis 2000 ]
+    -- List ConnectOption == [ Timeout 5000, HeartbeatIntervalMillis 2000 ]
 
 -}
 addConnectOptions : List Socket.ConnectOption -> Model -> Model
@@ -429,7 +430,7 @@ Socket when it is created.
 [ConnectOption](Phoenix.Socket.ConnectOption)s.
 
     import Phoenix
-    import Phoenix.Socket as Socket
+    import Phoenix.Socket exposing (ConnectOption(..))
     import Ports.Phoenix as Ports
 
     type alias Model =
@@ -442,15 +443,15 @@ Socket when it is created.
         { phoenix =
             Phoenix.init Ports.config
                 |> Phoenix.addConnectOptions
-                    [ Socket.HeartbeatIntervalMillis 2000 ]
+                    [ HeartbeatIntervalMillis 2000 ]
                 |> Phoenix.setConnectOptions
-                    [ Socket.Timeout 7000 ]
+                    [ Timeout 7000 ]
                 |> Phoenix.setConnectOptions
-                    [ Socket.Timeout 5000 ]
-        ...
+                    [ Timeout 5000 ]
+            ...
         }
 
-    -- List ConnectOption == [ Socket.Timeout 5000 ]
+    -- List ConnectOption == [ Timeout 5000 ]
 
 -}
 setConnectOptions : List Socket.ConnectOption -> Model -> Model
@@ -485,6 +486,8 @@ type alias Payload =
                         , ("password", JE.string "password")
                         ]
                     )
+            ...
+        }
 
 -}
 setConnectParams : Value -> Model -> Model
@@ -654,24 +657,11 @@ type alias JoinConfig =
 {-| A helper function for creating a [JoinConfig](#JoinConfig).
 
     import Phoenix exposing (joinConfig)
-    import Ports.Phoenix as Port
 
-    type alias Model =
-        { phoenix : Phoenix.Model
-            ...
-        }
-
-    init : Model
-    init =
-        { phoenix =
-            Phoenix.init Port.config
-                |> Phoenix.setJoinConfig
-                    { joinConfig
-                    | topic = "topic:subTopic"
-                    , events = [ "event1", "event2" ]
-                    }
-            ...
-        }
+    { joinConfig
+    | topic = "topic:subTopic"
+    , events = [ "event1", "event2" ]
+    }
 
 -}
 joinConfig : JoinConfig
@@ -756,8 +746,7 @@ type alias LeaveConfig =
     }
 
 
-{-| Set a [LeaveConfig](#LeaveConfig) to be used when leaving a Channel
-referenced by the [Topic](#Topic).
+{-| Set a [LeaveConfig](#LeaveConfig) to be used when leaving a Channel.
 
     import Phoenix
     import Ports.Phoenix as Port
@@ -887,12 +876,10 @@ type alias PushConfig =
 
     import Phoenix exposing (pushConfig)
 
-    Phoenix.push
-        { pushConfig
-        | topic = "topic:subTopic"
-        , event = "hello"
-        }
-        model.phoenix
+    { pushConfig
+    | topic = "topic:subTopic"
+    , event = "hello"
+    }
 
 -}
 pushConfig : PushConfig
