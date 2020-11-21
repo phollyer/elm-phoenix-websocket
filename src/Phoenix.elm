@@ -1238,7 +1238,7 @@ update msg (Model model) =
         ReceivedChannelMsg channelMsg ->
             case channelMsg of
                 Channel.Closed topic ->
-                    ( Model model, Cmd.none, ChannelClosed topic )
+                    ( Model model, Cmd.none, ChannelResponse (ChannelClosed topic) )
 
                 Channel.Error topic ->
                     ( Model model, Cmd.none, ChannelResponse (ChannelError topic) )
@@ -1605,13 +1605,14 @@ type alias OriginalPayload =
 {-| -}
 type ChannelResponse
     = ChannelError Topic
+    | ChannelClosed Topic
+    | LeaveOk Topic
     | JoinOk Topic Payload
     | JoinError Topic Payload
     | JoinTimeout Topic OriginalPayload
     | PushOk Topic Event PushRef Payload
     | PushError Topic Event PushRef Payload
     | PushTimeout Topic Event PushRef OriginalPayload
-    | LeaveOk Topic
 
 
 {-| A type alias representing a Presence on a Channel.
@@ -1714,7 +1715,6 @@ type PhoenixMsg
     | SocketMessage SocketMessage
     | ChannelResponse ChannelResponse
     | ChannelEvent Topic Event Payload
-    | ChannelClosed Topic
     | PresenceEvent PresenceEvent
     | InternalError InternalError
 
