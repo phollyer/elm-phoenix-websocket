@@ -11,6 +11,7 @@ config :elm_phoenix_web_socket_example, ElmPhoenixWebSocketExampleWeb.Endpoint,
   debug_errors: true,
   code_reloader: true,
   check_origin: false,
+  secret_key_base: "jTMm27HFlRQ4pY3Z8wLfgIjLuYcqG1VG0OCw5uFU75WfYUfxGMUHmNhPr2suVv+F",
   watchers: [
     node: [
       "node_modules/webpack/bin/webpack.js",
