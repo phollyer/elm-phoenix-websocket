@@ -223,6 +223,9 @@ let ElmPhoenixWebSocket = {
         Disconnect from the socket.
     */
     disconnect( params ) {
+        this.channels = {}
+        this.presences = {}
+        this.events = {}
         this.socketSend("Disconnecting", {})
         this.socket.disconnect( () => {}, params.code)
     },
