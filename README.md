@@ -12,6 +12,8 @@ Elm `src` files.
 The JS file you need, and set up instructions are
 [`here`](https://github.com/phollyer/elm-phoenix-websocket/tree/master/js).
 
+## Set up the Ports
+
 The Port module you need, and set up instructions are
 [`here`](https://github.com/phollyer/elm-phoenix-websocket/tree/master/ports).
 
