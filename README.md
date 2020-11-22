@@ -25,7 +25,7 @@ A Phoenix application that provides an Elm SPA with a dozen examples can be foun
 [here](https://github.com/phollyer/elm-phoenix-websocket-example).
 
 The relevant Elm files for the examples are
-[here](https://github.com/phollyer/elm-phoenix-websocket-example/assets/elm/src/Example).
+[here](https://github.com/phollyer/elm-phoenix-websocket-example/tree/master/assets/elm/src/Example).
 
 ## Further Reading
 
