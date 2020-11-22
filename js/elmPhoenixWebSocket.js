@@ -576,6 +576,8 @@ let ElmPhoenixWebSocket = {
         // Select the channel to leave.
         let channel = this.find(params.topic)
 
+        this.events[params.topic] = []
+
         channel.leave(params.timeout)
             .receive("ok", _ => this.leaveOk(params.topic) )
     },
