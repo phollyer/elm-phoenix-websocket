@@ -200,9 +200,8 @@ update msg model =
                             ( { newModel | messages = messages_ }
                             , Cmd.batch
                                 [ cmd
-                                , Dom.getViewportOf "message-list"
-                                    |> Task.andThen (\{ scene } -> Dom.setViewportOf "message-list" 0 scene.height)
-                                    |> Task.attempt (\_ -> NoOp)
+                                , scrollToBottom "message-list"
+                                , scrollToBottom "layout"
                                 ]
                             )
 
@@ -238,6 +237,13 @@ update msg model =
 getLayoutHeight : Cmd Msg
 getLayoutHeight =
     Task.attempt LayoutHeight (Dom.getElement "layout")
+
+
+scrollToBottom : String -> Cmd Msg
+scrollToBottom id =
+    Dom.getViewportOf id
+        |> Task.andThen (\{ scene } -> Dom.setViewportOf id 0 scene.height)
+        |> Task.attempt (\_ -> NoOp)
 
 
 joinLobby : String -> Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )

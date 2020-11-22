@@ -123,7 +123,7 @@ view device (Config config) =
         [ introduction config.user config.room
         , El.column
             [ El.height <|
-                El.maximum config.messagesContainerMaxHeight El.fill
+                El.px config.messagesContainerMaxHeight
             , El.width El.fill
             ]
             [ messagesView device (Config config)
