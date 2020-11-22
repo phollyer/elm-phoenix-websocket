@@ -12,14 +12,23 @@ Elm `src` files.
 The JS file you need, and set up instructions are
 [`here`](https://github.com/phollyer/elm-phoenix-websocket/tree/master/js).
 
-## Add the Port module
-
 The Port module you need, and set up instructions are
 [`here`](https://github.com/phollyer/elm-phoenix-websocket/tree/master/ports).
 
 ## Install the package.
 
     elm install phollyer/elm-phoenix-websocket
+
+## Examples
+
+A Phoenix application that provides an Elm SPA with a dozen examples can be found
+[here](https://github.com/phollyer/elm-phoenix-websocket-example).
+
+The relevant Elm files for the examples are
+[here](https://github.com/phollyer/elm-phoenix-websocket-example/assets/elm/src/Example).
+
+A live Phoenix application with the Elm SPA can be found
+[here](http://www.elm-phoenix-websocket-example.hollyer.me.uk)
 
 ## Further Reading
 
