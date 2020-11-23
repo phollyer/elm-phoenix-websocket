@@ -124,43 +124,45 @@ let ElmPhoenixWebSocket = {
         })
 
         this.socket.onClose( resp => {
-            if(this.allowReconnect) {
+            if(resp.code != 1000) {
+                if(this.allowReconnect) {
 
-                /* The socket has closed unexpectedly after having been open,
-                   so we assume the closure was due to a drop in the network.
-                */
-                this.socketSend("Error", {reason: "Unreachable"})
-            } else {
+                    /* The socket has closed unexpectedly after having been open,
+                       so we assume the closure was due to a drop in the network.
+                    */
+                    this.socketSend("Error", {reason: "Unreachable"})
+                } else {
 
-                /* The socket closes, and allowReconnect is still equal to
-                   false, so we assume the socket has denied the connection for
-                   some reason.
+                    /* The socket closes, and allowReconnect is still equal to
+                       false, so we assume the socket has denied the connection for
+                       some reason.
 
-                   Therefore, reset the reconnectTimer so that we don't keep
-                   trying to connect with the same bad creds.
-                 */
-                this.socket.reconnectTimer.reset()
+                       Therefore, reset the reconnectTimer so that we don't keep
+                       trying to connect with the same bad creds.
+                     */
+                    this.socket.reconnectTimer.reset()
 
-                /* One known case exists that isn't covered here.
+                    /* One known case exists that isn't covered here.
 
-                   If the application or the server is down, but the network
-                   up, then we still end up here, sending back "Denied". This
-                   is the wrong response for this scenario.
+                       If the application or the server is down, but the network
+                       up, then we still end up here, sending back "Denied". This
+                       is the wrong response for this scenario.
 
-                   TODO:
+                       TODO:
 
-                   Send an ajax request to the server to determine if it is the
-                   application or the server that is down.
+                       Send an ajax request to the server to determine if it is the
+                       application or the server that is down.
 
-                   If the server is unreachable, send an ajax request to an
-                   alternative server. As it is unlikely that both servers will
-                   be down at the same time, we can then assume that the user
-                   does not have access to the internet.
+                       If the server is unreachable, send an ajax request to an
+                       alternative server. As it is unlikely that both servers will
+                       be down at the same time, we can then assume that the user
+                       does not have access to the internet.
 
-                   This would require the user to opt in and provide additional
-                   config details to be used by the ajax requests.
-                 */
-                this.socketSend("Error", {reason: "Denied"})
+                       This would require the user to opt in and provide additional
+                       config details to be used by the ajax requests.
+                     */
+                    this.socketSend("Error", {reason: "Denied"})
+                }
             }
             this.info()
             this.socketSend("Closed", resp)
