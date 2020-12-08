@@ -258,6 +258,7 @@ type Model
         , connectOptions : List Socket.ConnectOption
         , connectParams : Payload
         , disconnectReason : Maybe String
+        , reconnect : Bool
         , socketInfo : SocketInfo.Info
         , socketState : SocketState
 
@@ -348,6 +349,7 @@ init portConfig =
         , connectOptions = []
         , connectParams = JE.null
         , disconnectReason = Nothing
+        , reconnect = False
         , socketInfo = SocketInfo.init
         , socketState = Disconnected (Socket.ClosedInfo Nothing 0 False "" False)
 
@@ -390,11 +392,8 @@ connect (Model model) =
             )
 
         Disconnecting ->
-            ( updateSocketState Connecting (Model model)
-            , Socket.connect
-                model.connectOptions
-                (Just model.connectParams)
-                model.portConfig.phoenixSend
+            ( Model { model | reconnect = True }
+            , Cmd.none
             )
 
         _ ->
@@ -1399,7 +1398,7 @@ update msg (Model model) =
         ReceivedSocketMsg subMsg ->
             case subMsg of
                 Socket.Opened ->
-                    Model model
+                    Model { model | reconnect = False }
                         |> updateDisconnectReason Nothing
                         |> updateSocketState Connected
                         |> batchWithParams
@@ -1409,12 +1408,17 @@ update msg (Model model) =
                         |> toPhoenixMsg (SocketMessage (StateChange Connected))
 
                 Socket.Closed closedInfo ->
-                    Model model
-                        |> updateDisconnectReason closedInfo.reason
-                        |> updateSocketState (Disconnected closedInfo)
-                        |> batchWithParams
-                            [ ( join, queuedChannels (Model model) ) ]
-                        |> toPhoenixMsg (SocketMessage (StateChange (Disconnected closedInfo)))
+                    if model.reconnect then
+                        connect (Model { model | reconnect = False })
+                            |> toPhoenixMsg (SocketMessage (StateChange (Disconnected closedInfo)))
+
+                    else
+                        Model model
+                            |> updateDisconnectReason closedInfo.reason
+                            |> updateSocketState (Disconnected closedInfo)
+                            |> batchWithParams
+                                [ ( join, queuedChannels (Model model) ) ]
+                            |> toPhoenixMsg (SocketMessage (StateChange (Disconnected closedInfo)))
 
                 Socket.Connecting ->
                     ( updateSocketState Connecting (Model model)
