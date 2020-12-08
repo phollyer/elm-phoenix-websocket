@@ -1,23 +1,6 @@
-module Internal.Dict exposing
-    ( prepend
-    , prependOne
-    )
+module Internal.Dict exposing (prependOne)
 
 import Dict exposing (Dict)
-
-
-prepend : comparable -> List a -> Dict comparable (List a) -> Dict comparable (List a)
-prepend key items dict =
-    Dict.update key
-        (\maybeList ->
-            case maybeList of
-                Just list ->
-                    Just (items ++ list)
-
-                Nothing ->
-                    Just items
-        )
-        dict
 
 
 prependOne : comparable -> a -> Dict comparable (List a) -> Dict comparable (List a)
