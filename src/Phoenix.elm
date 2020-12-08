@@ -251,25 +251,34 @@ This is an opaque type, so use the provided API to interact with it.
 -}
 type Model
     = Model
-        { queuedChannels : Set Topic
-        , queuedLeaves : Set Topic
-        , joinedChannels : Set Topic
+        { -- Ports
+          portConfig : PortConfig
+
+        -- Socket
         , connectOptions : List Socket.ConnectOption
         , connectParams : Payload
         , disconnectReason : Maybe String
+        , socketInfo : SocketInfo.Info
+        , socketState : SocketState
+
+        -- Channels
         , joinConfigs : Dict Topic JoinConfig
         , leaveConfigs : Dict Topic LeaveConfig
-        , portConfig : PortConfig
+        , queuedChannels : Set Topic
+        , joinedChannels : Set Topic
+        , queuedLeaves : Set Topic
+
+        -- Push
+        , pushCount : Int
+        , queuedPushes : Dict String InternalPush
+        , sentPushes : Dict String InternalPush
+        , timeoutPushes : Dict String InternalPush
+
+        -- Phoenix Presence
         , presenceDiff : Dict Topic (List PresenceDiff)
         , presenceJoin : Dict Topic (List Presence)
         , presenceLeave : Dict Topic (List Presence)
         , presenceState : Dict Topic (List Presence)
-        , pushCount : Int
-        , queuedPushes : Dict String InternalPush
-        , sentPushes : Dict String InternalPush
-        , socketInfo : SocketInfo.Info
-        , socketState : SocketState
-        , timeoutPushes : Dict String InternalPush
         }
 
 
@@ -332,25 +341,34 @@ into your `src`, and then use its `config` function as follows:
 init : PortConfig -> Model
 init portConfig =
     Model
-        { queuedChannels = Set.empty
-        , queuedLeaves = Set.empty
-        , joinedChannels = Set.empty
+        { -- Ports
+          portConfig = portConfig
+
+        -- Socket
         , connectOptions = []
         , connectParams = JE.null
         , disconnectReason = Nothing
+        , socketInfo = SocketInfo.init
+        , socketState = Disconnected (Socket.ClosedInfo Nothing 0 False "" False)
+
+        -- Channels
         , joinConfigs = Dict.empty
         , leaveConfigs = Dict.empty
-        , portConfig = portConfig
+        , queuedChannels = Set.empty
+        , joinedChannels = Set.empty
+        , queuedLeaves = Set.empty
+
+        -- Push
+        , pushCount = 0
+        , queuedPushes = Dict.empty
+        , sentPushes = Dict.empty
+        , timeoutPushes = Dict.empty
+
+        -- Phoenix Presence
         , presenceDiff = Dict.empty
         , presenceJoin = Dict.empty
         , presenceLeave = Dict.empty
         , presenceState = Dict.empty
-        , pushCount = 0
-        , queuedPushes = Dict.empty
-        , sentPushes = Dict.empty
-        , socketInfo = SocketInfo.init
-        , socketState = Disconnected (Socket.ClosedInfo Nothing 0 False "" False)
-        , timeoutPushes = Dict.empty
         }
 
 
