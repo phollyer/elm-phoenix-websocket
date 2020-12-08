@@ -458,10 +458,12 @@ let ElmPhoenixWebSocket = {
         /* Push the event and payload to the server, with or without a custom
            timeout.
         */
-        if(params.timeout) {
+        if (params.timeout && params.payload) {
             push = channel.push(params.event, params.payload, params.timeout)
-        } else {
+        } else if (params.payload) {
             push = channel.push(params.event, params.payload)
+        } else {
+            push = channel.push(params.event, {})
         }
 
         push
