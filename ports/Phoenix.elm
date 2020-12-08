@@ -27,6 +27,12 @@ import Json.Encode exposing (Value)
     Phoenix.init Ports.config
 
 -}
+config :
+    { phoenixSend : { msg : String, payload : Value } -> Cmd msg
+    , socketReceiver : ({ msg : String, payload : Value } -> msg) -> Sub msg
+    , channelReceiver : ({ topic : String, msg : String, payload : Value } -> msg) -> Sub msg
+    , presenceReceiver : ({ topic : String, msg : String, payload : Value } -> msg) -> Sub msg
+    }
 config =
     { phoenixSend = phoenixSend
     , socketReceiver = socketReceiver
