@@ -235,11 +235,12 @@ all the logging, while regular users do not.
 
 import Dict exposing (Dict)
 import Internal.Dict as Dict
+import Internal.Socket as Socket exposing (Socket)
 import Internal.SocketInfo as SocketInfo
 import Json.Encode as JE exposing (Value)
 import Phoenix.Channel as Channel
 import Phoenix.Presence as Presence
-import Phoenix.Socket as Socket
+import Phoenix.Socket
 import Set exposing (Set)
 import Time
 
@@ -255,11 +256,7 @@ type Model
           portConfig : PortConfig
 
         -- Socket
-        , connectOptions : List Socket.ConnectOption
-        , connectParams : Payload
-        , disconnectReason : Maybe String
-        , reconnect : Bool
-        , socketInfo : SocketInfo.Info
+        , socket : Socket Msg
         , socketState : SocketState
 
         -- Channels
@@ -346,12 +343,8 @@ init portConfig =
           portConfig = portConfig
 
         -- Socket
-        , connectOptions = []
-        , connectParams = JE.null
-        , disconnectReason = Nothing
-        , reconnect = False
-        , socketInfo = SocketInfo.init
-        , socketState = Disconnected (Socket.ClosedInfo Nothing 0 False "" False)
+        , socket = Socket.init portConfig.phoenixSend
+        , socketState = Disconnected (Phoenix.Socket.ClosedInfo Nothing 0 False "" False)
 
         -- Channels
         , joinConfigs = Dict.empty
@@ -384,15 +377,12 @@ connect : Model -> ( Model, Cmd Msg )
 connect (Model model) =
     case model.socketState of
         Disconnected _ ->
-            ( updateSocketState Connecting (Model model)
-            , Socket.connect
-                model.connectOptions
-                (Just model.connectParams)
-                model.portConfig.phoenixSend
+            ( updateSocketState Connecting (Model { model | socket = Socket.setReconnect False model.socket })
+            , Socket.connect model.socket
             )
 
         Disconnecting ->
-            ( Model { model | reconnect = True }
+            ( Model { model | socket = Socket.setReconnect True model.socket }
             , Cmd.none
             )
 
@@ -433,11 +423,9 @@ Socket when it is created.
     -- List ConnectOption == [ Timeout 5000, HeartbeatIntervalMillis 2000 ]
 
 -}
-addConnectOptions : List Socket.ConnectOption -> Model -> Model
+addConnectOptions : List Phoenix.Socket.ConnectOption -> Model -> Model
 addConnectOptions options (Model model) =
-    updateConnectOptions
-        (List.append model.connectOptions options)
-        (Model model)
+    Model { model | socket = Socket.addOptions options model.socket }
 
 
 {-| Provide the [ConnectOption](Phoenix.Socket#ConnectOption)s to set on the
@@ -471,9 +459,9 @@ Socket when it is created.
     -- List ConnectOption == [ Timeout 5000 ]
 
 -}
-setConnectOptions : List Socket.ConnectOption -> Model -> Model
-setConnectOptions options model =
-    updateConnectOptions options model
+setConnectOptions : List Phoenix.Socket.ConnectOption -> Model -> Model
+setConnectOptions options (Model model) =
+    Model { model | socket = Socket.setOptions options model.socket }
 
 
 {-| A type alias representing data that is sent to, or received from, a
@@ -508,8 +496,8 @@ type alias Payload =
 
 -}
 setConnectParams : Value -> Model -> Model
-setConnectParams params model =
-    updateConnectParams params model
+setConnectParams params (Model model) =
+    Model { model | socket = Socket.setParams (Just params) model.socket }
 
 
 {-| Disconnect the Socket, maybe providing a status
@@ -527,8 +515,7 @@ disconnect code (Model model) =
 
         _ ->
             ( updateSocketState Disconnecting (Model model)
-            , Socket.disconnect code
-                model.portConfig.phoenixSend
+            , Socket.disconnect code model.socket
             )
 
 
@@ -557,13 +544,11 @@ disconnectAndReset code (Model model) =
 
 
 reset : Model -> Model
-reset model =
-    model
+reset (Model model) =
+    Model { model | socket = Socket.reset model.socket }
         |> updateChannelsBeingJoined Set.empty
         |> updateChannelsBeingLeft Set.empty
         |> updateChannelsJoined Set.empty
-        |> updateConnectOptions []
-        |> updateConnectParams JE.null
         |> updateJoinConfigs Dict.empty
         |> updateLeaveConfigs Dict.empty
         |> updateQueuedPushes Dict.empty
@@ -1145,7 +1130,7 @@ subscriptions (Model model) =
         [ Channel.subscriptions
             ReceivedChannelMsg
             model.portConfig.channelReceiver
-        , Socket.subscriptions
+        , Phoenix.Socket.subscriptions
             ReceivedSocketMsg
             model.portConfig.socketReceiver
         , Presence.subscriptions
@@ -1219,7 +1204,7 @@ This is an opaque type, for pattern matching see [PhoenixMsg](#PhoenixMsg).
 type Msg
     = ReceivedChannelMsg Channel.Msg
     | ReceivedPresenceMsg Presence.Msg
-    | ReceivedSocketMsg Socket.Msg
+    | ReceivedSocketMsg Phoenix.Socket.Msg
     | TimeoutTick Time.Posix
 
 
@@ -1397,8 +1382,8 @@ update msg (Model model) =
 
         ReceivedSocketMsg subMsg ->
             case subMsg of
-                Socket.Opened ->
-                    Model { model | reconnect = False }
+                Phoenix.Socket.Opened ->
+                    Model { model | socket = Socket.setReconnect False model.socket }
                         |> updateDisconnectReason Nothing
                         |> updateSocketState Connected
                         |> batchWithParams
@@ -1407,9 +1392,9 @@ update msg (Model model) =
                             ]
                         |> toPhoenixMsg (SocketMessage (StateChange Connected))
 
-                Socket.Closed closedInfo ->
-                    if model.reconnect then
-                        connect (Model { model | reconnect = False })
+                Phoenix.Socket.Closed closedInfo ->
+                    if Socket.reconnect model.socket then
+                        connect (Model model)
                             |> toPhoenixMsg (SocketMessage (StateChange (Disconnected closedInfo)))
 
                     else
@@ -1420,39 +1405,39 @@ update msg (Model model) =
                                 [ ( join, queuedChannels (Model model) ) ]
                             |> toPhoenixMsg (SocketMessage (StateChange (Disconnected closedInfo)))
 
-                Socket.Connecting ->
+                Phoenix.Socket.Connecting ->
                     ( updateSocketState Connecting (Model model)
                     , Cmd.none
                     , SocketMessage (StateChange Connecting)
                     )
 
-                Socket.Disconnecting ->
+                Phoenix.Socket.Disconnecting ->
                     ( updateSocketState Disconnecting (Model model)
                     , Cmd.none
                     , SocketMessage (StateChange Disconnecting)
                     )
 
-                Socket.Channel message ->
+                Phoenix.Socket.Channel message ->
                     ( Model model
                     , Cmd.none
                     , SocketMessage (ChannelMessage message)
                     )
 
-                Socket.Presence message ->
+                Phoenix.Socket.Presence message ->
                     ( Model model
                     , Cmd.none
                     , SocketMessage (PresenceMessage message)
                     )
 
-                Socket.Heartbeat message ->
+                Phoenix.Socket.Heartbeat message ->
                     ( Model model
                     , Cmd.none
                     , SocketMessage (Heartbeat message)
                     )
 
-                Socket.Info socketInfo ->
+                Phoenix.Socket.Info socketInfo ->
                     case socketInfo of
-                        Socket.All info ->
+                        Phoenix.Socket.All info ->
                             ( updateSocketInfo info (Model model)
                             , Cmd.none
                             , NoOp
@@ -1461,21 +1446,21 @@ update msg (Model model) =
                         _ ->
                             ( Model model, Cmd.none, NoOp )
 
-                Socket.Error reason ->
+                Phoenix.Socket.Error reason ->
                     ( Model model
                     , Cmd.none
                     , SocketMessage (SocketError reason)
                     )
 
-                Socket.InternalError errorType ->
+                Phoenix.Socket.InternalError errorType ->
                     case errorType of
-                        Socket.DecoderError error ->
+                        Phoenix.Socket.DecoderError error ->
                             ( Model model
                             , Cmd.none
                             , InternalError (DecoderError ("Socket : " ++ error))
                             )
 
-                        Socket.InvalidMessage error ->
+                        Phoenix.Socket.InvalidMessage error ->
                             ( Model model
                             , Cmd.none
                             , InternalError (InvalidMessage ("Socket : " ++ error))
@@ -1792,36 +1777,36 @@ socketStateToString (Model model) =
 {-| Whether the Socket is connected or not.
 -}
 isConnected : Model -> Bool
-isConnected (Model model) =
-    model.socketInfo.isConnected
+isConnected (Model { socket }) =
+    Socket.isConnected socket
 
 
 {-| The current connection state of the Socket as a String.
 -}
 connectionState : Model -> String
-connectionState (Model model) =
-    model.socketInfo.connectionState
+connectionState (Model { socket }) =
+    Socket.connectionState socket
 
 
 {-| The reason the Socket disconnected.
 -}
 disconnectReason : Model -> Maybe String
-disconnectReason (Model model) =
-    model.disconnectReason
+disconnectReason (Model { socket }) =
+    Socket.disconnectReason socket
 
 
 {-| The endpoint URL for the Socket.
 -}
 endPointURL : Model -> String
-endPointURL (Model model) =
-    model.socketInfo.endPointURL
+endPointURL (Model { socket }) =
+    Socket.endPointURL socket
 
 
 {-| The protocol being used by the Socket.
 -}
 protocol : Model -> String
-protocol (Model model) =
-    model.socketInfo.protocol
+protocol (Model { socket }) =
+    Socket.protocol socket
 
 
 
@@ -2215,7 +2200,7 @@ socket's logger. There are two ways to do this. You can use the
 -}
 log : String -> String -> Value -> Model -> Cmd Msg
 log kind msg data (Model model) =
-    Socket.log kind msg data model.portConfig.phoenixSend
+    Phoenix.Socket.log kind msg data model.portConfig.phoenixSend
 
 
 {-| Activate the socket's logger function. This will log all messages that the
@@ -2223,14 +2208,14 @@ socket sends and receives.
 -}
 startLogging : Model -> Cmd Msg
 startLogging (Model model) =
-    Socket.startLogging model.portConfig.phoenixSend
+    Phoenix.Socket.startLogging model.portConfig.phoenixSend
 
 
 {-| Deactivate the socket's logger function.
 -}
 stopLogging : Model -> Cmd Msg
 stopLogging (Model model) =
-    Socket.stopLogging model.portConfig.phoenixSend
+    Phoenix.Socket.stopLogging model.portConfig.phoenixSend
 
 
 
@@ -2261,28 +2246,9 @@ updateChannelsJoined channels (Model model) =
         }
 
 
-updateConnectOptions : List Socket.ConnectOption -> Model -> Model
-updateConnectOptions options (Model model) =
-    Model
-        { model
-            | connectOptions = options
-        }
-
-
-updateConnectParams : Payload -> Model -> Model
-updateConnectParams params (Model model) =
-    Model
-        { model
-            | connectParams = params
-        }
-
-
 updateDisconnectReason : Maybe String -> Model -> Model
 updateDisconnectReason maybeReason (Model model) =
-    Model
-        { model
-            | disconnectReason = maybeReason
-        }
+    Model { model | socket = Socket.setDisconnectReason maybeReason model.socket }
 
 
 updateJoinConfigs : Dict String JoinConfig -> Model -> Model
@@ -2356,10 +2322,7 @@ updateSentPushes sentPushes_ (Model model) =
 
 updateSocketInfo : SocketInfo.Info -> Model -> Model
 updateSocketInfo info (Model model) =
-    Model
-        { model
-            | socketInfo = info
-        }
+    Model { model | socket = Socket.setInfo info model.socket }
 
 
 updateSocketState : SocketState -> Model -> Model
