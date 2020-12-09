@@ -18,6 +18,10 @@ import Phoenix.Channel exposing (Topic)
 import Phoenix.Presence as P
 
 
+
+{- Model -}
+
+
 type Presence
     = Presence
         { diff : Dict Topic (List P.PresenceDiff)
@@ -37,58 +41,42 @@ init =
         }
 
 
-addDiff : Topic -> P.PresenceDiff -> Presence -> Presence
-addDiff topic diff_ (Presence presence) =
-    Presence
-        { presence
-            | diff =
-                Dict.update topic
-                    (\maybeList ->
-                        case maybeList of
-                            Just list ->
-                                Just (diff_ :: list)
 
-                            Nothing ->
-                                Just [ diff_ ]
-                    )
-                    presence.diff
-        }
+{- Accessors -}
 
 
-addJoin : Topic -> P.Presence -> Presence -> Presence
-addJoin topic join (Presence presence) =
-    Presence
-        { presence
-            | joins =
-                Dict.update topic
-                    (\maybeList ->
-                        case maybeList of
-                            Just list ->
-                                Just (join :: list)
-
-                            Nothing ->
-                                Just [ join ]
-                    )
-                    presence.joins
-        }
+diff : Topic -> Presence -> List P.PresenceDiff
+diff topic (Presence presence) =
+    all topic presence.diff
 
 
-addLeave : Topic -> P.Presence -> Presence -> Presence
-addLeave topic leave (Presence presence) =
-    Presence
-        { presence
-            | leaves =
-                Dict.update topic
-                    (\maybeList ->
-                        case maybeList of
-                            Just list ->
-                                Just (leave :: list)
+state : Topic -> Presence -> List P.Presence
+state topic (Presence presence) =
+    all topic presence.state
 
-                            Nothing ->
-                                Just [ leave ]
-                    )
-                    presence.leaves
-        }
+
+joins : Topic -> Presence -> List P.Presence
+joins topic (Presence presence) =
+    all topic presence.joins
+
+
+leaves : Topic -> Presence -> List P.Presence
+leaves topic (Presence presence) =
+    all topic presence.leaves
+
+
+lastJoin : Topic -> Presence -> Maybe P.Presence
+lastJoin topic (Presence presence) =
+    last topic presence.joins
+
+
+lastLeave : Topic -> Presence -> Maybe P.Presence
+lastLeave topic (Presence presence) =
+    last topic presence.leaves
+
+
+
+{- Setters -}
 
 
 setState : Topic -> List P.Presence -> Presence -> Presence
@@ -96,39 +84,46 @@ setState topic state_ (Presence presence) =
     Presence { presence | state = Dict.insert topic state_ presence.state }
 
 
-diff : Topic -> Presence -> List P.PresenceDiff
-diff topic (Presence presence) =
-    Dict.get topic presence.diff
+addDiff : Topic -> P.PresenceDiff -> Presence -> Presence
+addDiff topic diff_ (Presence presence) =
+    Presence { presence | diff = add topic diff_ presence.diff }
+
+
+addJoin : Topic -> P.Presence -> Presence -> Presence
+addJoin topic join (Presence presence) =
+    Presence { presence | joins = add topic join presence.joins }
+
+
+addLeave : Topic -> P.Presence -> Presence -> Presence
+addLeave topic leave (Presence presence) =
+    Presence { presence | leaves = add topic leave presence.leaves }
+
+
+
+{- Private -}
+
+
+add : comparable -> v -> Dict comparable (List v) -> Dict comparable (List v)
+add key value dict =
+    Dict.update key
+        (\maybeV ->
+            case maybeV of
+                Just v ->
+                    Just (value :: v)
+
+                Nothing ->
+                    Just [ value ]
+        )
+        dict
+
+
+all : comparable -> Dict comparable (List v) -> List v
+all key dict =
+    Dict.get key dict
         |> Maybe.withDefault []
 
 
-state : Topic -> Presence -> List P.Presence
-state topic (Presence presence) =
-    Dict.get topic presence.state
-        |> Maybe.withDefault []
-
-
-joins : Topic -> Presence -> List P.Presence
-joins topic (Presence presence) =
-    Dict.get topic presence.joins
-        |> Maybe.withDefault []
-
-
-leaves : Topic -> Presence -> List P.Presence
-leaves topic (Presence presence) =
-    Dict.get topic presence.leaves
-        |> Maybe.withDefault []
-
-
-lastJoin : Topic -> Presence -> Maybe P.Presence
-lastJoin topic (Presence presence) =
-    Dict.get topic presence.joins
-        |> Maybe.withDefault []
-        |> List.head
-
-
-lastLeave : Topic -> Presence -> Maybe P.Presence
-lastLeave topic (Presence presence) =
-    Dict.get topic presence.leaves
-        |> Maybe.withDefault []
+last : comparable -> Dict comparable (List v) -> Maybe v
+last key dict =
+    all key dict
         |> List.head
