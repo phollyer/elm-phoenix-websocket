@@ -234,14 +234,15 @@ all the logging, while regular users do not.
 -}
 
 import Dict exposing (Dict)
-import Internal.Dict as Dict
+import Internal.Channel as Channel exposing (Channel)
+import Internal.Presence exposing (Presence)
+import Internal.Push as Push exposing (InternalPush, Push)
 import Internal.Socket as Socket exposing (Socket)
 import Internal.SocketInfo as SocketInfo
 import Json.Encode as JE exposing (Value)
-import Phoenix.Channel as Channel
-import Phoenix.Presence as Presence
+import Phoenix.Channel
+import Phoenix.Presence
 import Phoenix.Socket
-import Set exposing (Set)
 import Time
 
 
@@ -252,31 +253,41 @@ This is an opaque type, so use the provided API to interact with it.
 -}
 type Model
     = Model
-        { -- Ports
-          portConfig : PortConfig
-
-        -- Socket
-        , socket : Socket Msg
+        { portConfig : PortConfig
         , socketState : SocketState
+        , socket : Socket Msg
+        , channel : Channel Msg
+        , push : Push RetryStrategy Msg
+        , presence : Internal.Presence.Presence
+        }
 
-        -- Channels
-        , joinConfigs : Dict Topic JoinConfig
-        , leaveConfigs : Dict Topic LeaveConfig
-        , queuedChannels : Set Topic
-        , joinedChannels : Set Topic
-        , queuedLeaves : Set Topic
 
-        -- Push
-        , pushCount : Int
-        , queuedPushes : Dict String InternalPush
-        , sentPushes : Dict String InternalPush
-        , timeoutPushes : Dict String InternalPush
+{-| Initialize the [Model](#Model) by providing the `ports` that enable
+communication with JS.
 
-        -- Phoenix Presence
-        , presenceDiff : Dict Topic (List PresenceDiff)
-        , presenceJoin : Dict Topic (List Presence)
-        , presenceLeave : Dict Topic (List Presence)
-        , presenceState : Dict Topic (List Presence)
+The easiest way to provide the `ports` is to copy
+[this file](https://github.com/phollyer/elm-phoenix-websocket/tree/master/ports)
+into your `src`, and then use its `config` function as follows:
+
+    import Phoenix
+    import Ports.Phoenix as Ports
+
+    init : Model
+    init =
+        { phoenix = Phoenix.init Ports.config
+            ...
+        }
+
+-}
+init : PortConfig -> Model
+init portConfig =
+    Model
+        { portConfig = portConfig
+        , socketState = Disconnected (Phoenix.Socket.ClosedInfo Nothing 0 False "" False)
+        , socket = Socket.init portConfig.phoenixSend
+        , channel = Channel.init portConfig.phoenixSend
+        , push = Push.init portConfig.phoenixSend
+        , presence = Internal.Presence.init
         }
 
 
@@ -317,54 +328,6 @@ type alias PortConfig =
         )
         -> Sub Msg
     }
-
-
-{-| Initialize the [Model](#Model) by providing the `ports` that enable
-communication with JS.
-
-The easiest way to provide the `ports` is to copy
-[this file](https://github.com/phollyer/elm-phoenix-websocket/tree/master/ports)
-into your `src`, and then use its `config` function as follows:
-
-    import Phoenix
-    import Ports.Phoenix as Ports
-
-    init : Model
-    init =
-        { phoenix = Phoenix.init Ports.config
-            ...
-        }
-
--}
-init : PortConfig -> Model
-init portConfig =
-    Model
-        { -- Ports
-          portConfig = portConfig
-
-        -- Socket
-        , socket = Socket.init portConfig.phoenixSend
-        , socketState = Disconnected (Phoenix.Socket.ClosedInfo Nothing 0 False "" False)
-
-        -- Channels
-        , joinConfigs = Dict.empty
-        , leaveConfigs = Dict.empty
-        , queuedChannels = Set.empty
-        , joinedChannels = Set.empty
-        , queuedLeaves = Set.empty
-
-        -- Push
-        , pushCount = 0
-        , queuedPushes = Dict.empty
-        , sentPushes = Dict.empty
-        , timeoutPushes = Dict.empty
-
-        -- Phoenix Presence
-        , presenceDiff = Dict.empty
-        , presenceJoin = Dict.empty
-        , presenceLeave = Dict.empty
-        , presenceState = Dict.empty
-        }
 
 
 
@@ -545,18 +508,12 @@ disconnectAndReset code (Model model) =
 
 reset : Model -> Model
 reset (Model model) =
-    Model { model | socket = Socket.reset model.socket }
-        |> updateChannelsBeingJoined Set.empty
-        |> updateChannelsBeingLeft Set.empty
-        |> updateChannelsJoined Set.empty
-        |> updateJoinConfigs Dict.empty
-        |> updateLeaveConfigs Dict.empty
-        |> updateQueuedPushes Dict.empty
-        |> updateTimeoutPushes Dict.empty
-        |> updatePresenceState Dict.empty
-        |> updatePresenceJoin Dict.empty
-        |> updatePresenceLeave Dict.empty
-        |> updatePresenceDiff Dict.empty
+    Model
+        { model
+            | socket = Socket.reset model.socket
+            , channel = Channel.reset model.channel
+            , push = Push.reset model.push
+        }
 
 
 
@@ -588,23 +545,11 @@ join topic (Model model) =
     else
         case model.socketState of
             Connected ->
-                case Dict.get topic model.joinConfigs of
-                    Just joinConfig_ ->
-                        ( addChannelBeingJoined topic (Model model)
-                        , Channel.join
-                            joinConfig_
-                            model.portConfig.phoenixSend
-                        )
-
-                    Nothing ->
-                        Model model
-                            |> setJoinConfig
-                                { topic = topic
-                                , payload = JE.null
-                                , events = []
-                                , timeout = Nothing
-                                }
-                            |> join topic
+                let
+                    ( channel, channelCmd ) =
+                        Channel.join topic model.channel
+                in
+                ( Model { model | channel = channel }, channelCmd )
 
             Connecting ->
                 ( addChannelBeingJoined topic (Model model)
@@ -700,9 +645,7 @@ joinConfig =
 -}
 setJoinConfig : JoinConfig -> Model -> Model
 setJoinConfig config (Model model) =
-    updateJoinConfigs
-        (Dict.insert config.topic config model.joinConfigs)
-        (Model model)
+    Model { model | channel = Channel.setJoinConfig config model.channel }
 
 
 {-| Leave a Channel referenced by the [Topic](#Topic).
@@ -711,19 +654,11 @@ leave : Topic -> Model -> ( Model, Cmd Msg )
 leave topic (Model model) =
     case model.socketState of
         Connected ->
-            case Dict.get topic model.leaveConfigs of
-                Just config ->
-                    ( addChannelBeingLeft topic (Model model)
-                    , Channel.leave config model.portConfig.phoenixSend
-                    )
-
-                Nothing ->
-                    Model model
-                        |> setLeaveConfig
-                            { topic = topic
-                            , timeout = Nothing
-                            }
-                        |> leave topic
+            let
+                ( channel, channelCmd ) =
+                    Channel.leave topic model.channel
+            in
+            ( Model { model | channel = channel }, channelCmd )
 
         _ ->
             ( addChannelBeingLeft topic (Model model)
@@ -772,51 +707,37 @@ type alias LeaveConfig =
 -}
 setLeaveConfig : LeaveConfig -> Model -> Model
 setLeaveConfig config (Model model) =
-    updateLeaveConfigs
-        (Dict.insert config.topic config model.leaveConfigs)
-        (Model model)
+    Model { model | channel = Channel.setLeaveConfig config model.channel }
 
 
 addChannelBeingJoined : Topic -> Model -> Model
 addChannelBeingJoined topic (Model model) =
-    updateChannelsBeingJoined
-        (Set.insert topic model.queuedChannels)
-        (Model model)
+    Model { model | channel = Channel.addQueuedJoin topic model.channel }
 
 
 addChannelBeingLeft : Topic -> Model -> Model
 addChannelBeingLeft topic (Model model) =
-    updateChannelsBeingLeft
-        (Set.insert topic model.queuedLeaves)
-        (Model model)
+    Model { model | channel = Channel.queueLeave topic model.channel }
 
 
 dropChannelBeingJoined : Topic -> Model -> Model
 dropChannelBeingJoined topic (Model model) =
-    updateChannelsBeingJoined
-        (Set.remove topic model.queuedChannels)
-        (Model model)
+    Model { model | channel = Channel.dropQueuedJoin topic model.channel }
 
 
 dropChannelBeingLeft : Topic -> Model -> Model
 dropChannelBeingLeft topic (Model model) =
-    updateChannelsBeingJoined
-        (Set.remove topic model.queuedLeaves)
-        (Model model)
+    Model { model | channel = Channel.dropLeave topic model.channel }
 
 
 addJoinedChannel : Topic -> Model -> Model
 addJoinedChannel topic (Model model) =
-    updateChannelsJoined
-        (Set.insert topic model.joinedChannels)
-        (Model model)
+    Model { model | channel = Channel.addJoin topic model.channel }
 
 
 dropJoinedChannel : Topic -> Model -> Model
 dropJoinedChannel topic (Model model) =
-    updateChannelsJoined
-        (Set.remove topic model.joinedChannels)
-        (Model model)
+    Model { model | channel = Channel.dropJoin topic model.channel }
 
 
 
@@ -895,14 +816,6 @@ pushConfig =
     }
 
 
-type alias InternalPush =
-    { push : PushConfig
-    , ref : String
-    , retryStrategy : RetryStrategy
-    , timeoutTick : Int
-    }
-
-
 {-| Push a message to a Channel.
 
     import Json.Encode as JE
@@ -922,183 +835,104 @@ type alias InternalPush =
 push : PushConfig -> Model -> ( Model, Cmd Msg )
 push config (Model model) =
     let
-        ( pushRef, pushCount ) =
-            case config.ref of
-                Nothing ->
-                    ( model.pushCount + 1 |> String.fromInt
-                    , model.pushCount + 1
-                    )
-
-                Just ref ->
-                    ( ref, model.pushCount )
-
-        internalConfig =
-            { push = config
-            , ref = pushRef
-            , retryStrategy = config.retryStrategy
-            , timeoutTick = 0
-            }
+        ( push_, ref ) =
+            Push.preFlight config model.push
     in
-    Model model
-        |> addPushToQueue internalConfig
-        |> updatePushCount pushCount
-        |> pushIfJoined internalConfig
+    if Channel.isJoined config.topic model.channel then
+        sendPush ref push_ (Model model)
+
+    else if Channel.joinIsQueued config.topic model.channel then
+        ( Model { model | push = push_ }, Cmd.none )
+
+    else
+        Model model
+            |> addChannelBeingJoined config.topic
+            |> join config.topic
 
 
-addPushToQueue : InternalPush -> Model -> Model
-addPushToQueue config (Model model) =
-    updateQueuedPushes
-        (Dict.insert config.ref config model.queuedPushes)
-        (Model model)
+sendPush : String -> Push RetryStrategy Msg -> Model -> ( Model, Cmd Msg )
+sendPush ref push_ (Model model) =
+    let
+        ( p, cmd ) =
+            Push.send ref push_
+    in
+    ( Model { model | push = p }, cmd )
 
 
 dropQueuedInternalPush : String -> Model -> Model
 dropQueuedInternalPush ref (Model model) =
-    updateQueuedPushes
-        (Dict.remove ref model.queuedPushes)
-        (Model model)
+    Model { model | push = Push.dropQueuedByRef ref model.push }
 
 
-pushIfJoined : InternalPush -> Model -> ( Model, Cmd Msg )
-pushIfJoined config (Model model) =
-    if Set.member config.push.topic model.joinedChannels then
-        let
-            push_ =
-                config.push
-        in
-        ( addSentPush config (Model model)
-        , Channel.push
-            { push_
-                | ref =
-                    case push_.ref of
-                        Nothing ->
-                            Just config.ref
-
-                        Just ref ->
-                            Just ref
-            }
-            model.portConfig.phoenixSend
-        )
-
-    else if Set.member config.push.topic model.queuedChannels then
-        ( Model model
-        , Cmd.none
-        )
-
-    else
-        Model model
-            |> addChannelBeingJoined config.push.topic
-            |> join config.push.topic
-
-
-addSentPush : InternalPush -> Model -> Model
-addSentPush config (Model model) =
-    updateSentPushes
-        (Dict.insert config.ref config model.sentPushes)
-        (Model model)
-
-
-sendQueuedPushesByTopic : Topic -> Model -> ( Model, Cmd Msg )
-sendQueuedPushesByTopic topic (Model model) =
+pushAfterJoin : Topic -> Model -> ( Model, Cmd Msg )
+pushAfterJoin topic (Model model) =
     let
-        ( toGo, toKeep ) =
-            Dict.partition
-                (\_ internalConfig -> internalConfig.push.topic == topic)
-                model.queuedPushes
+        ( push_, pushCmd ) =
+            Push.sendByTopic topic model.push
     in
-    Model model
-        |> updateQueuedPushes toKeep
-        |> sendAllPushes toGo
+    ( Model { model | push = push_ }, pushCmd )
 
 
 sendTimeoutPushes : Model -> ( Model, Cmd Msg )
 sendTimeoutPushes (Model model) =
     let
         ( toGo, toKeep ) =
-            Dict.partition
-                (\_ internalConfig ->
-                    case internalConfig.retryStrategy of
-                        Every secs ->
-                            internalConfig.timeoutTick == secs
+            Push.partitionTimeouts retryTimeout model.push
+                |> Tuple.mapFirst Push.resetTimeoutTick
+                |> Tuple.mapFirst (Push.map nextBackoff)
+                |> Tuple.mapSecond (Push.filter dropBackoff)
 
-                        Backoff (head :: _) _ ->
-                            internalConfig.timeoutTick == head
-
-                        Backoff [] (Just max) ->
-                            internalConfig.timeoutTick == max
-
-                        Backoff [] Nothing ->
-                            False
-
-                        Drop ->
-                            -- This branch should never match because
-                            -- pushes with a Drop strategy should never
-                            -- end up in this Dict.
-                            False
-                )
-                model.timeoutPushes
-                |> Tuple.mapFirst
-                    (\outgoing ->
-                        Dict.map
-                            (\_ internalConfig ->
-                                case internalConfig.retryStrategy of
-                                    Backoff [] max ->
-                                        internalConfig
-                                            |> updateRetryStrategy
-                                                (Backoff [] max)
-                                            |> updateTimeoutTick 0
-
-                                    Backoff list max ->
-                                        internalConfig
-                                            |> updateRetryStrategy
-                                                (Backoff (List.drop 1 list) max)
-                                            |> updateTimeoutTick 0
-
-                                    _ ->
-                                        updateTimeoutTick 0 internalConfig
-                            )
-                            outgoing
-                    )
+        ( push_, pushCmd ) =
+            Push.sendAll toGo model.push
     in
-    Model model
-        |> updateTimeoutPushes
-            (Dict.filter
-                (\_ internalPush ->
-                    not (internalPush.retryStrategy == Backoff [] Nothing)
-                )
-                toKeep
-            )
-        |> sendAllPushes toGo
-
-
-sendAllPushes : Dict String InternalPush -> Model -> ( Model, Cmd Msg )
-sendAllPushes pushConfigs model =
-    pushConfigs
-        |> Dict.toList
-        |> List.map Tuple.second
-        |> List.foldl
-            batchPush
-            ( model, Cmd.none )
-
-
-batchPush : InternalPush -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-batchPush internalPushConfig ( model, cmd ) =
-    let
-        ( model_, cmd_ ) =
-            pushIfJoined
-                internalPushConfig
-                model
-    in
-    ( model_
-    , Cmd.batch [ cmd, cmd_ ]
+    ( Model { model | push = Push.setTimeouts toKeep push_ }
+    , pushCmd
     )
 
 
-addTimeoutPush : InternalPush -> Model -> Model
-addTimeoutPush internalConfig (Model model) =
-    updateTimeoutPushes
-        (Dict.insert internalConfig.ref internalConfig model.timeoutPushes)
-        (Model model)
+retryTimeout : String -> { a | retryStrategy : RetryStrategy, timeoutTick : Int } -> Bool
+retryTimeout _ config =
+    case config.retryStrategy of
+        Every secs ->
+            config.timeoutTick == secs
+
+        Backoff (head :: _) _ ->
+            config.timeoutTick == head
+
+        Backoff [] (Just max) ->
+            config.timeoutTick == max
+
+        Backoff [] Nothing ->
+            False
+
+        Drop ->
+            -- This branch should never match because
+            -- pushes with a Drop strategy should never
+            -- end up in this Dict.
+            False
+
+
+nextBackoff : { a | retryStrategy : RetryStrategy } -> { a | retryStrategy : RetryStrategy }
+nextBackoff config =
+    case config.retryStrategy of
+        Backoff [] max ->
+            { config | retryStrategy = Backoff [] max }
+
+        Backoff list max ->
+            { config | retryStrategy = Backoff (List.drop 1 list) max }
+
+        _ ->
+            config
+
+
+dropBackoff : { a | retryStrategy : RetryStrategy } -> Bool
+dropBackoff { retryStrategy } =
+    retryStrategy == Backoff [] Nothing
+
+
+addTimeoutPush : String -> Model -> Model
+addTimeoutPush ref (Model model) =
+    Model { model | push = Push.addTimeout ref model.push }
 
 
 
@@ -1127,20 +961,20 @@ addTimeoutPush internalConfig (Model model) =
 subscriptions : Model -> Sub Msg
 subscriptions (Model model) =
     Sub.batch
-        [ Channel.subscriptions
+        [ Phoenix.Channel.subscriptions
             ReceivedChannelMsg
             model.portConfig.channelReceiver
         , Phoenix.Socket.subscriptions
             ReceivedSocketMsg
             model.portConfig.socketReceiver
-        , Presence.subscriptions
+        , Phoenix.Presence.subscriptions
             ReceivedPresenceMsg
             model.portConfig.presenceReceiver
-        , if Dict.isEmpty model.timeoutPushes then
-            Sub.none
+        , if Push.timeoutsExist model.push then
+            Time.every 1000 TimeoutTick
 
           else
-            Time.every 1000 TimeoutTick
+            Sub.none
         ]
 
 
@@ -1149,7 +983,7 @@ subscriptions (Model model) =
 -}
 addEvent : Topic -> Event -> Model -> Cmd Msg
 addEvent topic event (Model model) =
-    Channel.on
+    Phoenix.Channel.on
         { topic = topic
         , event = event
         }
@@ -1161,7 +995,7 @@ addEvent topic event (Model model) =
 -}
 addEvents : Topic -> List Event -> Model -> Cmd Msg
 addEvents topic events (Model model) =
-    Channel.allOn
+    Phoenix.Channel.allOn
         { topic = topic
         , events = events
         }
@@ -1173,7 +1007,7 @@ identified by [Topic](#Topic).
 -}
 dropEvent : Topic -> Event -> Model -> Cmd Msg
 dropEvent topic event (Model model) =
-    Channel.off
+    Phoenix.Channel.off
         { topic = topic
         , event = event
         }
@@ -1185,7 +1019,7 @@ identified by [Topic](#Topic).
 -}
 dropEvents : Topic -> List Event -> Model -> Cmd Msg
 dropEvents topic events (Model model) =
-    Channel.allOff
+    Phoenix.Channel.allOff
         { topic = topic
         , events = events
         }
@@ -1202,8 +1036,8 @@ This is an opaque type, for pattern matching see [PhoenixMsg](#PhoenixMsg).
 
 -}
 type Msg
-    = ReceivedChannelMsg Channel.Msg
-    | ReceivedPresenceMsg Presence.Msg
+    = ReceivedChannelMsg Phoenix.Channel.Msg
+    | ReceivedPresenceMsg Phoenix.Presence.Msg
     | ReceivedSocketMsg Phoenix.Socket.Msg
     | TimeoutTick Time.Posix
 
@@ -1246,26 +1080,26 @@ update msg (Model model) =
     case msg of
         ReceivedChannelMsg channelMsg ->
             case channelMsg of
-                Channel.Closed topic ->
+                Phoenix.Channel.Closed topic ->
                     ( Model model, Cmd.none, ChannelResponse (ChannelClosed topic) )
 
-                Channel.Error topic ->
+                Phoenix.Channel.Error topic ->
                     ( Model model, Cmd.none, ChannelResponse (ChannelError topic) )
 
-                Channel.JoinError topic payload ->
+                Phoenix.Channel.JoinError topic payload ->
                     ( Model model, Cmd.none, ChannelResponse (JoinError topic payload) )
 
-                Channel.JoinOk topic payload ->
+                Phoenix.Channel.JoinOk topic payload ->
                     Model model
                         |> addJoinedChannel topic
                         |> dropChannelBeingJoined topic
-                        |> sendQueuedPushesByTopic topic
+                        |> pushAfterJoin topic
                         |> toPhoenixMsg (ChannelResponse (JoinOk topic payload))
 
-                Channel.JoinTimeout topic payload ->
+                Phoenix.Channel.JoinTimeout topic payload ->
                     ( Model model, Cmd.none, ChannelResponse (JoinTimeout topic payload) )
 
-                Channel.LeaveOk topic ->
+                Phoenix.Channel.LeaveOk topic ->
                     ( Model model
                         |> dropJoinedChannel topic
                         |> dropChannelBeingLeft topic
@@ -1273,68 +1107,44 @@ update msg (Model model) =
                     , ChannelResponse (LeaveOk topic)
                     )
 
-                Channel.Message topic event payload ->
+                Phoenix.Channel.Message topic event payload ->
                     ( Model model, Cmd.none, ChannelEvent topic event payload )
 
-                Channel.PushError topic event payload ref ->
-                    let
-                        pushRef =
-                            case Dict.get ref model.queuedPushes of
-                                Just internalConfig ->
-                                    internalConfig.push.ref
-
-                                Nothing ->
-                                    Nothing
-                    in
+                Phoenix.Channel.PushError topic event payload ref ->
                     ( dropQueuedInternalPush ref (Model model)
                     , Cmd.none
-                    , ChannelResponse (PushError topic event pushRef payload)
+                    , ChannelResponse (PushError topic event (Just ref) payload)
                     )
 
-                Channel.PushOk topic event payload ref ->
-                    let
-                        pushRef =
-                            case Dict.get ref model.sentPushes of
-                                Just internalConfig ->
-                                    internalConfig.push.ref
-
-                                Nothing ->
-                                    Nothing
-                    in
+                Phoenix.Channel.PushOk topic event payload ref ->
                     ( dropQueuedInternalPush ref (Model model)
                     , Cmd.none
-                    , ChannelResponse (PushOk topic event pushRef payload)
+                    , ChannelResponse (PushOk topic event (Just ref) payload)
                     )
 
-                Channel.PushTimeout topic event payload ref ->
-                    case Dict.get ref model.sentPushes of
-                        Just internalConfig ->
-                            ( case internalConfig.retryStrategy of
-                                Drop ->
-                                    dropQueuedInternalPush ref (Model model)
+                Phoenix.Channel.PushTimeout topic event payload ref ->
+                    ( case Push.retryStrategy ref model.push of
+                        Just Drop ->
+                            dropQueuedInternalPush ref (Model model)
 
-                                _ ->
-                                    dropQueuedInternalPush ref (Model model)
-                                        |> addTimeoutPush internalConfig
-                            , Cmd.none
-                            , ChannelResponse (PushTimeout topic event internalConfig.push.ref payload)
-                            )
+                        Just _ ->
+                            addTimeoutPush ref (Model model)
 
                         Nothing ->
-                            ( Model model
-                            , Cmd.none
-                            , ChannelResponse (PushTimeout topic event Nothing payload)
-                            )
+                            dropQueuedInternalPush ref (Model model)
+                    , Cmd.none
+                    , ChannelResponse (PushTimeout topic event (Just ref) payload)
+                    )
 
-                Channel.InternalError errorType ->
+                Phoenix.Channel.InternalError errorType ->
                     case errorType of
-                        Channel.DecoderError error ->
+                        Phoenix.Channel.DecoderError error ->
                             ( Model model
                             , Cmd.none
                             , InternalError (DecoderError ("Channel : " ++ error))
                             )
 
-                        Channel.InvalidMessage topic error _ ->
+                        Phoenix.Channel.InvalidMessage topic error _ ->
                             ( Model model
                             , Cmd.none
                             , InternalError (InvalidMessage ("Channel : " ++ topic ++ " : " ++ error))
@@ -1342,39 +1152,39 @@ update msg (Model model) =
 
         ReceivedPresenceMsg presenceMsg ->
             case presenceMsg of
-                Presence.Diff topic diff ->
+                Phoenix.Presence.Diff topic diff ->
                     ( addPresenceDiff topic diff (Model model)
                     , Cmd.none
                     , PresenceEvent (Diff topic diff)
                     )
 
-                Presence.Join topic join_ ->
+                Phoenix.Presence.Join topic join_ ->
                     ( addPresenceJoin topic join_ (Model model)
                     , Cmd.none
                     , PresenceEvent (Join topic join_)
                     )
 
-                Presence.Leave topic leave_ ->
+                Phoenix.Presence.Leave topic leave_ ->
                     ( addPresenceLeave topic leave_ (Model model)
                     , Cmd.none
                     , PresenceEvent (Leave topic leave_)
                     )
 
-                Presence.State topic state ->
+                Phoenix.Presence.State topic state ->
                     ( replacePresenceState topic state (Model model)
                     , Cmd.none
                     , PresenceEvent (State topic state)
                     )
 
-                Presence.InternalError errorType ->
+                Phoenix.Presence.InternalError errorType ->
                     case errorType of
-                        Presence.DecoderError error ->
+                        Phoenix.Presence.DecoderError error ->
                             ( Model model
                             , Cmd.none
                             , InternalError (DecoderError ("Presence : " ++ error))
                             )
 
-                        Presence.InvalidMessage topic error ->
+                        Phoenix.Presence.InvalidMessage topic error ->
                             ( Model model
                             , Cmd.none
                             , InternalError (InvalidMessage ("Presence : " ++ topic ++ " : " ++ error))
@@ -1438,7 +1248,7 @@ update msg (Model model) =
                 Phoenix.Socket.Info socketInfo ->
                     case socketInfo of
                         Phoenix.Socket.All info ->
-                            ( updateSocketInfo info (Model model)
+                            ( Model { model | socket = Socket.setInfo info model.socket }
                             , Cmd.none
                             , NoOp
                             )
@@ -1467,8 +1277,7 @@ update msg (Model model) =
                             )
 
         TimeoutTick _ ->
-            Model model
-                |> timeoutTick
+            Model { model | push = Push.timeoutTick model.push }
                 |> sendTimeoutPushes
                 |> toPhoenixMsg NoOp
 
@@ -1478,18 +1287,14 @@ toPhoenixMsg phoenixMsg ( model, cmd ) =
     ( model, cmd, phoenixMsg )
 
 
-timeoutTick : Model -> Model
-timeoutTick (Model model) =
-    updateTimeoutPushes
-        (Dict.map
-            (\_ internalPushConfig ->
-                updateTimeoutTick
-                    (internalPushConfig.timeoutTick + 1)
-                    internalPushConfig
-            )
-            model.timeoutPushes
-        )
-        (Model model)
+updateSocketState : SocketState -> Model -> Model
+updateSocketState state (Model model) =
+    Model { model | socketState = state }
+
+
+updateDisconnectReason : Maybe String -> Model -> Model
+updateDisconnectReason maybeReason (Model model) =
+    Model { model | socket = Socket.setDisconnectReason maybeReason model.socket }
 
 
 {-| Helper function to use with [update](#update) in order to:
@@ -1544,32 +1349,24 @@ updateWith toMsg model ( phoenix, phoenixCmd, phoenixMsg ) =
     )
 
 
-addPresenceDiff : Topic -> PresenceDiff -> Model -> Model
+addPresenceDiff : Topic -> Phoenix.Presence.PresenceDiff -> Model -> Model
 addPresenceDiff topic diff (Model model) =
-    updatePresenceDiff
-        (Dict.prependOne topic diff model.presenceDiff)
-        (Model model)
+    Model { model | presence = Internal.Presence.addDiff topic diff model.presence }
 
 
-addPresenceJoin : Topic -> Presence -> Model -> Model
+addPresenceJoin : Topic -> Phoenix.Presence.Presence -> Model -> Model
 addPresenceJoin topic presence (Model model) =
-    updatePresenceJoin
-        (Dict.prependOne topic presence model.presenceJoin)
-        (Model model)
+    Model { model | presence = Internal.Presence.addJoin topic presence model.presence }
 
 
-addPresenceLeave : Topic -> Presence -> Model -> Model
+addPresenceLeave : Topic -> Phoenix.Presence.Presence -> Model -> Model
 addPresenceLeave topic presence (Model model) =
-    updatePresenceLeave
-        (Dict.prependOne topic presence model.presenceLeave)
-        (Model model)
+    Model { model | presence = Internal.Presence.addLeave topic presence model.presence }
 
 
-replacePresenceState : Topic -> List Presence -> Model -> Model
+replacePresenceState : Topic -> List Phoenix.Presence.Presence -> Model -> Model
 replacePresenceState topic state (Model model) =
-    updatePresenceState
-        (Dict.insert topic state model.presenceState)
-        (Model model)
+    Model { model | presence = Internal.Presence.setState topic state model.presence }
 
 
 {-| -}
@@ -1816,36 +1613,36 @@ protocol (Model { socket }) =
 {-| Channels that are queued waiting to join.
 -}
 queuedChannels : Model -> List String
-queuedChannels (Model model) =
-    Set.toList model.queuedChannels
+queuedChannels (Model { channel }) =
+    Channel.queuedChannels channel
 
 
 {-| Channels that are queued waiting to leave.
 -}
 queuedLeaves : Model -> List String
-queuedLeaves (Model model) =
-    Set.toList model.queuedLeaves
+queuedLeaves (Model { channel }) =
+    Channel.allQueuedLeaves channel
 
 
 {-| Channels that have joined successfully.
 -}
 joinedChannels : Model -> List String
-joinedChannels (Model model) =
-    Set.toList model.joinedChannels
+joinedChannels (Model { channel }) =
+    Channel.allJoined channel
 
 
 {-| Determine if a Channel is in the queue to join.
 -}
 channelQueued : Topic -> Model -> Bool
-channelQueued topic (Model model) =
-    Set.member topic model.queuedChannels
+channelQueued topic (Model { channel }) =
+    Channel.channelQueued topic channel
 
 
 {-| Determine if a Channel has joined successfully.
 -}
 channelJoined : Topic -> Model -> Bool
-channelJoined topic (Model model) =
-    Set.member topic model.joinedChannels
+channelJoined topic (Model { channel }) =
+    Channel.joined topic channel
 
 
 {-| Split a topic into it's component parts.
@@ -1864,22 +1661,7 @@ sent.
 -}
 allQueuedPushes : Model -> Dict Topic (List PushConfig)
 allQueuedPushes (Model model) =
-    Dict.foldl
-        (\_ internalPush queued ->
-            Dict.update
-                internalPush.push.topic
-                (\maybeQueue ->
-                    case maybeQueue of
-                        Nothing ->
-                            Just [ internalPush.push ]
-
-                        Just queue ->
-                            Just (internalPush.push :: queue)
-                )
-                queued
-        )
-        Dict.empty
-        model.queuedPushes
+    Push.allQueued model.push
 
 
 {-| Retrieve a list of pushes, by [Topic](#Topic), that are queued and waiting
@@ -1887,15 +1669,7 @@ for their Channel to join before being sent.
 -}
 queuedPushes : Topic -> Model -> List PushConfig
 queuedPushes topic (Model model) =
-    Dict.values model.queuedPushes
-        |> List.filterMap
-            (\internalPushConfig ->
-                if internalPushConfig.push.topic == topic then
-                    Just internalPushConfig.push
-
-                else
-                    Nothing
-            )
+    Push.queued topic model.push
 
 
 {-| Determine if a Push is in the queue to be sent when its' Channel joins.
@@ -1907,12 +1681,7 @@ queuedPushes topic (Model model) =
 -}
 pushQueued : (PushConfig -> Bool) -> Model -> Bool
 pushQueued compareFunc (Model model) =
-    model.queuedPushes
-        |> Dict.partition
-            (\_ v -> compareFunc v.push)
-        |> Tuple.first
-        |> Dict.isEmpty
-        |> not
+    Push.isQueued compareFunc model.push
 
 
 {-| Cancel a queued [Push](#Push) that is waiting for its' Channel to
@@ -1924,13 +1693,8 @@ pushQueued compareFunc (Model model) =
 
 -}
 dropQueuedPush : (PushConfig -> Bool) -> Model -> Model
-dropQueuedPush compare (Model model) =
-    updateQueuedPushes
-        (Dict.filter
-            (\_ internalPush -> not (compare internalPush.push))
-            model.queuedPushes
-        )
-        (Model model)
+dropQueuedPush compareFunc (Model model) =
+    Model { model | push = Push.dropQueued compareFunc model.push }
 
 
 {-| Pushes that have timed out and are waiting to be sent again in accordance
@@ -1941,22 +1705,7 @@ Pushes with a [RetryStrategy](#RetryStrategy) of `Drop`, won't make it here.
 -}
 timeoutPushes : Model -> Dict String (List PushConfig)
 timeoutPushes (Model model) =
-    Dict.foldl
-        (\_ internalPush queued ->
-            Dict.update
-                internalPush.push.topic
-                (\maybeQueue ->
-                    case maybeQueue of
-                        Nothing ->
-                            Just [ internalPush.push ]
-
-                        Just queue ->
-                            Just (internalPush.push :: queue)
-                )
-                queued
-        )
-        Dict.empty
-        model.timeoutPushes
+    Push.allTimeouts model.push
 
 
 {-| Determine if a Push has timed out and will be tried again in accordance
@@ -1969,12 +1718,7 @@ with it's [RetryStrategy](#RetryStrategy).
 -}
 pushTimedOut : (PushConfig -> Bool) -> Model -> Bool
 pushTimedOut compareFunc (Model model) =
-    model.timeoutPushes
-        |> Dict.partition
-            (\_ v -> compareFunc v.push)
-        |> Tuple.first
-        |> Dict.isEmpty
-        |> not
+    Push.hasTimedOut compareFunc model.push
 
 
 {-| Cancel a timed out [Push](#Push).
@@ -1987,15 +1731,8 @@ This will only work after a `push` has timed out and before it is re-tried.
 
 -}
 dropTimeoutPush : (PushConfig -> Bool) -> Model -> Model
-dropTimeoutPush compare (Model model) =
-    updateTimeoutPushes
-        (Dict.filter
-            (\_ internalPush ->
-                not (compare internalPush.push)
-            )
-            model.timeoutPushes
-        )
-        (Model model)
+dropTimeoutPush compareFunc (Model model) =
+    Model { model | push = Push.dropTimeout compareFunc model.push }
 
 
 {-| Maybe get the number of seconds until a push is retried.
@@ -2005,29 +1742,26 @@ This is useful if you want to show a countdown timer to your users.
 -}
 pushTimeoutCountdown : (PushConfig -> Bool) -> Model -> Maybe Int
 pushTimeoutCountdown compareFunc (Model model) =
-    model.timeoutPushes
-        |> Dict.filter
-            (\_ internalPushConfig -> compareFunc internalPushConfig.push)
-        |> Dict.values
-        |> List.head
-        |> Maybe.andThen
-            (\internalPushConfig ->
-                case internalPushConfig.retryStrategy of
-                    Drop ->
-                        Nothing
+    Push.timeoutCountdown compareFunc countdown model.push
 
-                    Every seconds ->
-                        Just (seconds - internalPushConfig.timeoutTick)
 
-                    Backoff (seconds :: _) _ ->
-                        Just (seconds - internalPushConfig.timeoutTick)
+countdown : { a | retryStrategy : RetryStrategy, timeoutTick : Int } -> Maybe Int
+countdown config =
+    case config.retryStrategy of
+        Drop ->
+            Nothing
 
-                    Backoff [] (Just max) ->
-                        Just (max - internalPushConfig.timeoutTick)
+        Every seconds ->
+            Just (seconds - config.timeoutTick)
 
-                    Backoff [] Nothing ->
-                        Nothing
-            )
+        Backoff (seconds :: _) _ ->
+            Just (seconds - config.timeoutTick)
+
+        Backoff [] (Just max) ->
+            Just (max - config.timeoutTick)
+
+        Backoff [] Nothing ->
+            Nothing
 
 
 {-| Cancel a [Push](#Push).
@@ -2045,13 +1779,8 @@ dropPush compare model =
 
 
 dropSentPush : (PushConfig -> Bool) -> Model -> Model
-dropSentPush compare (Model model) =
-    updateSentPushes
-        (Dict.filter
-            (\_ internalPush -> not (compare internalPush.push))
-            model.sentPushes
-        )
-        (Model model)
+dropSentPush compareFunc (Model model) =
+    Model { model | push = Push.dropSent compareFunc model.push }
 
 
 
@@ -2062,16 +1791,14 @@ dropSentPush compare (Model model) =
 -}
 presenceState : Topic -> Model -> List Presence
 presenceState topic (Model model) =
-    Dict.get topic model.presenceState
-        |> Maybe.withDefault []
+    Internal.Presence.state topic model.presence
 
 
 {-| A list of Presence diffs on the Channel referenced by [Topic](#Topic).
 -}
 presenceDiff : Topic -> Model -> List PresenceDiff
 presenceDiff topic (Model model) =
-    Dict.get topic model.presenceDiff
-        |> Maybe.withDefault []
+    Internal.Presence.diff topic model.presence
 
 
 {-| A list of Presences that have joined the Channel referenced by
@@ -2079,8 +1806,7 @@ presenceDiff topic (Model model) =
 -}
 presenceJoins : Topic -> Model -> List Presence
 presenceJoins topic (Model model) =
-    Dict.get topic model.presenceJoin
-        |> Maybe.withDefault []
+    Internal.Presence.joins topic model.presence
 
 
 {-| A list of Presences that have left the Channel referenced by
@@ -2088,26 +1814,21 @@ presenceJoins topic (Model model) =
 -}
 presenceLeaves : Topic -> Model -> List Presence
 presenceLeaves topic (Model model) =
-    Dict.get topic model.presenceLeave
-        |> Maybe.withDefault []
+    Internal.Presence.leaves topic model.presence
 
 
 {-| Maybe the last Presence to join the Channel referenced by [Topic](#Topic).
 -}
 lastPresenceJoin : Topic -> Model -> Maybe Presence
 lastPresenceJoin topic (Model model) =
-    Dict.get topic model.presenceJoin
-        |> Maybe.withDefault []
-        |> List.head
+    Internal.Presence.lastJoin topic model.presence
 
 
 {-| Maybe the last Presence to leave the Channel referenced by [Topic](#Topic).
 -}
 lastPresenceLeave : Topic -> Model -> Maybe Presence
 lastPresenceLeave topic (Model model) =
-    Dict.get topic model.presenceLeave
-        |> Maybe.withDefault []
-        |> List.head
+    Internal.Presence.lastLeave topic model.presence
 
 
 
@@ -2216,140 +1937,3 @@ startLogging (Model model) =
 stopLogging : Model -> Cmd Msg
 stopLogging (Model model) =
     Phoenix.Socket.stopLogging model.portConfig.phoenixSend
-
-
-
-{- Update Model Fields -}
-
-
-updateChannelsBeingJoined : Set Topic -> Model -> Model
-updateChannelsBeingJoined channels (Model model) =
-    Model
-        { model
-            | queuedChannels = channels
-        }
-
-
-updateChannelsBeingLeft : Set Topic -> Model -> Model
-updateChannelsBeingLeft channels (Model model) =
-    Model
-        { model
-            | queuedLeaves = channels
-        }
-
-
-updateChannelsJoined : Set Topic -> Model -> Model
-updateChannelsJoined channels (Model model) =
-    Model
-        { model
-            | joinedChannels = channels
-        }
-
-
-updateDisconnectReason : Maybe String -> Model -> Model
-updateDisconnectReason maybeReason (Model model) =
-    Model { model | socket = Socket.setDisconnectReason maybeReason model.socket }
-
-
-updateJoinConfigs : Dict String JoinConfig -> Model -> Model
-updateJoinConfigs configs (Model model) =
-    Model
-        { model
-            | joinConfigs = configs
-        }
-
-
-updateLeaveConfigs : Dict String LeaveConfig -> Model -> Model
-updateLeaveConfigs configs (Model model) =
-    Model
-        { model
-            | leaveConfigs = configs
-        }
-
-
-updatePresenceDiff : Dict String (List PresenceDiff) -> Model -> Model
-updatePresenceDiff diff (Model model) =
-    Model
-        { model
-            | presenceDiff = diff
-        }
-
-
-updatePresenceJoin : Dict String (List Presence) -> Model -> Model
-updatePresenceJoin presence (Model model) =
-    Model
-        { model
-            | presenceJoin = presence
-        }
-
-
-updatePresenceLeave : Dict String (List Presence) -> Model -> Model
-updatePresenceLeave presence (Model model) =
-    Model
-        { model
-            | presenceLeave = presence
-        }
-
-
-updatePresenceState : Dict String (List Presence) -> Model -> Model
-updatePresenceState state (Model model) =
-    Model
-        { model
-            | presenceState = state
-        }
-
-
-updatePushCount : Int -> Model -> Model
-updatePushCount count (Model model) =
-    Model
-        { model
-            | pushCount = count
-        }
-
-
-updateQueuedPushes : Dict String InternalPush -> Model -> Model
-updateQueuedPushes allQueuedPushes_ (Model model) =
-    Model
-        { model
-            | queuedPushes = allQueuedPushes_
-        }
-
-
-updateSentPushes : Dict String InternalPush -> Model -> Model
-updateSentPushes sentPushes_ (Model model) =
-    Model { model | sentPushes = sentPushes_ }
-
-
-updateSocketInfo : SocketInfo.Info -> Model -> Model
-updateSocketInfo info (Model model) =
-    Model { model | socket = Socket.setInfo info model.socket }
-
-
-updateSocketState : SocketState -> Model -> Model
-updateSocketState state (Model model) =
-    Model
-        { model
-            | socketState = state
-        }
-
-
-updateTimeoutPushes : Dict String InternalPush -> Model -> Model
-updateTimeoutPushes timeoutPushes_ (Model model) =
-    Model
-        { model
-            | timeoutPushes = timeoutPushes_
-        }
-
-
-updateRetryStrategy : RetryStrategy -> InternalPush -> InternalPush
-updateRetryStrategy retryStrategy internalPushConfig =
-    { internalPushConfig
-        | retryStrategy = retryStrategy
-    }
-
-
-updateTimeoutTick : Int -> InternalPush -> InternalPush
-updateTimeoutTick tick internalPushConfig =
-    { internalPushConfig
-        | timeoutTick = tick
-    }

@@ -1,5 +1,5 @@
 module Phoenix.Channel exposing
-    ( Topic, Event, Payload, JoinConfig, PortOut, join
+    ( Topic, Event, Payload, JoinConfig, joinConfig, PortOut, join
     , LeaveConfig, leave
     , push
     , PortIn, InternalError(..), Msg(..), subscriptions
@@ -18,7 +18,7 @@ your Channels.
 
 # Joining
 
-@docs Topic, Event, Payload, JoinConfig, PortOut, join
+@docs Topic, Event, Payload, JoinConfig, joinConfig, PortOut, join
 
 
 # Leaving
@@ -91,6 +91,25 @@ type alias JoinConfig =
     , events : List Event
     , payload : Payload
     , timeout : Maybe Int
+    }
+
+
+{-| A helper function for creating a [JoinConfig](#JoinConfig).
+
+    import Phoenix.Channel exposing (joinConfig)
+
+    { joinConfig
+    | topic = "topic:subTopic"
+    , events = [ "event1", "event2" ]
+    }
+
+-}
+joinConfig : JoinConfig
+joinConfig =
+    { topic = ""
+    , payload = JE.null
+    , events = []
+    , timeout = Nothing
     }
 
 

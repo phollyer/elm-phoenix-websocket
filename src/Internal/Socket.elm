@@ -19,7 +19,7 @@ module Internal.Socket exposing
     )
 
 import Internal.SocketInfo as Info exposing (Info)
-import Json.Encode as JE exposing (Value)
+import Json.Encode exposing (Value)
 import Phoenix.Socket as Socket exposing (ConnectOption(..))
 
 
