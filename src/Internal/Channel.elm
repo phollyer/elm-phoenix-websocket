@@ -1,10 +1,8 @@
 module Internal.Channel exposing
     ( Channel
-    , addJoin
-    , addQueuedJoin
     , allJoined
+    , allQueuedJoins
     , allQueuedLeaves
-    , channelQueued
     , dropJoin
     , dropLeave
     , dropQueuedJoin
@@ -14,8 +12,8 @@ module Internal.Channel exposing
     , joinIsQueued
     , joined
     , leave
+    , queueJoin
     , queueLeave
-    , queuedChannels
     , reset
     , setJoinConfig
     , setLeaveConfig
@@ -26,8 +24,12 @@ module Internal.Channel exposing
 
 import Dict exposing (Dict)
 import Json.Encode exposing (Value)
-import Phoenix.Channel as Channel exposing (JoinConfig, LeaveConfig, PortOut, Topic, joinConfig)
+import Phoenix.Channel as Channel exposing (JoinConfig, LeaveConfig, Topic, joinConfig)
 import Set exposing (Set)
+
+
+
+{- Model -}
 
 
 type Channel msg
@@ -58,6 +60,10 @@ reset (Channel { portOut }) =
     init portOut
 
 
+
+{- Configs -}
+
+
 defaultJoinConfig : Topic -> JoinConfig
 defaultJoinConfig topic =
     { joinConfig | topic = topic }
@@ -70,87 +76,31 @@ defaultLeaveConfig topic =
     }
 
 
-addQueuedJoin : Topic -> Channel msg -> Channel msg
-addQueuedJoin topic (Channel channel) =
-    Channel { channel | queuedJoins = Set.insert topic channel.queuedJoins }
-
-
-joinIsQueued : Topic -> Channel msg -> Bool
-joinIsQueued topic (Channel { queuedJoins }) =
-    Set.member topic queuedJoins
-
-
-queuedChannels : Channel msg -> List Topic
-queuedChannels (Channel { queuedJoins }) =
-    Set.toList queuedJoins
-
-
-channelQueued : Topic -> Channel msg -> Bool
-channelQueued topic (Channel { queuedJoins }) =
-    Set.member topic queuedJoins
-
-
-updateQueuedJoins : Set Topic -> Channel msg -> Channel msg
-updateQueuedJoins topics (Channel channel) =
-    Channel { channel | queuedJoins = topics }
-
-
-dropQueuedJoin : Topic -> Channel msg -> Channel msg
-dropQueuedJoin topic (Channel channel) =
-    Channel { channel | queuedJoins = Set.remove topic channel.queuedJoins }
-
-
 setJoinConfig : JoinConfig -> Channel msg -> Channel msg
 setJoinConfig joinConfig (Channel channel) =
     Channel { channel | joinConfigs = Dict.insert joinConfig.topic joinConfig channel.joinConfigs }
+
+
+setLeaveConfig : LeaveConfig -> Channel msg -> Channel msg
+setLeaveConfig config (Channel channel) =
+    Channel { channel | leaveConfigs = Dict.insert config.topic config channel.leaveConfigs }
+
+
+
+{- Actions -}
 
 
 join : Topic -> Channel msg -> ( Channel msg, Cmd msg )
 join topic (Channel channel) =
     case Dict.get topic channel.joinConfigs of
         Just joinConfig ->
-            ( addQueuedJoin topic (Channel channel)
+            ( queueJoin topic (Channel channel)
             , Channel.join joinConfig channel.portOut
             )
 
         Nothing ->
             setJoinConfig (defaultJoinConfig topic) (Channel channel)
                 |> join topic
-
-
-joined : Topic -> Channel msg -> Bool
-joined topic (Channel { joinedChannels }) =
-    Set.member topic joinedChannels
-
-
-addJoin : Topic -> Channel msg -> Channel msg
-addJoin topic (Channel channel) =
-    Channel { channel | joinedChannels = Set.insert topic channel.joinedChannels }
-
-
-allJoined : Channel msg -> List Topic
-allJoined (Channel { joinedChannels }) =
-    Set.toList joinedChannels
-
-
-isJoined : Topic -> Channel msg -> Bool
-isJoined topic (Channel { joinedChannels }) =
-    Set.member topic joinedChannels
-
-
-dropJoin : Topic -> Channel msg -> Channel msg
-dropJoin topic (Channel channel) =
-    Channel { channel | joinedChannels = Set.remove topic channel.joinedChannels }
-
-
-updateJoins : Set Topic -> Channel msg -> Channel msg
-updateJoins topics (Channel channel) =
-    Channel { channel | joinedChannels = topics }
-
-
-setLeaveConfig : LeaveConfig -> Channel msg -> Channel msg
-setLeaveConfig config (Channel channel) =
-    Channel { channel | leaveConfigs = Dict.insert config.topic config channel.leaveConfigs }
 
 
 leave : Topic -> Channel msg -> ( Channel msg, Cmd msg )
@@ -166,14 +116,51 @@ leave topic (Channel channel) =
                 |> leave topic
 
 
+joined : Topic -> Channel msg -> Channel msg
+joined topic (Channel channel) =
+    Channel { channel | joinedChannels = Set.insert topic channel.joinedChannels }
+
+
+
+{- Queues -}
+
+
+queueJoin : Topic -> Channel msg -> Channel msg
+queueJoin topic (Channel channel) =
+    Channel { channel | queuedJoins = Set.insert topic channel.queuedJoins }
+
+
 queueLeave : Topic -> Channel msg -> Channel msg
 queueLeave topic (Channel channel) =
     Channel { channel | queuedLeaves = Set.insert topic channel.queuedLeaves }
 
 
-dropLeave : Topic -> Channel msg -> Channel msg
-dropLeave topic (Channel channel) =
-    Channel { channel | queuedLeaves = Set.remove topic channel.queuedLeaves }
+
+{- Queries -}
+
+
+joinIsQueued : Topic -> Channel msg -> Bool
+joinIsQueued topic (Channel channel) =
+    Set.member topic channel.queuedJoins
+
+
+isJoined : Topic -> Channel msg -> Bool
+isJoined topic (Channel { joinedChannels }) =
+    Set.member topic joinedChannels
+
+
+
+{- Accessors -}
+
+
+allJoined : Channel msg -> List Topic
+allJoined (Channel { joinedChannels }) =
+    Set.toList joinedChannels
+
+
+allQueuedJoins : Channel msg -> List Topic
+allQueuedJoins (Channel { queuedJoins }) =
+    Set.toList queuedJoins
 
 
 allQueuedLeaves : Channel msg -> List Topic
@@ -181,6 +168,39 @@ allQueuedLeaves (Channel { queuedLeaves }) =
     Set.toList queuedLeaves
 
 
+
+{- Setters -}
+
+
+updateJoins : Set Topic -> Channel msg -> Channel msg
+updateJoins topics (Channel channel) =
+    Channel { channel | joinedChannels = topics }
+
+
+updateQueuedJoins : Set Topic -> Channel msg -> Channel msg
+updateQueuedJoins topics (Channel channel) =
+    Channel { channel | queuedJoins = topics }
+
+
 updateQueuedLeaves : Set Topic -> Channel msg -> Channel msg
 updateQueuedLeaves topics (Channel channel) =
     Channel { channel | queuedLeaves = topics }
+
+
+
+{- Delete -}
+
+
+dropJoin : Topic -> Channel msg -> Channel msg
+dropJoin topic (Channel channel) =
+    Channel { channel | joinedChannels = Set.remove topic channel.joinedChannels }
+
+
+dropQueuedJoin : Topic -> Channel msg -> Channel msg
+dropQueuedJoin topic (Channel channel) =
+    Channel { channel | queuedJoins = Set.remove topic channel.queuedJoins }
+
+
+dropLeave : Topic -> Channel msg -> Channel msg
+dropLeave topic (Channel channel) =
+    Channel { channel | queuedLeaves = Set.remove topic channel.queuedLeaves }

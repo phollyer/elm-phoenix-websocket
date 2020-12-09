@@ -236,9 +236,8 @@ all the logging, while regular users do not.
 import Dict exposing (Dict)
 import Internal.Channel as Channel exposing (Channel)
 import Internal.Presence exposing (Presence)
-import Internal.Push as Push exposing (InternalPush, Push)
+import Internal.Push as Push exposing (Push)
 import Internal.Socket as Socket exposing (Socket)
-import Internal.SocketInfo as SocketInfo
 import Json.Encode as JE exposing (Value)
 import Phoenix.Channel
 import Phoenix.Presence
@@ -712,7 +711,7 @@ setLeaveConfig config (Model model) =
 
 addChannelBeingJoined : Topic -> Model -> Model
 addChannelBeingJoined topic (Model model) =
-    Model { model | channel = Channel.addQueuedJoin topic model.channel }
+    Model { model | channel = Channel.queueJoin topic model.channel }
 
 
 addChannelBeingLeft : Topic -> Model -> Model
@@ -732,7 +731,7 @@ dropChannelBeingLeft topic (Model model) =
 
 addJoinedChannel : Topic -> Model -> Model
 addJoinedChannel topic (Model model) =
-    Model { model | channel = Channel.addJoin topic model.channel }
+    Model { model | channel = Channel.joined topic model.channel }
 
 
 dropJoinedChannel : Topic -> Model -> Model
@@ -1614,7 +1613,7 @@ protocol (Model { socket }) =
 -}
 queuedChannels : Model -> List String
 queuedChannels (Model { channel }) =
-    Channel.queuedChannels channel
+    Channel.allQueuedJoins channel
 
 
 {-| Channels that are queued waiting to leave.
@@ -1635,14 +1634,14 @@ joinedChannels (Model { channel }) =
 -}
 channelQueued : Topic -> Model -> Bool
 channelQueued topic (Model { channel }) =
-    Channel.channelQueued topic channel
+    Channel.joinIsQueued topic channel
 
 
 {-| Determine if a Channel has joined successfully.
 -}
 channelJoined : Topic -> Model -> Bool
 channelJoined topic (Model { channel }) =
-    Channel.joined topic channel
+    Channel.isJoined topic channel
 
 
 {-| Split a topic into it's component parts.
