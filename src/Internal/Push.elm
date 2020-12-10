@@ -1,6 +1,5 @@
 module Internal.Push exposing
-    ( InternalPush
-    , Push
+    ( Push
     , addTimeout
     , allQueued
     , allTimeouts
@@ -13,12 +12,12 @@ module Internal.Push exposing
     , init
     , isQueued
     , map
+    , maybeRetryStrategy
     , partitionTimeouts
     , preFlight
     , queued
     , reset
     , resetTimeoutTick
-    , retryStrategy
     , send
     , sendAll
     , sendByTopic
@@ -28,36 +27,44 @@ module Internal.Push exposing
     , timeoutsExist
     )
 
-import Dict exposing (Dict)
+import Internal.Config as Config exposing (Config)
 import Json.Encode exposing (Value)
-import Phoenix.Channel as Channel exposing (Topic)
+import Phoenix.Channel as Channel exposing (Event, Payload, Topic)
+
+
+
+{- Model -}
 
 
 type Push r msg
     = Push
         { count : Int
-        , queue : Dict String (InternalPush r)
-        , sent : Dict String (InternalPush r)
-        , timeouts : Dict String (InternalPush r)
+        , queue : Config Ref (InternalConfig r)
+        , sent : Config Ref (InternalConfig r)
+        , timeouts : Config Ref (InternalConfig r)
         , portOut : { msg : String, payload : Value } -> Cmd msg
         }
 
 
-type alias InternalPush r =
-    { push : PushConfig r
-    , ref : String
+type alias Ref =
+    String
+
+
+type alias InternalConfig r =
+    { pushConfig : PushConfig r
+    , ref : Ref
     , retryStrategy : r
     , timeoutTick : Int
     }
 
 
 type alias PushConfig r =
-    { topic : String
-    , event : String
-    , payload : Value
+    { topic : Topic
+    , event : Event
+    , payload : Payload
     , timeout : Maybe Int
     , retryStrategy : r
-    , ref : Maybe String
+    , ref : Maybe Ref
     }
 
 
@@ -65,9 +72,9 @@ init : ({ msg : String, payload : Value } -> Cmd msg) -> Push r msg
 init portOut =
     Push
         { count = 0
-        , queue = Dict.empty
-        , sent = Dict.empty
-        , timeouts = Dict.empty
+        , queue = Config.empty
+        , sent = Config.empty
+        , timeouts = Config.empty
         , portOut = portOut
         }
 
@@ -77,245 +84,76 @@ reset (Push push) =
     init push.portOut
 
 
+
+{- Actions -}
+
+
 preFlight : PushConfig r -> Push r msg -> ( Push r msg, String )
-preFlight config (Push push) =
+preFlight ({ ref, retryStrategy } as pushConfig) (Push ({ count, queue } as push)) =
     let
-        ( ref, count ) =
-            case config.ref of
+        ( ref_, newCount ) =
+            case ref of
                 Nothing ->
-                    ( push.count + 1 |> String.fromInt
-                    , push.count + 1
+                    ( count + 1 |> String.fromInt
+                    , count + 1
                     )
 
-                Just ref_ ->
-                    ( ref_, push.count )
+                Just r ->
+                    ( r, count )
 
         internalConfig =
-            { push = { config | ref = Just ref }
-            , ref = ref
-            , retryStrategy = config.retryStrategy
+            { pushConfig = { pushConfig | ref = Just ref_ }
+            , ref = ref_
+            , retryStrategy = retryStrategy
             , timeoutTick = 0
             }
     in
     ( Push
         { push
-            | count = count
-            , queue = Dict.insert ref internalConfig push.queue
+            | count = newCount
+            , queue = Config.insert ref_ internalConfig queue
         }
-    , ref
+    , ref_
     )
 
 
 send : String -> Push r msg -> ( Push r msg, Cmd msg )
 send ref (Push push) =
-    case Dict.get ref push.queue of
+    case Config.get ref push.queue of
         Nothing ->
             ( Push push, Cmd.none )
 
         Just internalConfig ->
             ( Push
                 { push
-                    | sent = Dict.insert ref internalConfig push.sent
-                    , queue = Dict.remove ref push.queue
+                    | sent = Config.insert ref internalConfig push.sent
+                    , queue = Config.remove ref push.queue
+                    , timeouts = Config.remove ref push.timeouts
                 }
-            , Channel.push internalConfig.push push.portOut
+            , Channel.push internalConfig.pushConfig push.portOut
             )
 
 
 sendByTopic : Topic -> Push r msg -> ( Push r msg, Cmd msg )
-sendByTopic topic (Push push_) =
+sendByTopic topic (Push ({ queue } as push)) =
     let
         ( toGo, toKeep ) =
-            Dict.partition
-                (\_ { push } -> push.topic == topic)
-                push_.queue
+            partition
+                (\_ { pushConfig } -> pushConfig.topic == topic)
+                queue
     in
-    Push { push_ | queue = toKeep }
+    Push { push | queue = toKeep }
         |> sendAll toGo
 
 
-addTimeout : String -> Push r msg -> Push r msg
-addTimeout ref (Push push) =
-    Push
-        { push
-            | sent = Dict.remove ref push.sent
-            , timeouts =
-                case Dict.get ref push.sent of
-                    Just config ->
-                        Dict.insert ref config push.timeouts
-
-                    Nothing ->
-                        push.timeouts
-        }
-
-
-hasTimedOut : (PushConfig r -> Bool) -> Push r msg -> Bool
-hasTimedOut compareFunc (Push push) =
-    push.timeouts
-        |> Dict.partition
-            (\_ v -> compareFunc v.push)
-        |> Tuple.first
-        |> Dict.isEmpty
-        |> not
-
-
-setTimeouts : Dict String (InternalPush r) -> Push r msg -> Push r msg
-setTimeouts timeouts (Push push) =
-    Push { push | timeouts = timeouts }
-
-
-partitionTimeouts : (String -> InternalPush r -> Bool) -> Push r msg -> ( Dict String (InternalPush r), Dict String (InternalPush r) )
-partitionTimeouts compareFunc (Push push) =
-    Dict.partition compareFunc push.timeouts
-
-
-resetTimeoutTick : Dict String (InternalPush r) -> Dict String (InternalPush r)
-resetTimeoutTick timeouts =
-    Dict.map (\_ config -> { config | timeoutTick = 0 }) timeouts
-
-
-sendAll : Dict String (InternalPush r) -> Push r msg -> ( Push r msg, Cmd msg )
-sendAll pushConfigs model =
-    pushConfigs
-        |> Dict.toList
+sendAll : Config String (InternalConfig r) -> Push r msg -> ( Push r msg, Cmd msg )
+sendAll config push =
+    Config.toList config
         |> List.map Tuple.second
-        |> List.foldl
-            batchPush
-            ( model, Cmd.none )
+        |> List.foldl batchPush ( push, Cmd.none )
 
 
-allQueued : Push r msg -> Dict Topic (List (PushConfig r))
-allQueued (Push { queue }) =
-    Dict.foldl
-        (\_ internalPush queue_ ->
-            Dict.update
-                internalPush.push.topic
-                (\maybeQueue ->
-                    case maybeQueue of
-                        Nothing ->
-                            Just [ internalPush.push ]
-
-                        Just q ->
-                            Just (internalPush.push :: q)
-                )
-                queue_
-        )
-        Dict.empty
-        queue
-
-
-allTimeouts : Push r msg -> Dict String (List (PushConfig r))
-allTimeouts (Push { timeouts }) =
-    Dict.foldl
-        (\_ internalPush timeouts_ ->
-            Dict.update
-                internalPush.push.topic
-                (\maybeQueue ->
-                    case maybeQueue of
-                        Nothing ->
-                            Just [ internalPush.push ]
-
-                        Just t ->
-                            Just (internalPush.push :: t)
-                )
-                timeouts_
-        )
-        Dict.empty
-        timeouts
-
-
-isQueued : (PushConfig r -> Bool) -> Push r msg -> Bool
-isQueued compareFunc (Push push) =
-    push.queue
-        |> Dict.partition
-            (\_ v -> compareFunc v.push)
-        |> Tuple.first
-        |> Dict.isEmpty
-        |> not
-
-
-queued : Topic -> Push r msg -> List (PushConfig r)
-queued topic (Push { queue }) =
-    Dict.values queue
-        |> List.filterMap
-            (\internalPushConfig ->
-                if internalPushConfig.push.topic == topic then
-                    Just internalPushConfig.push
-
-                else
-                    Nothing
-            )
-
-
-dropQueued : (PushConfig r -> Bool) -> Push r msg -> Push r msg
-dropQueued compareFunc (Push push) =
-    Push
-        { push
-            | queue =
-                Dict.filter
-                    (\_ internalPush -> not (compareFunc internalPush.push))
-                    push.queue
-        }
-
-
-dropSent : (PushConfig r -> Bool) -> Push r msg -> Push r msg
-dropSent compareFunc (Push push) =
-    Push
-        { push
-            | sent =
-                Dict.filter
-                    (\_ internalPush -> not (compareFunc internalPush.push))
-                    push.sent
-        }
-
-
-dropTimeout : (PushConfig r -> Bool) -> Push r msg -> Push r msg
-dropTimeout compareFunc (Push push) =
-    Push
-        { push
-            | timeouts =
-                Dict.filter
-                    (\_ internalPush -> not (compareFunc internalPush.push))
-                    push.timeouts
-        }
-
-
-dropQueuedByRef : String -> Push r msg -> Push r msg
-dropQueuedByRef ref (Push push) =
-    Push { push | queue = Dict.remove ref push.queue }
-
-
-retryStrategy : String -> Push r msg -> Maybe r
-retryStrategy ref (Push push) =
-    Dict.get ref push.sent
-        |> Maybe.map .retryStrategy
-
-
-timeoutsExist : Push r msg -> Bool
-timeoutsExist (Push { timeouts }) =
-    not <| Dict.isEmpty timeouts
-
-
-timeoutTick : Push r msg -> Push r msg
-timeoutTick (Push push) =
-    Push
-        { push
-            | timeouts =
-                Dict.map
-                    (\_ config -> { config | timeoutTick = config.timeoutTick + 1 })
-                    push.timeouts
-        }
-
-
-timeoutCountdown : (PushConfig r -> Bool) -> (InternalPush r -> Maybe Int) -> Push r msg -> Maybe Int
-timeoutCountdown compareFunc countdownFunc (Push { timeouts }) =
-    Dict.filter (\_ internalPushConfig -> compareFunc internalPushConfig.push) timeouts
-        |> Dict.values
-        |> List.head
-        |> Maybe.andThen countdownFunc
-
-
-batchPush : InternalPush r -> ( Push r msg, Cmd msg ) -> ( Push r msg, Cmd msg )
+batchPush : InternalConfig r -> ( Push r msg, Cmd msg ) -> ( Push r msg, Cmd msg )
 batchPush { ref } ( push, cmd ) =
     let
         ( push_, cmd_ ) =
@@ -326,11 +164,194 @@ batchPush { ref } ( push, cmd ) =
     )
 
 
-filter : (InternalPush r -> Bool) -> Dict String (InternalPush r) -> Dict String (InternalPush r)
+
+{- Predicates -}
+
+
+hasTimedOut : (PushConfig r -> Bool) -> Push r msg -> Bool
+hasTimedOut compareFunc (Push { timeouts }) =
+    compareWith compareFunc timeouts
+
+
+isQueued : (PushConfig r -> Bool) -> Push r msg -> Bool
+isQueued compareFunc (Push { queue }) =
+    compareWith compareFunc queue
+
+
+compareWith : (PushConfig r -> Bool) -> Config String (InternalConfig r) -> Bool
+compareWith compareFunc config =
+    partition (\_ { pushConfig } -> compareFunc pushConfig) config
+        |> matchFound
+
+
+matchFound : ( Config String (InternalConfig r), Config String (InternalConfig r) ) -> Bool
+matchFound =
+    Tuple.first >> Config.exists
+
+
+timeoutsExist : Push r msg -> Bool
+timeoutsExist (Push { timeouts }) =
+    Config.exists timeouts
+
+
+
+{- Queries -}
+
+
+allTimeouts : Push r msg -> Config String (List (PushConfig r))
+allTimeouts (Push { timeouts }) =
+    foldl allPushConfigs Config.empty timeouts
+
+
+allQueued : Push r msg -> Config Topic (List (PushConfig r))
+allQueued (Push { queue }) =
+    foldl allPushConfigs Config.empty queue
+
+
+allPushConfigs : InternalConfig r -> Config String (List (PushConfig r)) -> Config String (List (PushConfig r))
+allPushConfigs { pushConfig } dict =
+    Config.update pushConfig.topic (toList pushConfig) dict
+
+
+toList : PushConfig r -> Maybe (List (PushConfig r)) -> Maybe (List (PushConfig r))
+toList push maybeList =
+    case maybeList of
+        Just list ->
+            Just (push :: list)
+
+        Nothing ->
+            Just [ push ]
+
+
+queued : Topic -> Push r msg -> List (PushConfig r)
+queued topic (Push { queue }) =
+    Config.values queue
+        |> List.filterMap (byTopic topic)
+
+
+byTopic : Topic -> InternalConfig r -> Maybe (PushConfig r)
+byTopic topic { pushConfig } =
+    if topic == pushConfig.topic then
+        Just pushConfig
+
+    else
+        Nothing
+
+
+maybeRetryStrategy : String -> Push r msg -> Maybe r
+maybeRetryStrategy ref (Push push) =
+    Config.get ref push.sent
+        |> Maybe.map .retryStrategy
+
+
+timeoutCountdown : (PushConfig r -> Bool) -> (InternalConfig r -> Maybe Int) -> Push r msg -> Maybe Int
+timeoutCountdown compareFunc countdownFunc (Push { timeouts }) =
+    filter (keepWith compareFunc) timeouts
+        |> toMaybeCount countdownFunc
+
+
+keepWith : (PushConfig r -> Bool) -> InternalConfig r -> Bool
+keepWith compareFunc { pushConfig } =
+    compareFunc pushConfig
+
+
+toMaybeCount : (InternalConfig r -> Maybe Int) -> (Config String (InternalConfig r) -> Maybe Int)
+toMaybeCount countdownFunc =
+    Config.values >> List.head >> Maybe.andThen countdownFunc
+
+
+
+{- Setters -}
+
+
+addTimeout : String -> Push r msg -> Push r msg
+addTimeout ref (Push push) =
+    Push
+        { push
+            | sent = Config.remove ref push.sent
+            , timeouts =
+                case Config.get ref push.sent of
+                    Just config ->
+                        Config.insert ref config push.timeouts
+
+                    Nothing ->
+                        push.timeouts
+        }
+
+
+setTimeouts : Config String (InternalConfig r) -> Push r msg -> Push r msg
+setTimeouts timeouts (Push push) =
+    Push { push | timeouts = timeouts }
+
+
+resetTimeoutTick : Config String (InternalConfig r) -> Config String (InternalConfig r)
+resetTimeoutTick timeouts =
+    map (\config -> { config | timeoutTick = 0 }) timeouts
+
+
+timeoutTick : Push r msg -> Push r msg
+timeoutTick (Push push) =
+    Push { push | timeouts = map tick push.timeouts }
+
+
+tick : InternalConfig r -> InternalConfig r
+tick config =
+    { config | timeoutTick = config.timeoutTick + 1 }
+
+
+
+{- Delete -}
+
+
+dropQueuedByRef : String -> Push r msg -> Push r msg
+dropQueuedByRef ref (Push push) =
+    Push { push | queue = Config.remove ref push.queue }
+
+
+dropQueued : (PushConfig r -> Bool) -> Push r msg -> Push r msg
+dropQueued compareFunc (Push push) =
+    Push { push | queue = filter (discardWith compareFunc) push.queue }
+
+
+dropSent : (PushConfig r -> Bool) -> Push r msg -> Push r msg
+dropSent compareFunc (Push push) =
+    Push { push | sent = filter (discardWith compareFunc) push.sent }
+
+
+dropTimeout : (PushConfig r -> Bool) -> Push r msg -> Push r msg
+dropTimeout compareFunc (Push push) =
+    Push { push | timeouts = filter (discardWith compareFunc) push.timeouts }
+
+
+discardWith : (PushConfig r -> Bool) -> InternalConfig r -> Bool
+discardWith compareFunc { pushConfig } =
+    not <| compareFunc pushConfig
+
+
+
+{- Transform -}
+
+
+partitionTimeouts : (String -> InternalConfig r -> Bool) -> Push r msg -> ( Config String (InternalConfig r), Config String (InternalConfig r) )
+partitionTimeouts compareFunc (Push push) =
+    partition compareFunc push.timeouts
+
+
+partition : (String -> InternalConfig r -> Bool) -> Config String (InternalConfig r) -> ( Config String (InternalConfig r), Config String (InternalConfig r) )
+partition compareFunc config =
+    Config.partition compareFunc config
+
+
+filter : (InternalConfig r -> Bool) -> Config String (InternalConfig r) -> Config String (InternalConfig r)
 filter func dict =
-    Dict.filter (\_ config -> func config) dict
+    Config.filter (\_ config -> func config) dict
 
 
-map : (InternalPush r -> InternalPush r) -> Dict String (InternalPush r) -> Dict String (InternalPush r)
+foldl : (InternalConfig r -> acc -> acc) -> acc -> Config comparable (InternalConfig r) -> acc
+foldl func acc dict =
+    Config.foldl (\_ config -> func config) acc dict
+
+
+map : (InternalConfig r -> InternalConfig r) -> Config String (InternalConfig r) -> Config String (InternalConfig r)
 map func dict =
-    Dict.map (\_ config -> func config) dict
+    Config.map (\_ config -> func config) dict

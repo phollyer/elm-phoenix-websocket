@@ -1122,7 +1122,7 @@ update msg (Model model) =
                     )
 
                 Phoenix.Channel.PushTimeout topic event payload ref ->
-                    ( case Push.retryStrategy ref model.push of
+                    ( case Push.maybeRetryStrategy ref model.push of
                         Just Drop ->
                             dropQueuedInternalPush ref (Model model)
 

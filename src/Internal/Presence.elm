@@ -13,7 +13,7 @@ module Internal.Presence exposing
     , state
     )
 
-import Dict exposing (Dict)
+import Internal.Config as Config exposing (Config)
 import Phoenix.Channel exposing (Topic)
 import Phoenix.Presence as P
 
@@ -24,20 +24,20 @@ import Phoenix.Presence as P
 
 type Presence
     = Presence
-        { diff : Dict Topic (List P.PresenceDiff)
-        , state : Dict Topic (List P.Presence)
-        , joins : Dict Topic (List P.Presence)
-        , leaves : Dict Topic (List P.Presence)
+        { diff : Config Topic (List P.PresenceDiff)
+        , state : Config Topic (List P.Presence)
+        , joins : Config Topic (List P.Presence)
+        , leaves : Config Topic (List P.Presence)
         }
 
 
 init : Presence
 init =
     Presence
-        { diff = Dict.empty
-        , state = Dict.empty
-        , joins = Dict.empty
-        , leaves = Dict.empty
+        { diff = Config.empty
+        , state = Config.empty
+        , joins = Config.empty
+        , leaves = Config.empty
         }
 
 
@@ -81,7 +81,7 @@ lastLeave topic (Presence presence) =
 
 setState : Topic -> List P.Presence -> Presence -> Presence
 setState topic state_ (Presence presence) =
-    Presence { presence | state = Dict.insert topic state_ presence.state }
+    Presence { presence | state = Config.insert topic state_ presence.state }
 
 
 addDiff : Topic -> P.PresenceDiff -> Presence -> Presence
@@ -103,9 +103,9 @@ addLeave topic leave (Presence presence) =
 {- Private -}
 
 
-add : comparable -> v -> Dict comparable (List v) -> Dict comparable (List v)
+add : comparable -> v -> Config comparable (List v) -> Config comparable (List v)
 add key value dict =
-    Dict.update key
+    Config.update key
         (\maybeV ->
             case maybeV of
                 Just v ->
@@ -117,13 +117,13 @@ add key value dict =
         dict
 
 
-all : comparable -> Dict comparable (List v) -> List v
+all : comparable -> Config comparable (List v) -> List v
 all key dict =
-    Dict.get key dict
+    Config.get key dict
         |> Maybe.withDefault []
 
 
-last : comparable -> Dict comparable (List v) -> Maybe v
+last : comparable -> Config comparable (List v) -> Maybe v
 last key dict =
     all key dict
         |> List.head
