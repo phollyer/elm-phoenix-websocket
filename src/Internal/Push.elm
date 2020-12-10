@@ -154,13 +154,10 @@ sendAll config push =
 
 
 batchPush : InternalConfig r -> ( Push r msg, Cmd msg ) -> ( Push r msg, Cmd msg )
-batchPush { ref } ( push, cmd ) =
-    let
-        ( push_, cmd_ ) =
-            send ref push
-    in
-    ( push_
-    , Cmd.batch [ cmd, cmd_ ]
+batchPush ({ ref, pushConfig } as internalConfig) ( Push ({ portOut } as push), cmd ) =
+    ( Push { push | sent = Config.insert ref internalConfig push.sent }
+    , Cmd.batch
+        [ cmd, Channel.push pushConfig portOut ]
     )
 
 
