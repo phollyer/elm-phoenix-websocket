@@ -719,18 +719,13 @@ addChannelBeingLeft topic (Model model) =
     Model { model | channel = Channel.queueLeave topic model.channel }
 
 
-dropChannelBeingJoined : Topic -> Model -> Model
-dropChannelBeingJoined topic (Model model) =
-    Model { model | channel = Channel.dropQueuedJoin topic model.channel }
-
-
 dropChannelBeingLeft : Topic -> Model -> Model
 dropChannelBeingLeft topic (Model model) =
     Model { model | channel = Channel.dropLeave topic model.channel }
 
 
-addJoinedChannel : Topic -> Model -> Model
-addJoinedChannel topic (Model model) =
+channelJoinedOk : Topic -> Model -> Model
+channelJoinedOk topic (Model model) =
     Model { model | channel = Channel.joined topic model.channel }
 
 
@@ -844,7 +839,7 @@ push config (Model model) =
         ( Model { model | push = push_ }, Cmd.none )
 
     else
-        Model model
+        Model { model | push = push_ }
             |> addChannelBeingJoined config.topic
             |> join config.topic
 
@@ -1090,8 +1085,7 @@ update msg (Model model) =
 
                 Phoenix.Channel.JoinOk topic payload ->
                     Model model
-                        |> addJoinedChannel topic
-                        |> dropChannelBeingJoined topic
+                        |> channelJoinedOk topic
                         |> pushAfterJoin topic
                         |> toPhoenixMsg (ChannelResponse (JoinOk topic payload))
 

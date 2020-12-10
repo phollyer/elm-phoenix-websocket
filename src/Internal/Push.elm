@@ -146,7 +146,7 @@ sendByTopic topic (Push ({ queue } as push)) =
         |> sendAll toGo
 
 
-sendAll : Config String (InternalConfig r) -> Push r msg -> ( Push r msg, Cmd msg )
+sendAll : Config Ref (InternalConfig r) -> Push r msg -> ( Push r msg, Cmd msg )
 sendAll config push =
     Config.toList config
         |> List.map Tuple.second

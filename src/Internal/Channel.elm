@@ -144,8 +144,12 @@ allQueuedLeaves (Channel { queuedLeaves }) =
 
 
 joined : Topic -> Channel msg -> Channel msg
-joined topic (Channel ({ joinedChannels } as channel)) =
-    Channel { channel | joinedChannels = Unique.insert topic joinedChannels }
+joined topic (Channel ({ joinedChannels, queuedJoins } as channel)) =
+    Channel
+        { channel
+            | joinedChannels = Unique.insert topic joinedChannels
+            , queuedJoins = Unique.remove topic queuedJoins
+        }
 
 
 queueJoin : Topic -> Channel msg -> Channel msg
