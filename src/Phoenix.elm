@@ -909,9 +909,6 @@ retryTimeout _ config =
 nextBackoff : { a | retryStrategy : RetryStrategy } -> { a | retryStrategy : RetryStrategy }
 nextBackoff config =
     case config.retryStrategy of
-        Backoff [] max ->
-            { config | retryStrategy = Backoff [] max }
-
         Backoff list max ->
             { config | retryStrategy = Backoff (List.drop 1 list) max }
 
@@ -921,12 +918,7 @@ nextBackoff config =
 
 dropBackoff : { a | retryStrategy : RetryStrategy } -> Bool
 dropBackoff { retryStrategy } =
-    retryStrategy == Backoff [] Nothing
-
-
-addTimeoutPush : String -> Model -> Model
-addTimeoutPush ref (Model model) =
-    Model { model | push = Push.addTimeout ref model.push }
+    retryStrategy /= Backoff [] Nothing
 
 
 
@@ -1118,13 +1110,13 @@ update msg (Model model) =
                 Phoenix.Channel.PushTimeout topic event payload ref ->
                     ( case Push.maybeRetryStrategy ref model.push of
                         Just Drop ->
-                            dropQueuedInternalPush ref (Model model)
+                            Model { model | push = Push.dropSentByRef ref model.push }
 
                         Just _ ->
-                            addTimeoutPush ref (Model model)
+                            Model { model | push = Push.timedOut ref model.push }
 
                         Nothing ->
-                            dropQueuedInternalPush ref (Model model)
+                            Model { model | push = Push.dropSentByRef ref model.push }
                     , Cmd.none
                     , ChannelResponse (PushTimeout topic event (Just ref) payload)
                     )

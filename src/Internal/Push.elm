@@ -1,11 +1,11 @@
 module Internal.Push exposing
     ( Push
-    , addTimeout
     , allQueued
     , allTimeouts
     , dropQueued
     , dropQueuedByRef
     , dropSent
+    , dropSentByRef
     , dropTimeout
     , filter
     , hasTimedOut
@@ -22,6 +22,7 @@ module Internal.Push exposing
     , sendAll
     , sendByTopic
     , setTimeouts
+    , timedOut
     , timeoutCountdown
     , timeoutTick
     , timeoutsExist
@@ -261,8 +262,8 @@ toMaybeCount countdownFunc =
 {- Setters -}
 
 
-addTimeout : String -> Push r msg -> Push r msg
-addTimeout ref (Push push) =
+timedOut : String -> Push r msg -> Push r msg
+timedOut ref (Push push) =
     Push
         { push
             | sent = Config.remove ref push.sent
@@ -303,6 +304,11 @@ tick config =
 dropQueuedByRef : String -> Push r msg -> Push r msg
 dropQueuedByRef ref (Push push) =
     Push { push | queue = Config.remove ref push.queue }
+
+
+dropSentByRef : String -> Push r msg -> Push r msg
+dropSentByRef ref (Push push) =
+    Push { push | sent = Config.remove ref push.sent }
 
 
 dropQueued : (PushConfig r -> Bool) -> Push r msg -> Push r msg
