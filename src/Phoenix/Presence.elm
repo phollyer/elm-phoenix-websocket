@@ -21,6 +21,10 @@ import Json.Decode.Extra exposing (andMap)
 import Json.Encode as JE
 
 
+
+{- Types -}
+
+
 {-| A type alias representing a Presence on a Channel.
 
   - `id` - The `id` used to identify the Presence map in the
@@ -147,6 +151,10 @@ type alias PortIn msg =
     -> Sub msg
 
 
+
+{- Subscriptions -}
+
+
 {-| Subscribe to receive incoming Presence [Msg](#Msg)s.
 
     import Phoenix.Presence as Presence
@@ -166,40 +174,44 @@ type alias PortIn msg =
 -}
 subscriptions : (Msg -> msg) -> PortIn msg -> Sub msg
 subscriptions msg portIn =
-    portIn (handleIn msg)
+    portIn (map msg)
 
 
-handleIn : (Msg -> msg) -> { topic : Topic, msg : String, payload : Value } -> msg
-handleIn toMsg { topic, msg, payload } =
+
+{- Transform -}
+
+
+map : (Msg -> msg) -> { topic : Topic, msg : String, payload : Value } -> msg
+map toMsg { topic, msg, payload } =
     case msg of
         "Join" ->
-            decodePresence toMsg topic Join presenceDecoder payload
+            decodePresence topic Join presenceDecoder payload |> toMsg
 
         "Leave" ->
-            decodePresence toMsg topic Leave presenceDecoder payload
+            decodePresence topic Leave presenceDecoder payload |> toMsg
 
         "State" ->
-            decodePresence toMsg topic State stateDecoder payload
+            decodePresence topic State stateDecoder payload |> toMsg
 
         "Diff" ->
-            decodePresence toMsg topic Diff diffDecoder payload
+            decodePresence topic Diff diffDecoder payload |> toMsg
 
         _ ->
-            toMsg (InternalError (InvalidMessage topic msg))
+            InternalError (InvalidMessage topic msg) |> toMsg
 
 
 
 {- Decoders -}
 
 
-decodePresence : (Msg -> msg) -> Topic -> (Topic -> a -> Msg) -> JD.Decoder a -> Value -> msg
-decodePresence toMsg topic presenceMsg decoder payload =
+decodePresence : Topic -> (Topic -> a -> Msg) -> JD.Decoder a -> Value -> Msg
+decodePresence topic presenceMsg decoder payload =
     case JD.decodeValue decoder payload of
         Ok presence ->
-            toMsg (presenceMsg topic presence)
+            presenceMsg topic presence
 
         Err error ->
-            toMsg (InternalError (DecoderError (JD.errorToString error)))
+            InternalError (DecoderError (JD.errorToString error))
 
 
 presenceDecoder : JD.Decoder Presence

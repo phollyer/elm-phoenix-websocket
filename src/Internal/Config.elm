@@ -22,29 +22,13 @@ type alias Config comparable value =
     Dict comparable value
 
 
+
+{- Build -}
+
+
 empty : Dict k v
 empty =
     Dict.empty
-
-
-exists : Config comparable value -> Bool
-exists =
-    isEmpty >> not
-
-
-foldl : (comparable -> value -> acc -> acc) -> acc -> Dict comparable value -> acc
-foldl =
-    Dict.foldl
-
-
-get : comparable -> Dict comparable value -> Maybe value
-get =
-    Dict.get
-
-
-filter : (comparable -> value -> Bool) -> Dict comparable value -> Dict comparable value
-filter =
-    Dict.filter
 
 
 insert : comparable -> value -> Dict comparable value -> Dict comparable value
@@ -52,9 +36,61 @@ insert =
     Dict.insert
 
 
+remove : comparable -> Dict comparable value -> Dict comparable value
+remove =
+    Dict.remove
+
+
+update : comparable -> (Maybe value -> Maybe value) -> Dict comparable value -> Dict comparable value
+update =
+    Dict.update
+
+
+
+{- Query -}
+
+
+exists : Config comparable value -> Bool
+exists =
+    isEmpty >> not
+
+
+get : comparable -> Dict comparable value -> Maybe value
+get =
+    Dict.get
+
+
 isEmpty : Dict comparable value -> Bool
 isEmpty =
     Dict.isEmpty
+
+
+
+{- Lists -}
+
+
+toList : Dict comparable value -> List ( comparable, value )
+toList =
+    Dict.toList
+
+
+values : Dict comparable value -> List value
+values =
+    Dict.values
+
+
+
+{- Transform -}
+
+
+filter : (comparable -> value -> Bool) -> Dict comparable value -> Dict comparable value
+filter =
+    Dict.filter
+
+
+foldl : (comparable -> value -> acc -> acc) -> acc -> Dict comparable value -> acc
+foldl =
+    Dict.foldl
 
 
 map : (comparable -> a -> b) -> Dict comparable a -> Dict comparable b
@@ -65,23 +101,3 @@ map =
 partition : (comparable -> value -> Bool) -> Dict comparable value -> ( Dict comparable value, Dict comparable value )
 partition =
     Dict.partition
-
-
-remove : comparable -> Dict comparable value -> Dict comparable value
-remove =
-    Dict.remove
-
-
-toList : Dict comparable value -> List ( comparable, value )
-toList =
-    Dict.toList
-
-
-update : comparable -> (Maybe value -> Maybe value) -> Dict comparable value -> Dict comparable value
-update =
-    Dict.update
-
-
-values : Dict comparable value -> List value
-values =
-    Dict.values

@@ -9,7 +9,6 @@ module Internal.Presence exposing
     , lastJoin
     , lastLeave
     , leaves
-    , reset
     , setState
     , state
     )
@@ -42,13 +41,8 @@ init =
         }
 
 
-reset : Presence
-reset =
-    init
 
-
-
-{- Accessors -}
+{- Queries -}
 
 
 diff : Topic -> Presence -> List P.PresenceDiff
@@ -81,6 +75,18 @@ lastLeave topic (Presence presence) =
     last topic presence.leaves
 
 
+all : Topic -> Config Topic (List v) -> List v
+all topic config =
+    Config.get topic config
+        |> Maybe.withDefault []
+
+
+last : Topic -> Config Topic (List v) -> Maybe v
+last topic config =
+    all topic config
+        |> List.head
+
+
 
 {- Setters -}
 
@@ -105,10 +111,6 @@ addLeave topic leave (Presence presence) =
     Presence { presence | leaves = add topic leave presence.leaves }
 
 
-
-{- Local -}
-
-
 add : Topic -> v -> Config Topic (List v) -> Config Topic (List v)
 add topic value config =
     Config.update topic
@@ -121,15 +123,3 @@ add topic value config =
                     Just [ value ]
         )
         config
-
-
-all : Topic -> Config Topic (List v) -> List v
-all topic config =
-    Config.get topic config
-        |> Maybe.withDefault []
-
-
-last : Topic -> Config Topic (List v) -> Maybe v
-last topic config =
-    all topic config
-        |> List.head

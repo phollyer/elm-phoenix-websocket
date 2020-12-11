@@ -3,6 +3,7 @@ module Internal.Socket exposing
     , addOptions
     , connect
     , connectionState
+    , currentState
     , disconnect
     , disconnectReason
     , endPointURL
@@ -10,14 +11,15 @@ module Internal.Socket exposing
     , isConnected
     , protocol
     , reconnect
-    , reset
     , setDisconnectReason
     , setInfo
     , setOptions
     , setParams
     , setReconnect
+    , setState
     )
 
+import Internal.Presence exposing (state)
 import Json.Encode exposing (Value)
 import Phoenix.Socket as Socket exposing (ConnectOption(..))
 
@@ -26,28 +28,20 @@ import Phoenix.Socket as Socket exposing (ConnectOption(..))
 {- Model -}
 
 
-type Socket msg
+type Socket state msg
     = Socket
         { options : List ConnectOption
         , params : Maybe Value
         , disconnectReason : Maybe String
         , reconnect : Bool
         , info : Info
+        , state : state
         , portOut : { msg : String, payload : Value } -> Cmd msg
         }
 
 
-type alias Info =
-    { connectionState : String
-    , endPointURL : String
-    , isConnected : Bool
-    , makeRef : String
-    , protocol : String
-    }
-
-
-init : ({ msg : String, payload : Value } -> Cmd msg) -> Socket msg
-init portOut =
+init : ({ msg : String, payload : Value } -> Cmd msg) -> state -> Socket state msg
+init portOut state =
     Socket
         { options = []
         , params = Nothing
@@ -60,84 +54,111 @@ init portOut =
             , makeRef = ""
             , protocol = ""
             }
+        , state = state
         , portOut = portOut
         }
 
 
-reset : Socket msg -> Socket msg
-reset (Socket { portOut }) =
-    init portOut
+
+{- Types -}
 
 
-addOptions : List ConnectOption -> Socket msg -> Socket msg
-addOptions options (Socket socket) =
-    Socket { socket | options = List.append options socket.options }
+type alias Info =
+    { connectionState : String
+    , endPointURL : String
+    , isConnected : Bool
+    , makeRef : String
+    , protocol : String
+    }
 
 
-setOptions : List ConnectOption -> Socket msg -> Socket msg
-setOptions options (Socket socket) =
-    Socket { socket | options = options }
+
+{- Actions -}
 
 
-setParams : Maybe Value -> Socket msg -> Socket msg
-setParams maybeParams (Socket socket) =
-    Socket { socket | params = maybeParams }
-
-
-connect : Socket msg -> Cmd msg
+connect : Socket state msg -> Cmd msg
 connect (Socket { options, params, portOut }) =
     Socket.connect options params portOut
 
 
-disconnect : Maybe Int -> Socket msg -> Cmd msg
+disconnect : Maybe Int -> Socket state msg -> Cmd msg
 disconnect code (Socket { portOut }) =
     Socket.disconnect code portOut
 
 
-disconnectReason : Socket msg -> Maybe String
+
+{- Queries -}
+
+
+currentState : Socket state msg -> state
+currentState (Socket { state }) =
+    state
+
+
+disconnectReason : Socket state msg -> Maybe String
 disconnectReason (Socket socket) =
     socket.disconnectReason
 
 
-reconnect : Socket msg -> Bool
+reconnect : Socket state msg -> Bool
 reconnect (Socket socket) =
     socket.reconnect
 
 
-setDisconnectReason : Maybe String -> Socket msg -> Socket msg
-setDisconnectReason maybeReason (Socket socket) =
-    Socket { socket | disconnectReason = maybeReason }
-
-
-setReconnect : Bool -> Socket msg -> Socket msg
-setReconnect reconnect_ (Socket socket) =
-    Socket { socket | reconnect = reconnect_ }
-
-
-
-{- Info -}
-
-
-setInfo : Info -> Socket msg -> Socket msg
-setInfo info_ (Socket socket) =
-    Socket { socket | info = info_ }
-
-
-connectionState : Socket msg -> String
+connectionState : Socket state msg -> String
 connectionState (Socket { info }) =
     info.connectionState
 
 
-endPointURL : Socket msg -> String
+endPointURL : Socket state msg -> String
 endPointURL (Socket { info }) =
     info.endPointURL
 
 
-isConnected : Socket msg -> Bool
+isConnected : Socket state msg -> Bool
 isConnected (Socket { info }) =
     info.isConnected
 
 
-protocol : Socket msg -> String
+protocol : Socket state msg -> String
 protocol (Socket { info }) =
     info.protocol
+
+
+
+{- Setters -}
+
+
+addOptions : List ConnectOption -> Socket state msg -> Socket state msg
+addOptions options (Socket socket) =
+    Socket { socket | options = List.append options socket.options }
+
+
+setOptions : List ConnectOption -> Socket state msg -> Socket state msg
+setOptions options (Socket socket) =
+    Socket { socket | options = options }
+
+
+setParams : Maybe Value -> Socket state msg -> Socket state msg
+setParams maybeParams (Socket socket) =
+    Socket { socket | params = maybeParams }
+
+
+setDisconnectReason : Maybe String -> Socket state msg -> Socket state msg
+setDisconnectReason maybeReason (Socket socket) =
+    Socket { socket | disconnectReason = maybeReason }
+
+
+setInfo : Info -> Socket state msg -> Socket state msg
+setInfo info_ (Socket socket) =
+    Socket { socket | info = info_ }
+
+
+setReconnect : Bool -> Socket state msg -> Socket state msg
+setReconnect reconnect_ (Socket socket) =
+    Socket { socket | reconnect = reconnect_ }
+
+
+setState : state -> Socket state msg -> Socket state msg
+setState state (Socket socket) =
+    Socket { socket | state = state }

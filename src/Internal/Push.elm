@@ -2,17 +2,21 @@ module Internal.Push exposing
     ( Push
     , allQueued
     , allTimeouts
+    , drop
     , dropQueued
     , dropSent
     , dropSentByRef
     , dropTimeout
+    , filter
     , hasTimedOut
     , init
     , isQueued
+    , map
     , maybeRetryStrategy
+    , partitionTimeouts
     , preFlight
     , queued
-    , reset
+    , resetTimeoutTick
     , send
     , sendAll
     , sendByTopic
@@ -42,6 +46,21 @@ type Push r msg
         }
 
 
+init : ({ msg : String, payload : Value } -> Cmd msg) -> Push r msg
+init portOut =
+    Push
+        { count = 0
+        , queue = Config.empty
+        , sent = Config.empty
+        , timeouts = Config.empty
+        , portOut = portOut
+        }
+
+
+
+{- Types -}
+
+
 type alias Ref =
     String
 
@@ -62,22 +81,6 @@ type alias PushConfig r =
     , retryStrategy : r
     , ref : Maybe Ref
     }
-
-
-init : ({ msg : String, payload : Value } -> Cmd msg) -> Push r msg
-init portOut =
-    Push
-        { count = 0
-        , queue = Config.empty
-        , sent = Config.empty
-        , timeouts = Config.empty
-        , portOut = portOut
-        }
-
-
-reset : Push r msg -> Push r msg
-reset (Push push) =
-    init push.portOut
 
 
 
@@ -277,18 +280,9 @@ timedOut ref (Push push) =
         }
 
 
-timeoutTick :
-    (Ref -> InternalConfig r -> Bool)
-    -> (InternalConfig r -> InternalConfig r)
-    -> (InternalConfig r -> Bool)
-    -> Push r msg
-    -> ( Config Ref (InternalConfig r), Config Ref (InternalConfig r) )
-timeoutTick retry nextBackoff dropBackoff (Push push) =
+timeoutTick : Push r msg -> Push r msg
+timeoutTick (Push push) =
     Push { push | timeouts = map tick push.timeouts }
-        |> partitionTimeouts retry
-        |> Tuple.mapFirst resetTimeoutTick
-        |> Tuple.mapFirst (map nextBackoff)
-        |> Tuple.mapSecond (filter dropBackoff)
 
 
 tick : InternalConfig r -> InternalConfig r
@@ -303,6 +297,11 @@ resetTimeoutTick timeouts =
 
 
 {- Delete -}
+
+
+drop : (PushConfig r -> Bool) -> Push r msg -> Push r msg
+drop compare =
+    dropQueued compare >> dropSent compare >> dropTimeout compare
 
 
 dropSentByRef : Ref -> Push r msg -> Push r msg

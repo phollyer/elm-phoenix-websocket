@@ -53,6 +53,47 @@ import Json.Encode as JE exposing (Value)
 import Json.Encode.Extra exposing (maybe)
 
 
+
+{- Types -}
+
+
+{-| All of the messages you can receive from the Channel.
+
+  - `Topic` - The Channel [Topic](#Topic) that the message came from.
+
+  - `Event` - The original [Event](#Event) that was [push](#push)ed to the
+    Channel.
+
+  - `Payload` - The data received from the Channel, with the exception of
+    `JoinTimout` and `PushTimeout` where it will be the original payload.
+
+-}
+type Msg
+    = JoinOk Topic Payload
+    | JoinError Topic Payload
+    | JoinTimeout Topic Payload
+    | PushOk Topic Event Payload String
+    | PushError Topic Event Payload String
+    | PushTimeout Topic Event Payload String
+    | Message Topic Event Payload
+    | Error Topic
+    | LeaveOk Topic
+    | Closed Topic
+    | InternalError InternalError
+
+
+{-| An `InternalError` should never happen, but if it does, it is because the
+JS is out of sync with this package.
+
+If you ever receive this message, please
+[raise an issue](https://github.com/phollyer/elm-phoenix-websocket/issues).
+
+-}
+type InternalError
+    = DecoderError String
+    | InvalidMessage Topic String Payload
+
+
 {-| A type alias representing the Channel topic id. For example
 `"topic:subTopic"`.
 -}
@@ -70,6 +111,39 @@ type alias Event =
 -}
 type alias Payload =
     Value
+
+
+{-| A type alias representing the `port` function required to send messages out
+to the accompanying JS.
+
+You will find this `port` function in the
+[Port](https://github.com/phollyer/elm-phoenix-websocket/tree/master/ports)
+module.
+
+-}
+type alias PortOut msg =
+    { msg : String
+    , payload : Value
+    }
+    -> Cmd msg
+
+
+{-| A type alias representing the `port` function required to receive
+a [Msg](#Msg) from a Channel.
+
+You will find this `port` function in the
+[Port](https://github.com/phollyer/elm-phoenix-websocket/tree/master/ports)
+module.
+
+-}
+type alias PortIn msg =
+    ({ topic : Topic
+     , msg : String
+     , payload : JE.Value
+     }
+     -> msg
+    )
+    -> Sub msg
 
 
 {-| A type alias representing the config for joining a Channel.
@@ -94,38 +168,35 @@ type alias JoinConfig =
     }
 
 
-{-| A helper function for creating a [JoinConfig](#JoinConfig).
+{-| A type alias representing the config for leaving a Channel.
 
-    import Phoenix.Channel exposing (joinConfig)
+  - `topic` - The Channel topic id, for example: `"topic:subtopic"`.
 
-    { joinConfig
-    | topic = "topic:subTopic"
-    , events = [ "event1", "event2" ]
-    }
+  - `timeout` - Optional timeout, in ms, before retrying to leave if the
+    previous attempt failed.
 
 -}
-joinConfig : JoinConfig
-joinConfig =
-    { topic = ""
-    , payload = JE.null
-    , events = []
-    , timeout = Nothing
+type alias LeaveConfig =
+    { topic : Topic
+    , timeout : Maybe Int
     }
 
 
-{-| A type alias representing the `port` function required to send messages out
-to the accompanying JS.
+type alias PushResponse =
+    { event : String
+    , payload : Value
+    , ref : String
+    }
 
-You will find this `port` function in the
-[Port](https://github.com/phollyer/elm-phoenix-websocket/tree/master/ports)
-module.
 
--}
-type alias PortOut msg =
-    { msg : String
+type alias EventIn =
+    { event : String
     , payload : Value
     }
-    -> Cmd msg
+
+
+
+{- Actions -}
 
 
 {-| Join a Channel.
@@ -155,20 +226,6 @@ join { topic, events, payload, timeout } portOut =
                 , ( "timeout", maybe JE.int timeout )
                 ]
         }
-
-
-{-| A type alias representing the config for leaving a Channel.
-
-  - `topic` - The Channel topic id, for example: `"topic:subtopic"`.
-
-  - `timeout` - Optional timeout, in ms, before retrying to leave if the
-    previous attempt failed.
-
--}
-type alias LeaveConfig =
-    { topic : Topic
-    , timeout : Maybe Int
-    }
 
 
 {-| Leave a Channel.
@@ -231,124 +288,6 @@ push { topic, event, payload, timeout, ref } portOut =
         }
 
 
-{-| A type alias representing the `port` function required to receive
-a [Msg](#Msg) from a Channel.
-
-You will find this `port` function in the
-[Port](https://github.com/phollyer/elm-phoenix-websocket/tree/master/ports)
-module.
-
--}
-type alias PortIn msg =
-    ({ topic : Topic
-     , msg : String
-     , payload : JE.Value
-     }
-     -> msg
-    )
-    -> Sub msg
-
-
-{-| An `InternalError` should never happen, but if it does, it is because the
-JS is out of sync with this package.
-
-If you ever receive this message, please
-[raise an issue](https://github.com/phollyer/elm-phoenix-websocket/issues).
-
--}
-type InternalError
-    = DecoderError String
-    | InvalidMessage Topic String Payload
-
-
-{-| All of the messages you can receive from the Channel.
-
-  - `Topic` - The Channel [Topic](#Topic) that the message came from.
-
-  - `Event` - The original [Event](#Event) that was [push](#push)ed to the
-    Channel.
-
-  - `Payload` - The data received from the Channel, with the exception of
-    `JoinTimout` and `PushTimeout` where it will be the original payload.
-
--}
-type Msg
-    = JoinOk Topic Payload
-    | JoinError Topic Payload
-    | JoinTimeout Topic Payload
-    | PushOk Topic Event Payload String
-    | PushError Topic Event Payload String
-    | PushTimeout Topic Event Payload String
-    | Message Topic Event Payload
-    | Error Topic
-    | LeaveOk Topic
-    | Closed Topic
-    | InternalError InternalError
-
-
-{-| Subscribe to receive incoming Channel [Msg](#Msg)s.
-
-    import Phoenix.Channel as Channel
-    import Ports.Phoenix as Port
-
-    type Msg
-      = ChannelMsg Channel.Msg
-      | ...
-
-
-    subscriptions : Model -> Sub Msg
-    subscriptions _ =
-        Channel.subscriptions
-            ChannelMsg
-            Port.channelReceiver
-
--}
-subscriptions : (Msg -> msg) -> PortIn msg -> Sub msg
-subscriptions msg portIn =
-    portIn (handleIn msg)
-
-
-handleIn : (Msg -> msg) -> { topic : String, msg : String, payload : JE.Value } -> msg
-handleIn toMsg { topic, msg, payload } =
-    case msg of
-        "JoinOk" ->
-            toMsg (JoinOk topic payload)
-
-        "JoinError" ->
-            toMsg (JoinError topic payload)
-
-        "JoinTimeout" ->
-            toMsg (JoinTimeout topic payload)
-
-        "PushOk" ->
-            decodePushResponse toMsg topic PushOk payload
-
-        "PushError" ->
-            decodePushResponse toMsg topic PushError payload
-
-        "PushTimeout" ->
-            decodePushResponse toMsg topic PushTimeout payload
-
-        "Message" ->
-            decodeEvent toMsg topic Message payload
-
-        "Error" ->
-            toMsg (Error topic)
-
-        "LeaveOk" ->
-            toMsg (LeaveOk topic)
-
-        "Closed" ->
-            toMsg (Closed topic)
-
-        _ ->
-            toMsg (InternalError (InvalidMessage topic msg payload))
-
-
-
-{- Incoming Events -}
-
-
 {-| Switch an incoming event on.
 -}
 on : { topic : Topic, event : Event } -> PortOut msg -> Cmd msg
@@ -406,24 +345,84 @@ allOff { topic, events } portOut =
 
 
 
+{- Subscriptions -}
+
+
+{-| Subscribe to receive incoming Channel [Msg](#Msg)s.
+
+    import Phoenix.Channel as Channel
+    import Ports.Phoenix as Port
+
+    type Msg
+      = ChannelMsg Channel.Msg
+      | ...
+
+
+    subscriptions : Model -> Sub Msg
+    subscriptions _ =
+        Channel.subscriptions
+            ChannelMsg
+            Port.channelReceiver
+
+-}
+subscriptions : (Msg -> msg) -> PortIn msg -> Sub msg
+subscriptions toMsg portIn =
+    portIn (map toMsg)
+
+
+
+{- Transform -}
+
+
+map : (Msg -> msg) -> { topic : String, msg : String, payload : JE.Value } -> msg
+map toMsg { topic, msg, payload } =
+    case msg of
+        "JoinOk" ->
+            JoinOk topic payload |> toMsg
+
+        "JoinError" ->
+            JoinError topic payload |> toMsg
+
+        "JoinTimeout" ->
+            JoinTimeout topic payload |> toMsg
+
+        "PushOk" ->
+            decodePushResponse topic PushOk payload |> toMsg
+
+        "PushError" ->
+            decodePushResponse topic PushError payload |> toMsg
+
+        "PushTimeout" ->
+            decodePushResponse topic PushTimeout payload |> toMsg
+
+        "Message" ->
+            decodeEvent topic Message payload |> toMsg
+
+        "Error" ->
+            Error topic |> toMsg
+
+        "LeaveOk" ->
+            LeaveOk topic |> toMsg
+
+        "Closed" ->
+            Closed topic |> toMsg
+
+        _ ->
+            InternalError (InvalidMessage topic msg payload) |> toMsg
+
+
+
 {- Decoders -}
 
 
-decodePushResponse : (Msg -> msg) -> Topic -> (Topic -> Event -> Payload -> String -> Msg) -> Value -> msg
-decodePushResponse toMsg topic pushMsg payload =
-    case JD.decodeValue pushDecoder payload of
-        Ok push_ ->
-            toMsg (pushMsg topic push_.event push_.payload push_.ref)
+decodePushResponse : Topic -> (Topic -> Event -> Payload -> String -> Msg) -> Value -> Msg
+decodePushResponse topic pushMsg response =
+    case JD.decodeValue pushDecoder response of
+        Ok { event, payload, ref } ->
+            pushMsg topic event payload ref
 
         Result.Err error ->
-            toMsg (InternalError (DecoderError (JD.errorToString error)))
-
-
-type alias PushResponse =
-    { event : String
-    , payload : Value
-    , ref : String
-    }
+            InternalError (DecoderError (JD.errorToString error))
 
 
 pushDecoder : JD.Decoder PushResponse
@@ -435,20 +434,14 @@ pushDecoder =
         |> andMap (JD.field "ref" JD.string)
 
 
-decodeEvent : (Msg -> msg) -> Topic -> (Topic -> Event -> Payload -> Msg) -> Value -> msg
-decodeEvent toMsg topic eventMsg payload =
-    case JD.decodeValue eventDecoder payload of
-        Ok event ->
-            toMsg (eventMsg topic event.event event.payload)
+decodeEvent : Topic -> (Topic -> Event -> Payload -> Msg) -> Value -> Msg
+decodeEvent topic eventMsg response =
+    case JD.decodeValue eventDecoder response of
+        Ok { event, payload } ->
+            eventMsg topic event payload
 
         Result.Err error ->
-            toMsg (InternalError (DecoderError (JD.errorToString error)))
-
-
-type alias EventIn =
-    { event : String
-    , payload : Value
-    }
+            InternalError (DecoderError (JD.errorToString error))
 
 
 eventDecoder : JD.Decoder EventIn
@@ -457,3 +450,26 @@ eventDecoder =
         EventIn
         |> andMap (JD.field "event" JD.string)
         |> andMap (JD.field "payload" JD.value)
+
+
+
+{- Helpers -}
+
+
+{-| A helper function for creating a [JoinConfig](#JoinConfig).
+
+    import Phoenix.Channel exposing (joinConfig)
+
+    { joinConfig
+    | topic = "topic:subTopic"
+    , events = [ "event1", "event2" ]
+    }
+
+-}
+joinConfig : JoinConfig
+joinConfig =
+    { topic = ""
+    , payload = JE.null
+    , events = []
+    , timeout = Nothing
+    }

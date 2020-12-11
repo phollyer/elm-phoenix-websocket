@@ -14,7 +14,6 @@ module Internal.Channel exposing
     , leave
     , queueJoin
     , queueLeave
-    , reset
     , setJoinConfig
     , setLeaveConfig
     , updateJoins
@@ -53,27 +52,6 @@ init portOut =
         , queuedLeaves = Unique.empty
         , portOut = portOut
         }
-
-
-reset : Channel msg -> Channel msg
-reset (Channel { portOut }) =
-    init portOut
-
-
-
-{- Configs -}
-
-
-defaultJoinConfig : Topic -> JoinConfig
-defaultJoinConfig topic =
-    { joinConfig | topic = topic }
-
-
-defaultLeaveConfig : Topic -> LeaveConfig
-defaultLeaveConfig topic =
-    { topic = topic
-    , timeout = Nothing
-    }
 
 
 
@@ -204,3 +182,19 @@ dropQueuedJoin topic (Channel ({ queuedJoins } as channel)) =
 dropLeave : Topic -> Channel msg -> Channel msg
 dropLeave topic (Channel ({ queuedLeaves } as channel)) =
     Channel { channel | queuedLeaves = Unique.remove topic queuedLeaves }
+
+
+
+{- Helpers -}
+
+
+defaultJoinConfig : Topic -> JoinConfig
+defaultJoinConfig topic =
+    { joinConfig | topic = topic }
+
+
+defaultLeaveConfig : Topic -> LeaveConfig
+defaultLeaveConfig topic =
+    { topic = topic
+    , timeout = Nothing
+    }
