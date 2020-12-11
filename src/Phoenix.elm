@@ -1189,23 +1189,6 @@ update msg (Model model) =
                             )
 
 
-
-{-
-
-
-
-
-
-
-
-
-
-
-
-
--}
-
-
 retryTimeout : String -> { a | retryStrategy : RetryStrategy, timeoutTick : Int } -> Bool
 retryTimeout _ config =
     case config.retryStrategy of
