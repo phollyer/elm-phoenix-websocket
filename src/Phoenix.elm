@@ -973,6 +973,86 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg, PhoenixMsg )
 update msg (Model model) =
     case msg of
+        ReceivedSocketMsg subMsg ->
+            case subMsg of
+                Phoenix.Socket.Opened ->
+                    Model { model | socket = Socket.setReconnect False model.socket }
+                        |> updateDisconnectReason Nothing
+                        |> updateSocketState Connected
+                        |> batchWithParams
+                            [ ( join, queuedChannels (Model model) )
+                            , ( leave, queuedLeaves (Model model) )
+                            ]
+                        |> toPhoenixMsg (SocketMessage (StateChange Connected))
+
+                Phoenix.Socket.Closed closedInfo ->
+                    if Socket.reconnect model.socket then
+                        connect (Model model)
+                            |> toPhoenixMsg (SocketMessage (StateChange (Disconnected closedInfo)))
+
+                    else
+                        Model model
+                            |> updateDisconnectReason closedInfo.reason
+                            |> updateSocketState (Disconnected closedInfo)
+                            |> batchWithParams
+                                [ ( join, queuedChannels (Model model) ) ]
+                            |> toPhoenixMsg (SocketMessage (StateChange (Disconnected closedInfo)))
+
+                Phoenix.Socket.Connecting ->
+                    ( updateSocketState Connecting (Model model)
+                    , Cmd.none
+                    , SocketMessage (StateChange Connecting)
+                    )
+
+                Phoenix.Socket.Disconnecting ->
+                    ( updateSocketState Disconnecting (Model model)
+                    , Cmd.none
+                    , SocketMessage (StateChange Disconnecting)
+                    )
+
+                Phoenix.Socket.Channel message ->
+                    ( Model model
+                    , Cmd.none
+                    , SocketMessage (ChannelMessage message)
+                    )
+
+                Phoenix.Socket.Presence message ->
+                    ( Model model
+                    , Cmd.none
+                    , SocketMessage (PresenceMessage message)
+                    )
+
+                Phoenix.Socket.Heartbeat message ->
+                    ( Model model
+                    , Cmd.none
+                    , SocketMessage (Heartbeat message)
+                    )
+
+                Phoenix.Socket.Info socketInfo ->
+                    case socketInfo of
+                        Phoenix.Socket.All info ->
+                            ( Model { model | socket = Socket.setInfo info model.socket }, Cmd.none, NoOp )
+
+                        _ ->
+                            ( Model model, Cmd.none, NoOp )
+
+                Phoenix.Socket.Error reason ->
+                    ( Model model, Cmd.none, SocketMessage (SocketError reason) )
+
+                Phoenix.Socket.InternalError errorType ->
+                    case errorType of
+                        Phoenix.Socket.DecoderError error ->
+                            ( Model model
+                            , Cmd.none
+                            , InternalError (DecoderError ("Socket : " ++ error))
+                            )
+
+                        Phoenix.Socket.InvalidMessage error ->
+                            ( Model model
+                            , Cmd.none
+                            , InternalError (InvalidMessage ("Socket : " ++ error))
+                            )
+
         ReceivedChannelMsg channelMsg ->
             case channelMsg of
                 Phoenix.Channel.Closed topic ->
@@ -1095,86 +1175,6 @@ update msg (Model model) =
                             , InternalError (InvalidMessage ("Presence : " ++ topic ++ " : " ++ error))
                             )
 
-        ReceivedSocketMsg subMsg ->
-            case subMsg of
-                Phoenix.Socket.Opened ->
-                    Model { model | socket = Socket.setReconnect False model.socket }
-                        |> updateDisconnectReason Nothing
-                        |> updateSocketState Connected
-                        |> batchWithParams
-                            [ ( join, queuedChannels (Model model) )
-                            , ( leave, queuedLeaves (Model model) )
-                            ]
-                        |> toPhoenixMsg (SocketMessage (StateChange Connected))
-
-                Phoenix.Socket.Closed closedInfo ->
-                    if Socket.reconnect model.socket then
-                        connect (Model model)
-                            |> toPhoenixMsg (SocketMessage (StateChange (Disconnected closedInfo)))
-
-                    else
-                        Model model
-                            |> updateDisconnectReason closedInfo.reason
-                            |> updateSocketState (Disconnected closedInfo)
-                            |> batchWithParams
-                                [ ( join, queuedChannels (Model model) ) ]
-                            |> toPhoenixMsg (SocketMessage (StateChange (Disconnected closedInfo)))
-
-                Phoenix.Socket.Connecting ->
-                    ( updateSocketState Connecting (Model model)
-                    , Cmd.none
-                    , SocketMessage (StateChange Connecting)
-                    )
-
-                Phoenix.Socket.Disconnecting ->
-                    ( updateSocketState Disconnecting (Model model)
-                    , Cmd.none
-                    , SocketMessage (StateChange Disconnecting)
-                    )
-
-                Phoenix.Socket.Channel message ->
-                    ( Model model
-                    , Cmd.none
-                    , SocketMessage (ChannelMessage message)
-                    )
-
-                Phoenix.Socket.Presence message ->
-                    ( Model model
-                    , Cmd.none
-                    , SocketMessage (PresenceMessage message)
-                    )
-
-                Phoenix.Socket.Heartbeat message ->
-                    ( Model model
-                    , Cmd.none
-                    , SocketMessage (Heartbeat message)
-                    )
-
-                Phoenix.Socket.Info socketInfo ->
-                    case socketInfo of
-                        Phoenix.Socket.All info ->
-                            ( Model { model | socket = Socket.setInfo info model.socket }, Cmd.none, NoOp )
-
-                        _ ->
-                            ( Model model, Cmd.none, NoOp )
-
-                Phoenix.Socket.Error reason ->
-                    ( Model model, Cmd.none, SocketMessage (SocketError reason) )
-
-                Phoenix.Socket.InternalError errorType ->
-                    case errorType of
-                        Phoenix.Socket.DecoderError error ->
-                            ( Model model
-                            , Cmd.none
-                            , InternalError (DecoderError ("Socket : " ++ error))
-                            )
-
-                        Phoenix.Socket.InvalidMessage error ->
-                            ( Model model
-                            , Cmd.none
-                            , InternalError (InvalidMessage ("Socket : " ++ error))
-                            )
-
         TimeoutTick _ ->
             let
                 ( toSend, toKeep ) =
@@ -1187,6 +1187,23 @@ update msg (Model model) =
             , pushCmd
             , NoOp
             )
+
+
+
+{-
+
+
+
+
+
+
+
+
+
+
+
+
+-}
 
 
 retryTimeout : String -> { a | retryStrategy : RetryStrategy, timeoutTick : Int } -> Bool
