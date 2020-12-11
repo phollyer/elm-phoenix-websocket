@@ -9,6 +9,7 @@ module Internal.Presence exposing
     , lastJoin
     , lastLeave
     , leaves
+    , reset
     , setState
     , state
     )
@@ -39,6 +40,11 @@ init =
         , joins = Config.empty
         , leaves = Config.empty
         }
+
+
+reset : Presence
+reset =
+    init
 
 
 
@@ -100,12 +106,12 @@ addLeave topic leave (Presence presence) =
 
 
 
-{- Private -}
+{- Local -}
 
 
-add : comparable -> v -> Config comparable (List v) -> Config comparable (List v)
-add key value dict =
-    Config.update key
+add : Topic -> v -> Config Topic (List v) -> Config Topic (List v)
+add topic value config =
+    Config.update topic
         (\maybeV ->
             case maybeV of
                 Just v ->
@@ -114,16 +120,16 @@ add key value dict =
                 Nothing ->
                     Just [ value ]
         )
-        dict
+        config
 
 
-all : comparable -> Config comparable (List v) -> List v
-all key dict =
-    Config.get key dict
+all : Topic -> Config Topic (List v) -> List v
+all topic config =
+    Config.get topic config
         |> Maybe.withDefault []
 
 
-last : comparable -> Config comparable (List v) -> Maybe v
-last key dict =
-    all key dict
+last : Topic -> Config Topic (List v) -> Maybe v
+last topic config =
+    all topic config
         |> List.head

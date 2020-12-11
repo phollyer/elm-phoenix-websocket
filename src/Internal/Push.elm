@@ -3,21 +3,16 @@ module Internal.Push exposing
     , allQueued
     , allTimeouts
     , dropQueued
-    , dropQueuedByRef
     , dropSent
     , dropSentByRef
     , dropTimeout
-    , filter
     , hasTimedOut
     , init
     , isQueued
-    , map
     , maybeRetryStrategy
-    , partitionTimeouts
     , preFlight
     , queued
     , reset
-    , resetTimeoutTick
     , send
     , sendAll
     , sendByTopic
@@ -89,7 +84,7 @@ reset (Push push) =
 {- Actions -}
 
 
-preFlight : PushConfig r -> Push r msg -> ( Push r msg, String )
+preFlight : PushConfig r -> Push r msg -> ( Push r msg, Ref )
 preFlight ({ ref, retryStrategy } as pushConfig) (Push ({ count, queue } as push)) =
     let
         ( ref_, newCount ) =
@@ -118,7 +113,7 @@ preFlight ({ ref, retryStrategy } as pushConfig) (Push ({ count, queue } as push
     )
 
 
-send : String -> Push r msg -> ( Push r msg, Cmd msg )
+send : Ref -> Push r msg -> ( Push r msg, Cmd msg )
 send ref (Push push) =
     case Config.get ref push.queue of
         Nothing ->
@@ -176,13 +171,13 @@ isQueued compareFunc (Push { queue }) =
     compareWith compareFunc queue
 
 
-compareWith : (PushConfig r -> Bool) -> Config String (InternalConfig r) -> Bool
+compareWith : (PushConfig r -> Bool) -> Config Ref (InternalConfig r) -> Bool
 compareWith compareFunc config =
     partition (\_ { pushConfig } -> compareFunc pushConfig) config
         |> matchFound
 
 
-matchFound : ( Config String (InternalConfig r), Config String (InternalConfig r) ) -> Bool
+matchFound : ( Config Ref (InternalConfig r), Config Ref (InternalConfig r) ) -> Bool
 matchFound =
     Tuple.first >> Config.exists
 
@@ -196,7 +191,7 @@ timeoutsExist (Push { timeouts }) =
 {- Queries -}
 
 
-allTimeouts : Push r msg -> Config String (List (PushConfig r))
+allTimeouts : Push r msg -> Config Ref (List (PushConfig r))
 allTimeouts (Push { timeouts }) =
     foldl allPushConfigs Config.empty timeouts
 
@@ -206,13 +201,13 @@ allQueued (Push { queue }) =
     foldl allPushConfigs Config.empty queue
 
 
-allPushConfigs : InternalConfig r -> Config String (List (PushConfig r)) -> Config String (List (PushConfig r))
-allPushConfigs { pushConfig } dict =
-    Config.update pushConfig.topic (toList pushConfig) dict
+allPushConfigs : InternalConfig r -> Config Ref (List (PushConfig r)) -> Config Ref (List (PushConfig r))
+allPushConfigs { pushConfig } config =
+    Config.update pushConfig.topic (maybeToList pushConfig) config
 
 
-toList : PushConfig r -> Maybe (List (PushConfig r)) -> Maybe (List (PushConfig r))
-toList push maybeList =
+maybeToList : PushConfig r -> Maybe (List (PushConfig r)) -> Maybe (List (PushConfig r))
+maybeToList push maybeList =
     case maybeList of
         Just list ->
             Just (push :: list)
@@ -236,7 +231,7 @@ byTopic topic { pushConfig } =
         Nothing
 
 
-maybeRetryStrategy : String -> Push r msg -> Maybe r
+maybeRetryStrategy : Ref -> Push r msg -> Maybe r
 maybeRetryStrategy ref (Push push) =
     Config.get ref push.sent
         |> Maybe.map .retryStrategy
@@ -253,7 +248,7 @@ keepWith compareFunc { pushConfig } =
     compareFunc pushConfig
 
 
-toMaybeCount : (InternalConfig r -> Maybe Int) -> (Config String (InternalConfig r) -> Maybe Int)
+toMaybeCount : (InternalConfig r -> Maybe Int) -> (Config Ref (InternalConfig r) -> Maybe Int)
 toMaybeCount countdownFunc =
     Config.values >> List.head >> Maybe.andThen countdownFunc
 
@@ -262,7 +257,12 @@ toMaybeCount countdownFunc =
 {- Setters -}
 
 
-timedOut : String -> Push r msg -> Push r msg
+setTimeouts : Config Ref (InternalConfig r) -> Push r msg -> Push r msg
+setTimeouts timeouts (Push push) =
+    Push { push | timeouts = timeouts }
+
+
+timedOut : Ref -> Push r msg -> Push r msg
 timedOut ref (Push push) =
     Push
         { push
@@ -277,36 +277,35 @@ timedOut ref (Push push) =
         }
 
 
-setTimeouts : Config String (InternalConfig r) -> Push r msg -> Push r msg
-setTimeouts timeouts (Push push) =
-    Push { push | timeouts = timeouts }
-
-
-resetTimeoutTick : Config String (InternalConfig r) -> Config String (InternalConfig r)
-resetTimeoutTick timeouts =
-    map (\config -> { config | timeoutTick = 0 }) timeouts
-
-
-timeoutTick : Push r msg -> Push r msg
-timeoutTick (Push push) =
+timeoutTick :
+    (Ref -> InternalConfig r -> Bool)
+    -> (InternalConfig r -> InternalConfig r)
+    -> (InternalConfig r -> Bool)
+    -> Push r msg
+    -> ( Config Ref (InternalConfig r), Config Ref (InternalConfig r) )
+timeoutTick retry nextBackoff dropBackoff (Push push) =
     Push { push | timeouts = map tick push.timeouts }
+        |> partitionTimeouts retry
+        |> Tuple.mapFirst resetTimeoutTick
+        |> Tuple.mapFirst (map nextBackoff)
+        |> Tuple.mapSecond (filter dropBackoff)
 
 
 tick : InternalConfig r -> InternalConfig r
-tick config =
-    { config | timeoutTick = config.timeoutTick + 1 }
+tick internalConfig =
+    { internalConfig | timeoutTick = internalConfig.timeoutTick + 1 }
+
+
+resetTimeoutTick : Config Ref (InternalConfig r) -> Config Ref (InternalConfig r)
+resetTimeoutTick timeouts =
+    map (\internalConfig -> { internalConfig | timeoutTick = 0 }) timeouts
 
 
 
 {- Delete -}
 
 
-dropQueuedByRef : String -> Push r msg -> Push r msg
-dropQueuedByRef ref (Push push) =
-    Push { push | queue = Config.remove ref push.queue }
-
-
-dropSentByRef : String -> Push r msg -> Push r msg
+dropSentByRef : Ref -> Push r msg -> Push r msg
 dropSentByRef ref (Push push) =
     Push { push | sent = Config.remove ref push.sent }
 
@@ -335,26 +334,26 @@ discardWith compareFunc { pushConfig } =
 {- Transform -}
 
 
-partitionTimeouts : (String -> InternalConfig r -> Bool) -> Push r msg -> ( Config String (InternalConfig r), Config String (InternalConfig r) )
+partitionTimeouts : (Ref -> InternalConfig r -> Bool) -> Push r msg -> ( Config Ref (InternalConfig r), Config Ref (InternalConfig r) )
 partitionTimeouts compareFunc (Push push) =
     partition compareFunc push.timeouts
 
 
-partition : (String -> InternalConfig r -> Bool) -> Config String (InternalConfig r) -> ( Config String (InternalConfig r), Config String (InternalConfig r) )
+partition : (Ref -> InternalConfig r -> Bool) -> Config Ref (InternalConfig r) -> ( Config Ref (InternalConfig r), Config Ref (InternalConfig r) )
 partition compareFunc config =
     Config.partition compareFunc config
 
 
-filter : (InternalConfig r -> Bool) -> Config String (InternalConfig r) -> Config String (InternalConfig r)
-filter func dict =
-    Config.filter (\_ config -> func config) dict
+filter : (InternalConfig r -> Bool) -> Config Ref (InternalConfig r) -> Config Ref (InternalConfig r)
+filter func config =
+    Config.filter (\_ internalConfig -> func internalConfig) config
 
 
-foldl : (InternalConfig r -> acc -> acc) -> acc -> Config comparable (InternalConfig r) -> acc
-foldl func acc dict =
-    Config.foldl (\_ config -> func config) acc dict
+foldl : (InternalConfig r -> acc -> acc) -> acc -> Config Ref (InternalConfig r) -> acc
+foldl func acc config =
+    Config.foldl (\_ internalConfig -> func internalConfig) acc config
 
 
-map : (InternalConfig r -> InternalConfig r) -> Config String (InternalConfig r) -> Config String (InternalConfig r)
-map func dict =
-    Config.map (\_ config -> func config) dict
+map : (InternalConfig r -> InternalConfig r) -> Config Ref (InternalConfig r) -> Config Ref (InternalConfig r)
+map func config =
+    Config.map (\_ internalConfig -> func internalConfig) config

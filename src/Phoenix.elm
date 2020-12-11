@@ -235,7 +235,7 @@ all the logging, while regular users do not.
 
 import Dict exposing (Dict)
 import Internal.Channel as Channel exposing (Channel)
-import Internal.Presence exposing (Presence)
+import Internal.Presence as Presence exposing (Presence)
 import Internal.Push as Push exposing (Push)
 import Internal.Socket as Socket exposing (Socket)
 import Json.Encode as JE exposing (Value)
@@ -257,7 +257,7 @@ type Model
         , socket : Socket Msg
         , channel : Channel Msg
         , push : Push RetryStrategy Msg
-        , presence : Internal.Presence.Presence
+        , presence : Presence.Presence
         }
 
 
@@ -286,7 +286,7 @@ init portConfig =
         , socket = Socket.init portConfig.phoenixSend
         , channel = Channel.init portConfig.phoenixSend
         , push = Push.init portConfig.phoenixSend
-        , presence = Internal.Presence.init
+        , presence = Presence.init
         }
 
 
@@ -336,19 +336,24 @@ type alias PortConfig =
 {-| Connect to the Socket.
 -}
 connect : Model -> ( Model, Cmd Msg )
-connect (Model model) =
+connect (Model ({ socket } as model)) =
     case model.socketState of
         Disconnected _ ->
-            ( updateSocketState Connecting (Model { model | socket = Socket.setReconnect False model.socket })
+            ( updateSocketState Connecting (Model { model | socket = Socket.setReconnect False socket })
             , Socket.connect model.socket
             )
 
         Disconnecting ->
-            ( Model { model | socket = Socket.setReconnect True model.socket }
+            -- A request has come in to connect while disconnecting
+            -- so set a flag that tells us to connect again when the
+            -- closed event is received.
+            ( Model { model | socket = Socket.setReconnect True socket }
             , Cmd.none
             )
 
         _ ->
+            -- Ignore the connect request because we are either connected
+            -- or connecting already
             ( Model model
             , Cmd.none
             )
@@ -386,8 +391,8 @@ Socket when it is created.
 
 -}
 addConnectOptions : List Phoenix.Socket.ConnectOption -> Model -> Model
-addConnectOptions options (Model model) =
-    Model { model | socket = Socket.addOptions options model.socket }
+addConnectOptions options (Model ({ socket } as model)) =
+    Model { model | socket = Socket.addOptions options socket }
 
 
 {-| Provide the [ConnectOption](Phoenix.Socket#ConnectOption)s to set on the
@@ -422,8 +427,8 @@ Socket when it is created.
 
 -}
 setConnectOptions : List Phoenix.Socket.ConnectOption -> Model -> Model
-setConnectOptions options (Model model) =
-    Model { model | socket = Socket.setOptions options model.socket }
+setConnectOptions options (Model ({ socket } as model)) =
+    Model { model | socket = Socket.setOptions options socket }
 
 
 {-| A type alias representing data that is sent to, or received from, a
@@ -458,8 +463,8 @@ type alias Payload =
 
 -}
 setConnectParams : Value -> Model -> Model
-setConnectParams params (Model model) =
-    Model { model | socket = Socket.setParams (Just params) model.socket }
+setConnectParams params (Model ({ socket } as model)) =
+    Model { model | socket = Socket.setParams (Just params) socket }
 
 
 {-| Disconnect the Socket, maybe providing a status
@@ -467,7 +472,7 @@ setConnectParams params (Model model) =
 for the closure.
 -}
 disconnect : Maybe Int -> Model -> ( Model, Cmd Msg )
-disconnect code (Model model) =
+disconnect code (Model ({ socket } as model)) =
     case model.socketState of
         Disconnected _ ->
             ( Model model, Cmd.none )
@@ -477,7 +482,7 @@ disconnect code (Model model) =
 
         _ ->
             ( updateSocketState Disconnecting (Model model)
-            , Socket.disconnect code model.socket
+            , Socket.disconnect code socket
             )
 
 
@@ -497,7 +502,7 @@ disconnectAndReset code (Model model) =
             ( reset (Model model), Cmd.none )
 
         Disconnecting ->
-            ( Model model, Cmd.none )
+            ( reset (Model model), Cmd.none )
 
         _ ->
             Model model
@@ -512,6 +517,7 @@ reset (Model model) =
             | socket = Socket.reset model.socket
             , channel = Channel.reset model.channel
             , push = Push.reset model.push
+            , presence = Presence.reset
         }
 
 
@@ -537,33 +543,33 @@ If the Socket is already open, the `join` will be attempted immediately.
 
 -}
 join : Topic -> Model -> ( Model, Cmd Msg )
-join topic (Model model) =
-    if channelJoined topic (Model model) then
+join topic (Model ({ channel } as model)) =
+    if Channel.isJoined topic channel then
         ( Model model, Cmd.none )
 
     else
         case model.socketState of
             Connected ->
                 let
-                    ( channel, channelCmd ) =
-                        Channel.join topic model.channel
+                    ( channel_, channelCmd ) =
+                        Channel.join topic channel
                 in
-                ( Model { model | channel = channel }, channelCmd )
+                ( Model { model | channel = channel_ }, channelCmd )
 
             Connecting ->
-                ( addChannelBeingJoined topic (Model model)
-                , Cmd.none
-                )
+                ( queueJoin topic (Model model), Cmd.none )
 
             Disconnecting ->
-                ( addChannelBeingJoined topic (Model model)
-                , Cmd.none
-                )
+                ( queueJoin topic (Model model), Cmd.none )
 
             Disconnected _ ->
-                Model model
-                    |> addChannelBeingJoined topic
+                queueJoin topic (Model model)
                     |> connect
+
+
+queueJoin : Topic -> Model -> Model
+queueJoin topic (Model model) =
+    Model { model | channel = Channel.queueJoin topic model.channel }
 
 
 {-| A type alias representing an event that is sent to, or received from, a
@@ -643,8 +649,8 @@ joinConfig =
 
 -}
 setJoinConfig : JoinConfig -> Model -> Model
-setJoinConfig config (Model model) =
-    Model { model | channel = Channel.setJoinConfig config model.channel }
+setJoinConfig config (Model ({ channel } as model)) =
+    Model { model | channel = Channel.setJoinConfig config channel }
 
 
 {-| Leave a Channel referenced by the [Topic](#Topic).
@@ -660,9 +666,7 @@ leave topic (Model model) =
             ( Model { model | channel = channel }, channelCmd )
 
         _ ->
-            ( addChannelBeingLeft topic (Model model)
-            , Cmd.none
-            )
+            ( Model { model | channel = Channel.queueLeave topic model.channel }, Cmd.none )
 
 
 {-| A type alias representing the optional config to use when leaving a
@@ -705,33 +709,8 @@ type alias LeaveConfig =
 
 -}
 setLeaveConfig : LeaveConfig -> Model -> Model
-setLeaveConfig config (Model model) =
-    Model { model | channel = Channel.setLeaveConfig config model.channel }
-
-
-addChannelBeingJoined : Topic -> Model -> Model
-addChannelBeingJoined topic (Model model) =
-    Model { model | channel = Channel.queueJoin topic model.channel }
-
-
-addChannelBeingLeft : Topic -> Model -> Model
-addChannelBeingLeft topic (Model model) =
-    Model { model | channel = Channel.queueLeave topic model.channel }
-
-
-dropChannelBeingLeft : Topic -> Model -> Model
-dropChannelBeingLeft topic (Model model) =
-    Model { model | channel = Channel.dropLeave topic model.channel }
-
-
-channelJoinedOk : Topic -> Model -> Model
-channelJoinedOk topic (Model model) =
-    Model { model | channel = Channel.joined topic model.channel }
-
-
-dropJoinedChannel : Topic -> Model -> Model
-dropJoinedChannel topic (Model model) =
-    Model { model | channel = Channel.dropJoin topic model.channel }
+setLeaveConfig config (Model ({ channel } as model)) =
+    Model { model | channel = Channel.setLeaveConfig config channel }
 
 
 
@@ -827,98 +806,28 @@ pushConfig =
 
 -}
 push : PushConfig -> Model -> ( Model, Cmd Msg )
-push config (Model model) =
+push ({ topic } as config) (Model ({ channel } as model)) =
     let
         ( push_, ref ) =
             Push.preFlight config model.push
     in
-    if Channel.isJoined config.topic model.channel then
-        sendPush ref push_ (Model model)
+    if Channel.isJoined topic channel then
+        let
+            ( p, cmd ) =
+                Push.send ref push_
+        in
+        ( Model { model | push = p }, cmd )
 
-    else if Channel.joinIsQueued config.topic model.channel then
+    else if Channel.joinIsQueued topic channel then
         ( Model { model | push = push_ }, Cmd.none )
 
     else
-        Model { model | push = push_ }
-            |> addChannelBeingJoined config.topic
-            |> join config.topic
-
-
-sendPush : String -> Push RetryStrategy Msg -> Model -> ( Model, Cmd Msg )
-sendPush ref push_ (Model model) =
-    let
-        ( p, cmd ) =
-            Push.send ref push_
-    in
-    ( Model { model | push = p }, cmd )
-
-
-dropQueuedInternalPush : String -> Model -> Model
-dropQueuedInternalPush ref (Model model) =
-    Model { model | push = Push.dropQueuedByRef ref model.push }
-
-
-pushAfterJoin : Topic -> Model -> ( Model, Cmd Msg )
-pushAfterJoin topic (Model model) =
-    let
-        ( push_, pushCmd ) =
-            Push.sendByTopic topic model.push
-    in
-    ( Model { model | push = push_ }, pushCmd )
-
-
-sendTimeoutPushes : Model -> ( Model, Cmd Msg )
-sendTimeoutPushes (Model model) =
-    let
-        ( toGo, toKeep ) =
-            Push.partitionTimeouts retryTimeout model.push
-                |> Tuple.mapFirst Push.resetTimeoutTick
-                |> Tuple.mapFirst (Push.map nextBackoff)
-                |> Tuple.mapSecond (Push.filter dropBackoff)
-
-        ( push_, pushCmd ) =
-            Push.sendAll toGo model.push
-    in
-    ( Model { model | push = Push.setTimeouts toKeep push_ }
-    , pushCmd
-    )
-
-
-retryTimeout : String -> { a | retryStrategy : RetryStrategy, timeoutTick : Int } -> Bool
-retryTimeout _ config =
-    case config.retryStrategy of
-        Every secs ->
-            config.timeoutTick == secs
-
-        Backoff (head :: _) _ ->
-            config.timeoutTick == head
-
-        Backoff [] (Just max) ->
-            config.timeoutTick == max
-
-        Backoff [] Nothing ->
-            False
-
-        Drop ->
-            -- This branch should never match because
-            -- pushes with a Drop strategy should never
-            -- end up in this Dict.
-            False
-
-
-nextBackoff : { a | retryStrategy : RetryStrategy } -> { a | retryStrategy : RetryStrategy }
-nextBackoff config =
-    case config.retryStrategy of
-        Backoff list max ->
-            { config | retryStrategy = Backoff (List.drop 1 list) max }
-
-        _ ->
-            config
-
-
-dropBackoff : { a | retryStrategy : RetryStrategy } -> Bool
-dropBackoff { retryStrategy } =
-    retryStrategy /= Backoff [] Nothing
+        join topic <|
+            Model
+                { model
+                    | push = push_
+                    , channel = Channel.queueJoin topic channel
+                }
 
 
 
@@ -968,48 +877,48 @@ subscriptions (Model model) =
 [Topic](#Topic).
 -}
 addEvent : Topic -> Event -> Model -> Cmd Msg
-addEvent topic event (Model model) =
+addEvent topic event (Model ({ portConfig } as model)) =
     Phoenix.Channel.on
         { topic = topic
         , event = event
         }
-        model.portConfig.phoenixSend
+        portConfig.phoenixSend
 
 
 {-| Add the [Event](#Event)s you want to receive from the Channel identified by
 [Topic](#Topic).
 -}
 addEvents : Topic -> List Event -> Model -> Cmd Msg
-addEvents topic events (Model model) =
+addEvents topic events (Model ({ portConfig } as model)) =
     Phoenix.Channel.allOn
         { topic = topic
         , events = events
         }
-        model.portConfig.phoenixSend
+        portConfig.phoenixSend
 
 
 {-| Remove an [Event](#Event) you no longer want to receive from the Channel
 identified by [Topic](#Topic).
 -}
 dropEvent : Topic -> Event -> Model -> Cmd Msg
-dropEvent topic event (Model model) =
+dropEvent topic event (Model ({ portConfig } as model)) =
     Phoenix.Channel.off
         { topic = topic
         , event = event
         }
-        model.portConfig.phoenixSend
+        portConfig.phoenixSend
 
 
 {-| Remove [Event](#Event)s you no longer want to receive from the Channel
 identified by [Topic](#Topic).
 -}
 dropEvents : Topic -> List Event -> Model -> Cmd Msg
-dropEvents topic events (Model model) =
+dropEvents topic events (Model ({ portConfig } as model)) =
     Phoenix.Channel.allOff
         { topic = topic
         , events = events
         }
-        model.portConfig.phoenixSend
+        portConfig.phoenixSend
 
 
 
@@ -1076,18 +985,29 @@ update msg (Model model) =
                     ( Model model, Cmd.none, ChannelResponse (JoinError topic payload) )
 
                 Phoenix.Channel.JoinOk topic payload ->
-                    Model model
-                        |> channelJoinedOk topic
-                        |> pushAfterJoin topic
-                        |> toPhoenixMsg (ChannelResponse (JoinOk topic payload))
+                    let
+                        ( push_, pushCmd ) =
+                            Push.sendByTopic topic model.push
+                    in
+                    ( Model
+                        { model
+                            | channel = Channel.joined topic model.channel
+                            , push = push_
+                        }
+                    , pushCmd
+                    , ChannelResponse (JoinOk topic payload)
+                    )
 
                 Phoenix.Channel.JoinTimeout topic payload ->
                     ( Model model, Cmd.none, ChannelResponse (JoinTimeout topic payload) )
 
                 Phoenix.Channel.LeaveOk topic ->
-                    ( Model model
-                        |> dropJoinedChannel topic
-                        |> dropChannelBeingLeft topic
+                    ( Model
+                        { model
+                            | channel =
+                                Channel.dropLeave topic model.channel
+                                    |> Channel.dropJoin topic
+                        }
                     , Cmd.none
                     , ChannelResponse (LeaveOk topic)
                     )
@@ -1096,13 +1016,13 @@ update msg (Model model) =
                     ( Model model, Cmd.none, ChannelEvent topic event payload )
 
                 Phoenix.Channel.PushError topic event payload ref ->
-                    ( dropQueuedInternalPush ref (Model model)
+                    ( Model { model | push = Push.dropSentByRef ref model.push }
                     , Cmd.none
                     , ChannelResponse (PushError topic event (Just ref) payload)
                     )
 
                 Phoenix.Channel.PushOk topic event payload ref ->
-                    ( dropQueuedInternalPush ref (Model model)
+                    ( Model { model | push = Push.dropSentByRef ref model.push }
                     , Cmd.none
                     , ChannelResponse (PushOk topic event (Just ref) payload)
                     )
@@ -1233,19 +1153,13 @@ update msg (Model model) =
                 Phoenix.Socket.Info socketInfo ->
                     case socketInfo of
                         Phoenix.Socket.All info ->
-                            ( Model { model | socket = Socket.setInfo info model.socket }
-                            , Cmd.none
-                            , NoOp
-                            )
+                            ( Model { model | socket = Socket.setInfo info model.socket }, Cmd.none, NoOp )
 
                         _ ->
                             ( Model model, Cmd.none, NoOp )
 
                 Phoenix.Socket.Error reason ->
-                    ( Model model
-                    , Cmd.none
-                    , SocketMessage (SocketError reason)
-                    )
+                    ( Model model, Cmd.none, SocketMessage (SocketError reason) )
 
                 Phoenix.Socket.InternalError errorType ->
                     case errorType of
@@ -1262,9 +1176,54 @@ update msg (Model model) =
                             )
 
         TimeoutTick _ ->
-            Model { model | push = Push.timeoutTick model.push }
-                |> sendTimeoutPushes
-                |> toPhoenixMsg NoOp
+            let
+                ( toSend, toKeep ) =
+                    Push.timeoutTick retryTimeout nextBackoff dropBackoff model.push
+
+                ( push_, pushCmd ) =
+                    Push.sendAll toSend model.push
+            in
+            ( Model { model | push = Push.setTimeouts toKeep push_ }
+            , pushCmd
+            , NoOp
+            )
+
+
+retryTimeout : String -> { a | retryStrategy : RetryStrategy, timeoutTick : Int } -> Bool
+retryTimeout _ config =
+    case config.retryStrategy of
+        Every secs ->
+            config.timeoutTick == secs
+
+        Backoff (head :: _) _ ->
+            config.timeoutTick == head
+
+        Backoff [] (Just max) ->
+            config.timeoutTick == max
+
+        Backoff [] Nothing ->
+            False
+
+        Drop ->
+            -- This branch should never match because
+            -- pushes with a Drop strategy should never
+            -- end up in this Dict.
+            False
+
+
+nextBackoff : { a | retryStrategy : RetryStrategy } -> { a | retryStrategy : RetryStrategy }
+nextBackoff config =
+    case config.retryStrategy of
+        Backoff list max ->
+            { config | retryStrategy = Backoff (List.drop 1 list) max }
+
+        _ ->
+            config
+
+
+dropBackoff : { a | retryStrategy : RetryStrategy } -> Bool
+dropBackoff { retryStrategy } =
+    retryStrategy /= Backoff [] Nothing
 
 
 toPhoenixMsg : PhoenixMsg -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg, PhoenixMsg )
@@ -1336,22 +1295,22 @@ updateWith toMsg model ( phoenix, phoenixCmd, phoenixMsg ) =
 
 addPresenceDiff : Topic -> Phoenix.Presence.PresenceDiff -> Model -> Model
 addPresenceDiff topic diff (Model model) =
-    Model { model | presence = Internal.Presence.addDiff topic diff model.presence }
+    Model { model | presence = Presence.addDiff topic diff model.presence }
 
 
 addPresenceJoin : Topic -> Phoenix.Presence.Presence -> Model -> Model
 addPresenceJoin topic presence (Model model) =
-    Model { model | presence = Internal.Presence.addJoin topic presence model.presence }
+    Model { model | presence = Presence.addJoin topic presence model.presence }
 
 
 addPresenceLeave : Topic -> Phoenix.Presence.Presence -> Model -> Model
 addPresenceLeave topic presence (Model model) =
-    Model { model | presence = Internal.Presence.addLeave topic presence model.presence }
+    Model { model | presence = Presence.addLeave topic presence model.presence }
 
 
 replacePresenceState : Topic -> List Phoenix.Presence.Presence -> Model -> Model
 replacePresenceState topic state (Model model) =
-    Model { model | presence = Internal.Presence.setState topic state model.presence }
+    Model { model | presence = Presence.setState topic state model.presence }
 
 
 {-| -}
@@ -1669,6 +1628,20 @@ pushQueued compareFunc (Model model) =
     Push.isQueued compareFunc model.push
 
 
+{-| Cancel a [Push](#Push).
+
+This will cancel pushes that are queued to be sent when their Channel joins. It
+will also prevent pushes that timeout from being re-tried.
+
+-}
+dropPush : (PushConfig -> Bool) -> Model -> Model
+dropPush compare model =
+    model
+        |> dropQueuedPush compare
+        |> dropTimeoutPush compare
+        |> dropSentPush compare
+
+
 {-| Cancel a queued [Push](#Push) that is waiting for its' Channel to
 [join](#join).
 
@@ -1680,6 +1653,25 @@ pushQueued compareFunc (Model model) =
 dropQueuedPush : (PushConfig -> Bool) -> Model -> Model
 dropQueuedPush compareFunc (Model model) =
     Model { model | push = Push.dropQueued compareFunc model.push }
+
+
+{-| Cancel a timed out [Push](#Push).
+
+    dropTimeoutPush
+        (\push -> push.topic == "topic:subTopic")
+        model.phoenix
+
+This will only work after a `push` has timed out and before it is re-tried.
+
+-}
+dropTimeoutPush : (PushConfig -> Bool) -> Model -> Model
+dropTimeoutPush compareFunc (Model model) =
+    Model { model | push = Push.dropTimeout compareFunc model.push }
+
+
+dropSentPush : (PushConfig -> Bool) -> Model -> Model
+dropSentPush compareFunc (Model model) =
+    Model { model | push = Push.dropSent compareFunc model.push }
 
 
 {-| Pushes that have timed out and are waiting to be sent again in accordance
@@ -1704,20 +1696,6 @@ with it's [RetryStrategy](#RetryStrategy).
 pushTimedOut : (PushConfig -> Bool) -> Model -> Bool
 pushTimedOut compareFunc (Model model) =
     Push.hasTimedOut compareFunc model.push
-
-
-{-| Cancel a timed out [Push](#Push).
-
-    dropTimeoutPush
-        (\push -> push.topic == "topic:subTopic")
-        model.phoenix
-
-This will only work after a `push` has timed out and before it is re-tried.
-
--}
-dropTimeoutPush : (PushConfig -> Bool) -> Model -> Model
-dropTimeoutPush compareFunc (Model model) =
-    Model { model | push = Push.dropTimeout compareFunc model.push }
 
 
 {-| Maybe get the number of seconds until a push is retried.
@@ -1749,25 +1727,6 @@ countdown config =
             Nothing
 
 
-{-| Cancel a [Push](#Push).
-
-This will cancel pushes that are queued to be sent when their Channel joins. It
-will also prevent pushes that timeout from being re-tried.
-
--}
-dropPush : (PushConfig -> Bool) -> Model -> Model
-dropPush compare model =
-    model
-        |> dropQueuedPush compare
-        |> dropTimeoutPush compare
-        |> dropSentPush compare
-
-
-dropSentPush : (PushConfig -> Bool) -> Model -> Model
-dropSentPush compareFunc (Model model) =
-    Model { model | push = Push.dropSent compareFunc model.push }
-
-
 
 {- Presence -}
 
@@ -1776,14 +1735,14 @@ dropSentPush compareFunc (Model model) =
 -}
 presenceState : Topic -> Model -> List Presence
 presenceState topic (Model model) =
-    Internal.Presence.state topic model.presence
+    Presence.state topic model.presence
 
 
 {-| A list of Presence diffs on the Channel referenced by [Topic](#Topic).
 -}
 presenceDiff : Topic -> Model -> List PresenceDiff
 presenceDiff topic (Model model) =
-    Internal.Presence.diff topic model.presence
+    Presence.diff topic model.presence
 
 
 {-| A list of Presences that have joined the Channel referenced by
@@ -1791,7 +1750,7 @@ presenceDiff topic (Model model) =
 -}
 presenceJoins : Topic -> Model -> List Presence
 presenceJoins topic (Model model) =
-    Internal.Presence.joins topic model.presence
+    Presence.joins topic model.presence
 
 
 {-| A list of Presences that have left the Channel referenced by
@@ -1799,21 +1758,21 @@ presenceJoins topic (Model model) =
 -}
 presenceLeaves : Topic -> Model -> List Presence
 presenceLeaves topic (Model model) =
-    Internal.Presence.leaves topic model.presence
+    Presence.leaves topic model.presence
 
 
 {-| Maybe the last Presence to join the Channel referenced by [Topic](#Topic).
 -}
 lastPresenceJoin : Topic -> Model -> Maybe Presence
 lastPresenceJoin topic (Model model) =
-    Internal.Presence.lastJoin topic model.presence
+    Presence.lastJoin topic model.presence
 
 
 {-| Maybe the last Presence to leave the Channel referenced by [Topic](#Topic).
 -}
 lastPresenceLeave : Topic -> Model -> Maybe Presence
 lastPresenceLeave topic (Model model) =
-    Internal.Presence.lastLeave topic model.presence
+    Presence.lastLeave topic model.presence
 
 
 

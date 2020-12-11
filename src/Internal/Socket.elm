@@ -18,9 +18,12 @@ module Internal.Socket exposing
     , setReconnect
     )
 
-import Internal.SocketInfo as Info exposing (Info)
 import Json.Encode exposing (Value)
 import Phoenix.Socket as Socket exposing (ConnectOption(..))
+
+
+
+{- Model -}
 
 
 type Socket msg
@@ -34,6 +37,15 @@ type Socket msg
         }
 
 
+type alias Info =
+    { connectionState : String
+    , endPointURL : String
+    , isConnected : Bool
+    , makeRef : String
+    , protocol : String
+    }
+
+
 init : ({ msg : String, payload : Value } -> Cmd msg) -> Socket msg
 init portOut =
     Socket
@@ -41,7 +53,13 @@ init portOut =
         , params = Nothing
         , disconnectReason = Nothing
         , reconnect = False
-        , info = Info.init
+        , info =
+            { connectionState = ""
+            , endPointURL = ""
+            , isConnected = False
+            , makeRef = ""
+            , protocol = ""
+            }
         , portOut = portOut
         }
 
