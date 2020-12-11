@@ -194,7 +194,7 @@ timeoutsExist (Push { timeouts }) =
 {- Queries -}
 
 
-allTimeouts : Push r msg -> Config Ref (List (PushConfig r))
+allTimeouts : Push r msg -> Config Topic (List (PushConfig r))
 allTimeouts (Push { timeouts }) =
     foldl allPushConfigs Config.empty timeouts
 
@@ -204,7 +204,7 @@ allQueued (Push { queue }) =
     foldl allPushConfigs Config.empty queue
 
 
-allPushConfigs : InternalConfig r -> Config Ref (List (PushConfig r)) -> Config Ref (List (PushConfig r))
+allPushConfigs : InternalConfig r -> Config Ref (List (PushConfig r)) -> Config Topic (List (PushConfig r))
 allPushConfigs { pushConfig } config =
     Config.update pushConfig.topic (maybeToList pushConfig) config
 
