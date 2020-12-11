@@ -973,6 +973,19 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg, PhoenixMsg )
 update msg (Model model) =
     case msg of
+        TimeoutTick _ ->
+            let
+                ( toSend, toKeep ) =
+                    Push.timeoutTick retryTimeout nextBackoff dropBackoff model.push
+
+                ( push_, pushCmd ) =
+                    Push.sendAll toSend model.push
+            in
+            ( Model { model | push = Push.setTimeouts toKeep push_ }
+            , pushCmd
+            , NoOp
+            )
+
         ReceivedSocketMsg subMsg ->
             case subMsg of
                 Phoenix.Socket.Opened ->
@@ -1174,19 +1187,6 @@ update msg (Model model) =
                             , Cmd.none
                             , InternalError (InvalidMessage ("Presence : " ++ topic ++ " : " ++ error))
                             )
-
-        TimeoutTick _ ->
-            let
-                ( toSend, toKeep ) =
-                    Push.timeoutTick retryTimeout nextBackoff dropBackoff model.push
-
-                ( push_, pushCmd ) =
-                    Push.sendAll toSend model.push
-            in
-            ( Model { model | push = Push.setTimeouts toKeep push_ }
-            , pushCmd
-            , NoOp
-            )
 
 
 
