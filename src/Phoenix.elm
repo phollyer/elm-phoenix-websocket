@@ -342,6 +342,104 @@ type alias PortConfig =
     }
 
 
+{-| The `Msg` type that you pass into the [update](#update) function.
+
+This is an opaque type, for pattern matching see [PhoenixMsg](#PhoenixMsg).
+
+-}
+type Msg
+    = ReceivedChannelMsg Phoenix.Channel.Msg
+    | ReceivedPresenceMsg Phoenix.Presence.Msg
+    | ReceivedSocketMsg Phoenix.Socket.Msg
+    | TimeoutTick Time.Posix
+
+
+{-| Pattern match on these in your `update` function.
+
+To handle events that are `push`ed or `broadcast` from an Elixir Channel you
+should pattern match on `ChannelEvent`.
+
+-}
+type PhoenixMsg
+    = NoOp
+    | SocketMessage SocketMessage
+    | ChannelResponse ChannelResponse
+    | ChannelEvent Topic Event Payload
+    | PresenceEvent PresenceEvent
+    | InternalError InternalError
+
+
+{-| -}
+type SocketMessage
+    = StateChange SocketState
+    | SocketError String
+    | ChannelMessage
+        { topic : String
+        , event : String
+        , payload : Value
+        , joinRef : Maybe String
+        , ref : Maybe String
+        }
+    | PresenceMessage
+        { topic : String
+        , event : String
+        , payload : Value
+        }
+    | Heartbeat
+        { topic : String
+        , event : String
+        , payload : Value
+        , ref : String
+        }
+
+
+{-| -}
+type SocketState
+    = Connecting
+    | Connected
+    | Disconnecting
+    | Disconnected
+        { reason : Maybe String
+        , code : Int
+        , wasClean : Bool
+        , type_ : String
+        , isTrusted : Bool
+        }
+
+
+{-| -}
+type ChannelResponse
+    = ChannelError Topic
+    | ChannelClosed Topic
+    | LeaveOk Topic
+    | JoinOk Topic Payload
+    | JoinError Topic Payload
+    | JoinTimeout Topic OriginalPayload
+    | PushOk Topic Event PushRef Payload
+    | PushError Topic Event PushRef Payload
+    | PushTimeout Topic Event PushRef OriginalPayload
+
+
+{-| -}
+type PresenceEvent
+    = Join Topic Presence
+    | Leave Topic Presence
+    | State Topic (List Presence)
+    | Diff Topic PresenceDiff
+
+
+{-| An `InternalError` should never happen, but if it does, it is because the
+JS is out of sync with this package.
+
+If you ever receive this message, please
+[raise an issue](https://github.com/phollyer/elm-phoenix-websocket/issues).
+
+-}
+type InternalError
+    = DecoderError String
+    | InvalidMessage String
+
+
 {-| A type alias representing data that is sent to, or received from, a
 Channel.
 -}
@@ -450,6 +548,27 @@ type alias PushConfig =
     }
 
 
+{-| The retry strategy to use if a push times out.
+
+  - `Drop` - Drop the push and don't try again. This is the default if no
+    strategy is set.
+
+  - `Every second` - The number of seconds to wait between retries.
+
+  - `Backoff [List seconds] (Maybe max)` - A backoff strategy enabling you to increase
+    the delay between retries. When the list has been exhausted, `max` will be
+    used for each subsequent attempt, if max is `Nothing`, the push will then
+    be dropped, which is useful if you want to limit the number of retries.
+
+        Backoff [ 1, 5, 10, 20 ] (Just 30)
+
+-}
+type RetryStrategy
+    = Drop
+    | Every Int
+    | Backoff (List Int) (Maybe Int)
+
+
 {-| A type alias representing a Presence on a Channel.
 
   - `id` - The `id` used to identify the Presence map in the
@@ -521,125 +640,6 @@ type alias PresenceDiff =
     { joins : List Presence
     , leaves : List Presence
     }
-
-
-{-| The retry strategy to use if a push times out.
-
-  - `Drop` - Drop the push and don't try again. This is the default if no
-    strategy is set.
-
-  - `Every second` - The number of seconds to wait between retries.
-
-  - `Backoff [List seconds] (Maybe max)` - A backoff strategy enabling you to increase
-    the delay between retries. When the list has been exhausted, `max` will be
-    used for each subsequent attempt, if max is `Nothing`, the push will then
-    be dropped, which is useful if you want to limit the number of retries.
-
-        Backoff [ 1, 5, 10, 20 ] (Just 30)
-
--}
-type RetryStrategy
-    = Drop
-    | Every Int
-    | Backoff (List Int) (Maybe Int)
-
-
-{-| -}
-type SocketState
-    = Connecting
-    | Connected
-    | Disconnecting
-    | Disconnected
-        { reason : Maybe String
-        , code : Int
-        , wasClean : Bool
-        , type_ : String
-        , isTrusted : Bool
-        }
-
-
-{-| -}
-type SocketMessage
-    = StateChange SocketState
-    | SocketError String
-    | ChannelMessage
-        { topic : String
-        , event : String
-        , payload : Value
-        , joinRef : Maybe String
-        , ref : Maybe String
-        }
-    | PresenceMessage
-        { topic : String
-        , event : String
-        , payload : Value
-        }
-    | Heartbeat
-        { topic : String
-        , event : String
-        , payload : Value
-        , ref : String
-        }
-
-
-{-| -}
-type ChannelResponse
-    = ChannelError Topic
-    | ChannelClosed Topic
-    | LeaveOk Topic
-    | JoinOk Topic Payload
-    | JoinError Topic Payload
-    | JoinTimeout Topic OriginalPayload
-    | PushOk Topic Event PushRef Payload
-    | PushError Topic Event PushRef Payload
-    | PushTimeout Topic Event PushRef OriginalPayload
-
-
-{-| -}
-type PresenceEvent
-    = Join Topic Presence
-    | Leave Topic Presence
-    | State Topic (List Presence)
-    | Diff Topic PresenceDiff
-
-
-{-| An `InternalError` should never happen, but if it does, it is because the
-JS is out of sync with this package.
-
-If you ever receive this message, please
-[raise an issue](https://github.com/phollyer/elm-phoenix-websocket/issues).
-
--}
-type InternalError
-    = DecoderError String
-    | InvalidMessage String
-
-
-{-| Pattern match on these in your `update` function.
-
-To handle events that are `push`ed or `broadcast` from an Elixir Channel you
-should pattern match on `ChannelEvent`.
-
--}
-type PhoenixMsg
-    = NoOp
-    | SocketMessage SocketMessage
-    | ChannelResponse ChannelResponse
-    | ChannelEvent Topic Event Payload
-    | PresenceEvent PresenceEvent
-    | InternalError InternalError
-
-
-{-| The `Msg` type that you pass into the [update](#update) function.
-
-This is an opaque type, for pattern matching see [PhoenixMsg](#PhoenixMsg).
-
--}
-type Msg
-    = ReceivedChannelMsg Phoenix.Channel.Msg
-    | ReceivedPresenceMsg Phoenix.Presence.Msg
-    | ReceivedSocketMsg Phoenix.Socket.Msg
-    | TimeoutTick Time.Posix
 
 
 
