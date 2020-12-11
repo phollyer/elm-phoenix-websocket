@@ -31,17 +31,17 @@ empty =
     Dict.empty
 
 
-insert : comparable -> value -> Dict comparable value -> Dict comparable value
+insert : comparable -> value -> Config comparable value -> Config comparable value
 insert =
     Dict.insert
 
 
-remove : comparable -> Dict comparable value -> Dict comparable value
+remove : comparable -> Config comparable value -> Config comparable value
 remove =
     Dict.remove
 
 
-update : comparable -> (Maybe value -> Maybe value) -> Dict comparable value -> Dict comparable value
+update : comparable -> (Maybe value -> Maybe value) -> Config comparable value -> Config comparable value
 update =
     Dict.update
 
@@ -55,12 +55,12 @@ exists =
     isEmpty >> not
 
 
-get : comparable -> Dict comparable value -> Maybe value
+get : comparable -> Config comparable value -> Maybe value
 get =
     Dict.get
 
 
-isEmpty : Dict comparable value -> Bool
+isEmpty : Config comparable value -> Bool
 isEmpty =
     Dict.isEmpty
 
@@ -69,12 +69,12 @@ isEmpty =
 {- Lists -}
 
 
-toList : Dict comparable value -> List ( comparable, value )
+toList : Config comparable value -> List ( comparable, value )
 toList =
     Dict.toList
 
 
-values : Dict comparable value -> List value
+values : Config comparable value -> List value
 values =
     Dict.values
 
@@ -83,21 +83,21 @@ values =
 {- Transform -}
 
 
-filter : (comparable -> value -> Bool) -> Dict comparable value -> Dict comparable value
+filter : (comparable -> value -> Bool) -> Config comparable value -> Config comparable value
 filter =
     Dict.filter
 
 
-foldl : (comparable -> value -> acc -> acc) -> acc -> Dict comparable value -> acc
+foldl : (comparable -> value -> acc -> acc) -> acc -> Config comparable value -> acc
 foldl =
     Dict.foldl
 
 
-map : (comparable -> a -> b) -> Dict comparable a -> Dict comparable b
+map : (comparable -> a -> b) -> Config comparable a -> Config comparable b
 map =
     Dict.map
 
 
-partition : (comparable -> value -> Bool) -> Dict comparable value -> ( Dict comparable value, Dict comparable value )
+partition : (comparable -> value -> Bool) -> Config comparable value -> ( Config comparable value, Config comparable value )
 partition =
     Dict.partition
