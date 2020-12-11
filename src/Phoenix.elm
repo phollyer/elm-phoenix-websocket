@@ -1205,9 +1205,6 @@ retryTimeout _ config =
             False
 
         Drop ->
-            -- This branch should never match because
-            -- pushes with a Drop strategy should never
-            -- end up in this Dict.
             False
 
 
