@@ -190,6 +190,16 @@ timeoutsExist (Push { timeouts }) =
     Config.exists timeouts
 
 
+matchesWith : (PushConfig r -> Bool) -> InternalConfig r -> Bool
+matchesWith compareFunc { pushConfig } =
+    compareFunc pushConfig
+
+
+noMatchWith : (PushConfig r -> Bool) -> InternalConfig r -> Bool
+noMatchWith compareFunc { pushConfig } =
+    not <| compareFunc pushConfig
+
+
 
 {- Queries -}
 
@@ -242,13 +252,8 @@ maybeRetryStrategy ref (Push push) =
 
 timeoutCountdown : (PushConfig r -> Bool) -> (InternalConfig r -> Maybe Int) -> Push r msg -> Maybe Int
 timeoutCountdown compareFunc countdownFunc (Push { timeouts }) =
-    filter (keepWith compareFunc) timeouts
+    filter (matchesWith compareFunc) timeouts
         |> toMaybeCount countdownFunc
-
-
-keepWith : (PushConfig r -> Bool) -> InternalConfig r -> Bool
-keepWith compareFunc { pushConfig } =
-    compareFunc pushConfig
 
 
 toMaybeCount : (InternalConfig r -> Maybe Int) -> (Config Ref (InternalConfig r) -> Maybe Int)
@@ -311,22 +316,17 @@ dropSentByRef ref (Push push) =
 
 dropQueued : (PushConfig r -> Bool) -> Push r msg -> Push r msg
 dropQueued compareFunc (Push push) =
-    Push { push | queue = filter (discardWith compareFunc) push.queue }
+    Push { push | queue = filter (noMatchWith compareFunc) push.queue }
 
 
 dropSent : (PushConfig r -> Bool) -> Push r msg -> Push r msg
 dropSent compareFunc (Push push) =
-    Push { push | sent = filter (discardWith compareFunc) push.sent }
+    Push { push | sent = filter (noMatchWith compareFunc) push.sent }
 
 
 dropTimeout : (PushConfig r -> Bool) -> Push r msg -> Push r msg
 dropTimeout compareFunc (Push push) =
-    Push { push | timeouts = filter (discardWith compareFunc) push.timeouts }
-
-
-discardWith : (PushConfig r -> Bool) -> InternalConfig r -> Bool
-discardWith compareFunc { pushConfig } =
-    not <| compareFunc pushConfig
+    Push { push | timeouts = filter (noMatchWith compareFunc) push.timeouts }
 
 
 
