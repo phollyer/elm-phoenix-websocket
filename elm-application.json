@@ -1,7 +1,7 @@
 {
     "name": "phollyer/elm-phoenix-websocket",
     "summary": "A websocket client for use with the Elixir Phoenix framework.",
-    "version": "3.2.0",
+    "version": "3.2.1",
     "exposed-modules": [
         "Phoenix",
         "Phoenix.Socket",
