@@ -710,9 +710,9 @@ disconnectAndReset code (Model model) =
             ( reset (Model model), Cmd.none )
 
         _ ->
-            Model model
-                |> reset
-                |> disconnect code
+            ( reset (Model model)
+            , Socket.disconnect code model.socket
+            )
 
 
 {-| Join a Channel referenced by the [Topic](#Topic).
