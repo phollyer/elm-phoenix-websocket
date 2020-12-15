@@ -294,11 +294,6 @@ init portConfig =
         }
 
 
-reset : Model -> Model
-reset (Model model) =
-    init model.portConfig
-
-
 
 {- Types -}
 
@@ -675,6 +670,11 @@ connect (Model ({ socket } as model)) =
 {-| Disconnect the Socket, maybe providing a status
 [code](https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent#Status_codes)
 for the closure.
+
+[ConnectOptions](Socket#ConnectOptions) and configs etc will remain to make it
+simpler to connect again. If you need to start afresh after disconnecting use
+the [disconnectAndReset](#disconnectAndReset) function instead.
+
 -}
 disconnect : Maybe Int -> Model -> ( Model, Cmd Msg )
 disconnect code (Model ({ socket } as model)) =
@@ -695,22 +695,23 @@ disconnect code (Model ({ socket } as model)) =
 [code](https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent#Status_codes)
 for the closure.
 
-This will also reset the internal model, so information relating to
-Channels that have been joined, Pushes queued, Presence's and configs will all
-be reset.
+This will reset all of the internal model, so information relating to
+[ConnectOptions](Socket#ConnectOptions) and configs etc will also be reset.
+
+The only information that will remain is the [PortConfig](#PortConfig).
 
 -}
 disconnectAndReset : Maybe Int -> Model -> ( Model, Cmd Msg )
 disconnectAndReset code (Model model) =
     case Socket.currentState model.socket of
         Disconnected _ ->
-            ( reset (Model model), Cmd.none )
+            ( init model.portConfig, Cmd.none )
 
         Disconnecting ->
-            ( reset (Model model), Cmd.none )
+            ( init model.portConfig, Cmd.none )
 
         _ ->
-            ( reset (Model model)
+            ( init model.portConfig
             , Socket.disconnect code model.socket
             )
 
