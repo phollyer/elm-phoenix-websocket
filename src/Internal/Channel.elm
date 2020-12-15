@@ -1,5 +1,6 @@
 module Internal.Channel exposing
     ( Channel
+    , addJoin
     , allJoined
     , allQueuedJoins
     , allQueuedLeaves
@@ -10,7 +11,6 @@ module Internal.Channel exposing
     , isJoined
     , join
     , joinIsQueued
-    , joined
     , leave
     , queueJoin
     , queueLeave
@@ -36,7 +36,7 @@ type Channel msg
         { joinConfigs : Config Topic JoinConfig
         , leaveConfigs : Config Topic LeaveConfig
         , queuedJoins : Unique Topic
-        , joinedChannels : Unique Topic
+        , joined : Unique Topic
         , queuedLeaves : Unique Topic
         , portOut : { msg : String, payload : Value } -> Cmd msg
         }
@@ -48,7 +48,7 @@ init portOut =
         { joinConfigs = Config.empty
         , leaveConfigs = Config.empty
         , queuedJoins = Unique.empty
-        , joinedChannels = Unique.empty
+        , joined = Unique.empty
         , queuedLeaves = Unique.empty
         , portOut = portOut
         }
@@ -94,8 +94,8 @@ joinIsQueued topic (Channel { queuedJoins }) =
 
 
 isJoined : Topic -> Channel msg -> Bool
-isJoined topic (Channel { joinedChannels }) =
-    Unique.exists topic joinedChannels
+isJoined topic (Channel { joined }) =
+    Unique.exists topic joined
 
 
 
@@ -103,8 +103,8 @@ isJoined topic (Channel { joinedChannels }) =
 
 
 allJoined : Channel msg -> List Topic
-allJoined (Channel { joinedChannels }) =
-    Unique.toList joinedChannels
+allJoined (Channel { joined }) =
+    Unique.toList joined
 
 
 allQueuedJoins : Channel msg -> List Topic
@@ -121,11 +121,11 @@ allQueuedLeaves (Channel { queuedLeaves }) =
 {- Setters -}
 
 
-joined : Topic -> Channel msg -> Channel msg
-joined topic (Channel ({ joinedChannels, queuedJoins } as channel)) =
+addJoin : Topic -> Channel msg -> Channel msg
+addJoin topic (Channel ({ joined, queuedJoins } as channel)) =
     Channel
         { channel
-            | joinedChannels = Unique.insert topic joinedChannels
+            | joined = Unique.insert topic joined
             , queuedJoins = Unique.remove topic queuedJoins
         }
 
@@ -152,7 +152,7 @@ setLeaveConfig ({ topic } as config) (Channel ({ leaveConfigs } as channel)) =
 
 updateJoins : Unique Topic -> Channel msg -> Channel msg
 updateJoins topics (Channel channel) =
-    Channel { channel | joinedChannels = topics }
+    Channel { channel | joined = topics }
 
 
 updateQueuedJoins : Unique Topic -> Channel msg -> Channel msg
@@ -170,8 +170,8 @@ updateQueuedLeaves topics (Channel channel) =
 
 
 dropJoin : Topic -> Channel msg -> Channel msg
-dropJoin topic (Channel ({ joinedChannels } as channel)) =
-    Channel { channel | joinedChannels = Unique.remove topic joinedChannels }
+dropJoin topic (Channel ({ joined } as channel)) =
+    Channel { channel | joined = Unique.remove topic joined }
 
 
 dropQueuedJoin : Topic -> Channel msg -> Channel msg
