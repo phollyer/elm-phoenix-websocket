@@ -4,98 +4,100 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [unreleased]
+
+### Added
+
+- `leaveAll` function to `Phoenix.elm` to enable leaving all joined channels.
+
 ## [3.2.1] - 2020-12-13
 
 ### Fixed
 
-`Phoenix.disconnectAndReset` now disconnects the socket. ([Issue #8](https://github.com/phollyer/elm-phoenix-websocket/issues/8).)
+- `Phoenix.disconnectAndReset` now disconnects the socket. ([Issue #8](https://github.com/phollyer/elm-phoenix-websocket/issues/8).)
 
 ## [3.2.0] - 2020-12-12
 
 ### Added
 
-Two functions: `map` and `mapMsg`.
+- `map` and `mapMsg` functions to ease working with the results of `update`.
 
 ## [3.1.0] - 2020-12-11
 
 ### Added
 
-Helper function `Phoenix.Channel.joinConfig`.
+-`Phoenix.Channel.joinConfig` helper function to ease creating `JoinConfig`s.
 
-### Improvements
+### Changed
 
-Performed a full code review which resulted in:
-
-- Moving functions from `Phoenix.elm` into `Internal` modules, and
-- Re-organising code within all modules for easier maintenance.
+- Moved local functions in `Phoenix.elm` into `Internal` modules.
+- Re-organised code within all modules for easier maintenance.
 
 ## [3.0.1] - 2020-11-23
 
 ### Added
 
-Link to live example application in README.md
+- Link to live example application in README.md
 
 ## [3.0.0] - 2020-11-22
 
 ### Added
 
-Phoenix module - this wraps the Socket, Channel and Presence modules in order to automate connecting to a socket and joining a channel. It also provides additional features which can be found in the docs.
+- `Phoenix.elm` module - this wraps the functionality of the `Socket`, `Channel` and `Presence` modules in order to automate and manage low level processes such as connecting the socket and joining a channel. It also provides additional features which can be found in the docs.
 
-### Moved
+### Changed
 
-Socket.elm, Channel.elm, Presence.elm into the Phoenix directory.
-
-### Improved
-
-Converted the seperate JS files into a single file in order to simplify installation.
+- `Socket.elm`, `Channel.elm`, `Presence.elm` have been moved into the `Phoenix` directory.
+- Converted the seperate JS files into a single file in order to simplify installation.
 
 ## [2.0.0] - 2020-09-30
 
 ### Changed
 
-Channel timeouts now also return the original payload back to Elm. This affects joining and pushing to channels and requires the user to replace their existing channel.js file with the current one.
+- Channel timeouts now also return the original payload back to Elm. This affects joining and pushing to channels and requires the user to replace their existing `channel.js` file with the current one.
 
 ## [1.1.0] - 2020-06-25
 
 ### Added
 
-`eventsOn` function to `Channel.elm`
-`eventsOff` function to `Channel.elm`
+- `eventsOn` function to `Channel.elm`
+- `eventsOff` function to `Channel.elm`
 
-### Updated
+### Changed
 
-README with better usage instructions.
+- README usage instructions.
 
 ## [1.0.4] - 2020-06-20
 
-### Updated
+### Changed
 
-Documentation - fixed typo.
+- Documentation - fixed typo.
 
 ## [1.0.3] - 2020-06-20
 
-### Updated
+### Changed
 
-Documentation - lots of improvements, added more links, added README's to folders to help with understanding the contents.
+- Documentation - lots of improvements, added more links, added README's to folders to help with understanding the contents.
 
 ## [1.0.2] - 2020-06-20
 
-### Updated
+### Changed
 
-Documentation - improved an example.
+- Documentation - improved an example.
 
 ## [1.0.1] - 2020-06-20
 
-### Updated
+### Changed
 
-Documentation - fixed a typo, improved an example, used better English.
+- Documentation - fixed a typo, improved an example, used better English.
 
 ## [1.0.0] - 2020-06-20
 
 ### Added
 
-Initial Commit.
+- Initial Commit.
 
+[unreleased]: https://github.com/phollyer/elm-phoenix-websocket/compare/1.0.0...3.2.1
 [3.2.1]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.2.0...3.2.1
 [3.2.0]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.1.0...3.2.0
 [3.1.0]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.0.1...3.1.0
@@ -107,4 +109,4 @@ Initial Commit.
 [1.0.3]: https://github.com/phollyer/elm-phoenix-websocket/compare/1.0.2...1.0.3
 [1.0.2]: https://github.com/phollyer/elm-phoenix-websocket/compare/1.0.1...1.0.2
 [1.0.1]: https://github.com/phollyer/elm-phoenix-websocket/compare/1.0.0...1.0.1
-[1.0.0]: https://github.com/phollyer/elm-phoenix-websocket/releases/tag/v1.0.0
+[1.0.0]: https://github.com/phollyer/elm-phoenix-websocket/releases/tag/1.0.0
