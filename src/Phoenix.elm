@@ -14,7 +14,7 @@ module Phoenix exposing
     , setConnectParams
     , disconnect, disconnectAndReset
     , join, JoinConfig, joinConfig, setJoinConfig
-    , leave, LeaveConfig, setLeaveConfig
+    , leave, leaveAll, LeaveConfig, setLeaveConfig
     , addEvent, addEvents, dropEvent, dropEvents
     , socketState, socketStateToString, isConnected, connectionState, disconnectReason, endPointURL, protocol
     , queuedChannels, channelQueued, joinedChannels, channelJoined, topicParts
@@ -174,7 +174,7 @@ available.
 
 # Leaving a Channel
 
-@docs leave, LeaveConfig, setLeaveConfig
+@docs leave, leaveAll, LeaveConfig, setLeaveConfig
 
 
 # Incoming Events
@@ -767,6 +767,17 @@ leave topic (Model model) =
             ( Model { model | channel = Channel.queueLeave topic model.channel }, Cmd.none )
 
 
+{-| Leave all joined Channels.
+-}
+leaveAll : Model -> ( Model, Cmd Msg )
+leaveAll (Model model) =
+    let
+        ( channel, channelCmd ) =
+            Channel.leaveAll model.channel
+    in
+    ( Model { model | channel = channel }, channelCmd )
+
+
 {-| Push a message to a Channel.
 
     import Json.Encode as JE
@@ -1054,7 +1065,7 @@ update msg (Model model) =
                     in
                     ( Model
                         { model
-                            | channel = Channel.joined topic model.channel
+                            | channel = Channel.addJoin topic model.channel
                             , push = push_
                         }
                     , pushCmd

@@ -4,6 +4,7 @@ module Internal.Channel exposing
     , allJoined
     , allQueuedJoins
     , allQueuedLeaves
+    , batch
     , dropJoin
     , dropLeave
     , dropQueuedJoin
@@ -12,6 +13,7 @@ module Internal.Channel exposing
     , join
     , joinIsQueued
     , leave
+    , leaveAll
     , queueJoin
     , queueLeave
     , setJoinConfig
@@ -82,6 +84,14 @@ leave topic ((Channel { leaveConfigs, portOut }) as channel) =
         Nothing ->
             setLeaveConfig (defaultLeaveConfig topic) channel
                 |> leave topic
+
+
+leaveAll : Channel msg -> ( Channel msg, Cmd msg )
+leaveAll ((Channel { joined }) as channel) =
+    Unique.foldl
+        (\topic acc -> batchCmds (leave topic) acc)
+        ( channel, Cmd.none )
+        joined
 
 
 
@@ -182,6 +192,22 @@ dropQueuedJoin topic (Channel ({ queuedJoins } as channel)) =
 dropLeave : Topic -> Channel msg -> Channel msg
 dropLeave topic (Channel ({ queuedLeaves } as channel)) =
     Channel { channel | queuedLeaves = Unique.remove topic queuedLeaves }
+
+
+
+{- Batching -}
+
+
+batch : List (Channel msg -> ( Channel msg, Cmd msg )) -> Channel msg -> ( Channel msg, Cmd msg )
+batch functions channel =
+    List.foldl batchCmds ( channel, Cmd.none ) functions
+
+
+batchCmds : (Channel msg -> ( Channel msg, Cmd msg )) -> ( Channel msg, Cmd msg ) -> ( Channel msg, Cmd msg )
+batchCmds func ( model, cmd ) =
+    Tuple.mapSecond
+        (\cmd_ -> Cmd.batch [ cmd, cmd_ ])
+        (func model)
 
 
 

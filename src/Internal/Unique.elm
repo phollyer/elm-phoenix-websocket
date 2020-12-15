@@ -2,7 +2,9 @@ module Internal.Unique exposing
     ( Unique
     , empty
     , exists
+    , foldl
     , insert
+    , map
     , remove
     , toList
     )
@@ -49,3 +51,17 @@ exists =
 toList : Unique a -> List a
 toList =
     Set.toList
+
+
+
+{- Transform -}
+
+
+foldl : (comparable -> acc -> acc) -> acc -> Unique comparable -> acc
+foldl =
+    Set.foldl
+
+
+map : (comparable -> comparable2) -> Unique comparable -> Unique comparable2
+map =
+    Set.map
