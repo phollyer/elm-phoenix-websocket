@@ -26,7 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
--`Phoenix.Channel.joinConfig` helper function to ease creating `JoinConfig`s.
+- `Phoenix.Channel.joinConfig` helper function to ease creating `JoinConfig`s.
 
 ### Changed
 
