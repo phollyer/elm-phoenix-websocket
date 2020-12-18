@@ -13,7 +13,7 @@ module Phoenix exposing
     , addConnectOptions, setConnectOptions
     , setConnectParams
     , disconnect, disconnectAndReset
-    , join, JoinConfig, joinConfig, setJoinConfig
+    , join, joinAll, JoinConfig, joinConfig, setJoinConfig
     , leave, leaveAll, LeaveConfig, setLeaveConfig
     , addEvent, addEvents, dropEvent, dropEvents
     , socketState, socketStateToString, isConnected, connectionState, disconnectReason, endPointURL, protocol
@@ -169,7 +169,7 @@ Joining a Channel is automatic on the first [push](#push) to the Channel.
 However, if it is necessary to join before hand, the [join](#join) function is
 available.
 
-@docs join, JoinConfig, joinConfig, setJoinConfig
+@docs join, joinAll, JoinConfig, joinConfig, setJoinConfig
 
 
 # Leaving a Channel
@@ -749,6 +749,17 @@ join topic (Model ({ channel } as model)) =
             Disconnected _ ->
                 queueJoin topic (Model model)
                     |> connect
+
+
+{-| Join a `List` of Channels.
+
+The [join](#join)s will be batched together, the order in which the requests
+will reach their respective Channels at the `Elixir` end is undetermined.
+
+-}
+joinAll : List Topic -> Model -> ( Model, Cmd Msg )
+joinAll topics (Model model) =
+    batchWithParams [ ( join, topics ) ] (Model model)
 
 
 {-| Leave a Channel referenced by the [Topic](#Topic).

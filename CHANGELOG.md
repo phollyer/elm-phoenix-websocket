@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
+- `joinAll` function to `Phoenix.elm` to enable joining a `List` of Channels.
 - `leaveAll` function to `Phoenix.elm` to enable leaving all joined channels.
 
 ## [3.2.1] - 2020-12-13
