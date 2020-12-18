@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [unreleased]
 
+## [3.3.0] - 2020-12-18
+
 ### Added
 
 - `joinAll` function to `Phoenix.elm` to enable joining a `List` of Channels.
@@ -99,6 +101,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Initial Commit.
 
 [unreleased]: https://github.com/phollyer/elm-phoenix-websocket/compare/1.0.0...HEAD
+[3.3.0]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.2.1...3.3.0
 [3.2.1]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.2.0...3.2.1
 [3.2.0]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.1.0...3.2.0
 [3.1.0]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.0.1...3.1.0
