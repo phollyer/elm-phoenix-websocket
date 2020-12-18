@@ -13,7 +13,6 @@ module Internal.Channel exposing
     , join
     , joinIsQueued
     , leave
-    , leaveAll
     , queueJoin
     , queueLeave
     , setJoinConfig
@@ -84,14 +83,6 @@ leave topic ((Channel { leaveConfigs, portOut }) as channel) =
         Nothing ->
             setLeaveConfig (defaultLeaveConfig topic) channel
                 |> leave topic
-
-
-leaveAll : Channel msg -> ( Channel msg, Cmd msg )
-leaveAll ((Channel { joined }) as channel) =
-    Unique.foldl
-        (\topic acc -> batchCmds (leave topic) acc)
-        ( channel, Cmd.none )
-        joined
 
 
 

@@ -782,11 +782,7 @@ leave topic (Model model) =
 -}
 leaveAll : Model -> ( Model, Cmd Msg )
 leaveAll (Model model) =
-    let
-        ( channel, channelCmd ) =
-            Channel.leaveAll model.channel
-    in
-    ( Model { model | channel = channel }, channelCmd )
+    batchWithParams [ ( leave, Channel.allJoined model.channel ) ] (Model model)
 
 
 {-| Push a message to a Channel.
