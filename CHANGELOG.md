@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [unreleased]
 
+### Added
+
+- `pushInFlight` function to `Phoenix.elm` to determine if a `push` is on its way to its Channel.
+
 ## [3.3.0] - 2020-12-18
 
 ### Added
@@ -100,7 +104,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Initial Commit.
 
-[unreleased]: https://github.com/phollyer/elm-phoenix-websocket/compare/1.0.0...HEAD
+[unreleased]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.3.0...HEAD
 [3.3.0]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.2.1...3.3.0
 [3.2.1]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.2.0...3.2.1
 [3.2.0]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.1.0...3.2.0

@@ -19,6 +19,7 @@ module Phoenix exposing
     , socketState, socketStateToString, isConnected, connectionState, disconnectReason, endPointURL, protocol
     , queuedChannels, channelQueued, joinedChannels, channelJoined, topicParts
     , allQueuedPushes, queuedPushes, pushQueued, dropQueuedPush
+    , pushInFlight
     , timeoutPushes, pushTimedOut, dropTimeoutPush, pushTimeoutCountdown
     , dropPush
     , presenceState, presenceDiff, presenceJoins, presenceLeaves, lastPresenceJoin, lastPresenceLeave
@@ -202,6 +203,8 @@ intermittently, then the following functions are available.
 ## Pushes
 
 @docs allQueuedPushes, queuedPushes, pushQueued, dropQueuedPush
+
+@docs pushInFlight
 
 @docs timeoutPushes, pushTimedOut, dropTimeoutPush, pushTimeoutCountdown
 
@@ -1227,6 +1230,18 @@ pushQueued compareFunc (Model model) =
     Push.isQueued compareFunc model.push
 
 
+{-| Determine if a Push has been sent and is on it's way to the Elixir Channel.
+
+    pushInFlight
+        (\push -> push.event == "custom_event")
+        model.phoenix
+
+-}
+pushInFlight : (PushConfig -> Bool) -> Model -> Bool
+pushInFlight compareFunc (Model model) =
+    Push.inFlight compareFunc model.push
+
+
 isTimeToRetryPush : String -> { a | retryStrategy : RetryStrategy, timeoutTick : Int } -> Bool
 isTimeToRetryPush _ config =
     case config.retryStrategy of
@@ -1334,6 +1349,10 @@ sent.
 -}
 allQueuedPushes : Model -> Dict Topic (List PushConfig)
 allQueuedPushes (Model model) =
+    let
+        _ =
+            Debug.log "" model.push
+    in
     Push.allQueued model.push
 
 

@@ -9,6 +9,7 @@ module Internal.Push exposing
     , dropTimeout
     , filter
     , hasTimedOut
+    , inFlight
     , init
     , isQueued
     , map
@@ -172,6 +173,11 @@ hasTimedOut compareFunc (Push { timeouts }) =
 isQueued : (PushConfig r -> Bool) -> Push r msg -> Bool
 isQueued compareFunc (Push { queue }) =
     compareWith compareFunc queue
+
+
+inFlight : (PushConfig r -> Bool) -> Push r msg -> Bool
+inFlight compareFunc (Push { sent }) =
+    compareWith compareFunc sent
 
 
 compareWith : (PushConfig r -> Bool) -> Config Ref (InternalConfig r) -> Bool
