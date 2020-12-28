@@ -26,6 +26,7 @@ module Internal.Push exposing
     , timeoutCountdown
     , timeoutTick
     , timeoutsExist
+    , waiting
     )
 
 import Internal.Config as Config exposing (Config)
@@ -178,6 +179,13 @@ isQueued compareFunc (Push { queue }) =
 inFlight : (PushConfig r -> Bool) -> Push r msg -> Bool
 inFlight compareFunc (Push { sent }) =
     compareWith compareFunc sent
+
+
+waiting : (PushConfig r -> Bool) -> Push r msg -> Bool
+waiting compareFunc (Push { queue, sent, timeouts }) =
+    compareWith compareFunc queue
+        || compareWith compareFunc sent
+        || compareWith compareFunc timeouts
 
 
 compareWith : (PushConfig r -> Bool) -> Config Ref (InternalConfig r) -> Bool

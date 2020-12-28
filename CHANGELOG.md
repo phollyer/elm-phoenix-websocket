@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 
 - `pushInFlight` function to `Phoenix.elm` to determine if a `push` is on its way to its Channel.
+- `pushWaiting` function to `Phoenix.elm` to determine if a `push` is being actioned.
 
 ## [3.3.0] - 2020-12-18
 

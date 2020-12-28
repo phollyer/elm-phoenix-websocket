@@ -19,7 +19,7 @@ module Phoenix exposing
     , socketState, socketStateToString, isConnected, connectionState, disconnectReason, endPointURL, protocol
     , queuedChannels, channelQueued, joinedChannels, channelJoined, topicParts
     , allQueuedPushes, queuedPushes, pushQueued, dropQueuedPush
-    , pushInFlight
+    , pushInFlight, pushWaiting
     , timeoutPushes, pushTimedOut, dropTimeoutPush, pushTimeoutCountdown
     , dropPush
     , presenceState, presenceDiff, presenceJoins, presenceLeaves, lastPresenceJoin, lastPresenceLeave
@@ -204,7 +204,7 @@ intermittently, then the following functions are available.
 
 @docs allQueuedPushes, queuedPushes, pushQueued, dropQueuedPush
 
-@docs pushInFlight
+@docs pushInFlight, pushWaiting
 
 @docs timeoutPushes, pushTimedOut, dropTimeoutPush, pushTimeoutCountdown
 
@@ -1239,6 +1239,31 @@ pushQueued compareFunc (Model model) =
 -}
 pushInFlight : (PushConfig -> Bool) -> Model -> Bool
 pushInFlight compareFunc (Model model) =
+    Push.inFlight compareFunc model.push
+
+
+{-| Determine if a Push is waiting to be received by its' Channel.
+
+This means the [push](#push) could be in any off the following states:
+
+  - in a queue waiting for its' Channel to be joined before being sent
+
+  - in flight and on its way to the Channel
+
+  - timed out and waiting to be tried again according to its'
+    [RetryStrategy](#RetryStrategy)
+
+This is useful if you just need to determine if a [push](#push) is being
+actioned. Maybe you need to disable/hide a button until the
+[PushOk](#ChannelResponse) message has been received?
+
+    pushWaiting
+        (\push -> push.event == "custom_event")
+        model.phoenix
+
+-}
+pushWaiting : (PushConfig -> Bool) -> Model -> Bool
+pushWaiting compareFunc (Model model) =
     Push.inFlight compareFunc model.push
 
 
