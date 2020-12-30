@@ -1263,8 +1263,10 @@ actioned. Maybe you need to disable/hide a button until the
 
 -}
 pushWaiting : (PushConfig -> Bool) -> Model -> Bool
-pushWaiting compareFunc (Model model) =
-    Push.inFlight compareFunc model.push
+pushWaiting compareFunc model =
+    pushQueued compareFunc model
+        || pushInFlight compareFunc model
+        || pushTimedOut compareFunc model
 
 
 isTimeToRetryPush : String -> { a | retryStrategy : RetryStrategy, timeoutTick : Int } -> Bool
