@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- `Phoenix.pushWaiting` now reports back correctly. ([Issue #9](https://github.com/phollyer/elm-phoenix-websocket/issues/9).)
+
 ## [3.4.0] - 2020-12-28
 
 ### Added
