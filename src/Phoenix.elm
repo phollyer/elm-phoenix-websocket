@@ -1376,10 +1376,6 @@ sent.
 -}
 allQueuedPushes : Model -> Dict Topic (List PushConfig)
 allQueuedPushes (Model model) =
-    let
-        _ =
-            Debug.log "" model.push
-    in
     Push.allQueued model.push
 
 

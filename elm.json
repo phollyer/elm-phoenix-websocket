@@ -3,7 +3,7 @@
     "name": "phollyer/elm-phoenix-websocket",
     "summary": "A websocket client for use with the Elixir Phoenix framework.",
     "license": "BSD-3-Clause",
-    "version": "3.4.0",
+    "version": "3.4.1",
     "exposed-modules": [
         "Phoenix",
         "Phoenix.Socket",
