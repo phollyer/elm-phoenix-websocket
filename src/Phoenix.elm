@@ -238,6 +238,7 @@ all the logging, while regular users do not.
 
 import Dict exposing (Dict)
 import Internal.Channel as Channel exposing (Channel)
+import Internal.Config exposing (Config)
 import Internal.Presence as Presence exposing (Presence)
 import Internal.Push as Push exposing (Push)
 import Internal.Socket as Socket exposing (Socket)
@@ -675,8 +676,8 @@ connect (Model ({ socket } as model)) =
 for the closure.
 
 [ConnectOptions](Socket#ConnectOptions) and configs etc will remain to make it
-simpler to connect again. If you need to start afresh after disconnecting use
-the [disconnectAndReset](#disconnectAndReset) function instead.
+simpler to connect again. If you want to reset everything use the
+[disconnectAndReset](#disconnectAndReset) function instead.
 
 -}
 disconnect : Maybe Int -> Model -> ( Model, Cmd Msg )
@@ -993,6 +994,16 @@ update msg (Model model) =
                     if Socket.reconnect model.socket then
                         connect (Model model)
                             |> toPhoenixMsg (SocketMessage (StateChange (Disconnected closedInfo)))
+
+                    else if Socket.currentState model.socket == Disconnecting then
+                        ( init model.portConfig
+                            |> setConnectOptions (Socket.options model.socket)
+                            |> setConnectParams (Socket.params model.socket)
+                            |> setJoinConfigs (Channel.joinConfigs model.channel)
+                            |> setLeaveConfigs (Channel.leaveConfigs model.channel)
+                        , Cmd.none
+                        , SocketMessage (StateChange (Disconnected closedInfo))
+                        )
 
                     else
                         Model model
@@ -1604,6 +1615,11 @@ setJoinConfig config (Model ({ channel } as model)) =
     Model { model | channel = Channel.setJoinConfig config channel }
 
 
+setJoinConfigs : Config Topic JoinConfig -> Model -> Model
+setJoinConfigs configs (Model ({ channel } as model)) =
+    Model { model | channel = Channel.setJoinConfigs configs channel }
+
+
 {-| Set a [LeaveConfig](#LeaveConfig) to be used when leaving a Channel.
 
     import Phoenix
@@ -1629,6 +1645,11 @@ setJoinConfig config (Model ({ channel } as model)) =
 setLeaveConfig : LeaveConfig -> Model -> Model
 setLeaveConfig config (Model ({ channel } as model)) =
     Model { model | channel = Channel.setLeaveConfig config channel }
+
+
+setLeaveConfigs : Config Topic LeaveConfig -> Model -> Model
+setLeaveConfigs configs (Model ({ channel } as model)) =
+    Model { model | channel = Channel.setLeaveConfigs configs channel }
 
 
 queueJoin : Topic -> Model -> Model

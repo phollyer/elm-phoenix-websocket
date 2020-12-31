@@ -9,6 +9,8 @@ module Internal.Socket exposing
     , endPointURL
     , init
     , isConnected
+    , options
+    , params
     , protocol
     , reconnect
     , setDisconnectReason
@@ -20,12 +22,12 @@ module Internal.Socket exposing
     )
 
 import Internal.Presence exposing (state)
-import Json.Encode exposing (Value)
+import Json.Encode as JE exposing (Value)
 import Phoenix.Socket as Socket exposing (ConnectOption(..))
 
 
 
-{- Model -}
+{- Types -}
 
 
 type Socket state msg
@@ -38,6 +40,33 @@ type Socket state msg
         , state : state
         , portOut : { msg : String, payload : Value } -> Cmd msg
         }
+
+
+type alias Info =
+    { connectionState : String
+    , endPointURL : String
+    , isConnected : Bool
+    , makeRef : String
+    , protocol : String
+    }
+
+
+
+{- Actions -}
+
+
+connect : Socket state msg -> Cmd msg
+connect (Socket socket) =
+    Socket.connect socket.options socket.params socket.portOut
+
+
+disconnect : Maybe Int -> Socket state msg -> Cmd msg
+disconnect code (Socket { portOut }) =
+    Socket.disconnect code portOut
+
+
+
+{- Build -}
 
 
 init : ({ msg : String, payload : Value } -> Cmd msg) -> state -> Socket state msg
@@ -59,35 +88,58 @@ init portOut state =
         }
 
 
-
-{- Types -}
-
-
-type alias Info =
-    { connectionState : String
-    , endPointURL : String
-    , isConnected : Bool
-    , makeRef : String
-    , protocol : String
-    }
+addOptions : List ConnectOption -> Socket state msg -> Socket state msg
+addOptions options_ (Socket socket) =
+    Socket { socket | options = List.append options_ socket.options }
 
 
-
-{- Actions -}
-
-
-connect : Socket state msg -> Cmd msg
-connect (Socket { options, params, portOut }) =
-    Socket.connect options params portOut
+setOptions : List ConnectOption -> Socket state msg -> Socket state msg
+setOptions options_ (Socket socket) =
+    Socket { socket | options = options_ }
 
 
-disconnect : Maybe Int -> Socket state msg -> Cmd msg
-disconnect code (Socket { portOut }) =
-    Socket.disconnect code portOut
+setParams : Maybe Value -> Socket state msg -> Socket state msg
+setParams maybeParams (Socket socket) =
+    Socket { socket | params = maybeParams }
+
+
+setDisconnectReason : Maybe String -> Socket state msg -> Socket state msg
+setDisconnectReason maybeReason (Socket socket) =
+    Socket { socket | disconnectReason = maybeReason }
+
+
+setInfo : Info -> Socket state msg -> Socket state msg
+setInfo info_ (Socket socket) =
+    Socket { socket | info = info_ }
+
+
+setReconnect : Bool -> Socket state msg -> Socket state msg
+setReconnect reconnect_ (Socket socket) =
+    Socket { socket | reconnect = reconnect_ }
+
+
+setState : state -> Socket state msg -> Socket state msg
+setState state (Socket socket) =
+    Socket { socket | state = state }
 
 
 
 {- Queries -}
+
+
+options : Socket state msg -> List ConnectOption
+options (Socket socket) =
+    socket.options
+
+
+params : Socket state msg -> Value
+params (Socket socket) =
+    case socket.params of
+        Just value ->
+            value
+
+        Nothing ->
+            JE.null
 
 
 currentState : Socket state msg -> state
@@ -127,38 +179,3 @@ protocol (Socket { info }) =
 
 
 {- Setters -}
-
-
-addOptions : List ConnectOption -> Socket state msg -> Socket state msg
-addOptions options (Socket socket) =
-    Socket { socket | options = List.append options socket.options }
-
-
-setOptions : List ConnectOption -> Socket state msg -> Socket state msg
-setOptions options (Socket socket) =
-    Socket { socket | options = options }
-
-
-setParams : Maybe Value -> Socket state msg -> Socket state msg
-setParams maybeParams (Socket socket) =
-    Socket { socket | params = maybeParams }
-
-
-setDisconnectReason : Maybe String -> Socket state msg -> Socket state msg
-setDisconnectReason maybeReason (Socket socket) =
-    Socket { socket | disconnectReason = maybeReason }
-
-
-setInfo : Info -> Socket state msg -> Socket state msg
-setInfo info_ (Socket socket) =
-    Socket { socket | info = info_ }
-
-
-setReconnect : Bool -> Socket state msg -> Socket state msg
-setReconnect reconnect_ (Socket socket) =
-    Socket { socket | reconnect = reconnect_ }
-
-
-setState : state -> Socket state msg -> Socket state msg
-setState state (Socket socket) =
-    Socket { socket | state = state }
