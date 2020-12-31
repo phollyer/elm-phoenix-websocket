@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [unreleased]
 
+## [3.4.2] - 2020-12-31
+
+### Fixed
+
+- `Phoenix.disconnect` does not reset internal model correctly. ([Issue #10](https://github.com/phollyer/elm-phoenix-websocket/issues/10).)
+
 ## [3.4.1] - 2020-12-30
 
 ### Fixed
@@ -113,7 +119,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Initial Commit.
 
-[unreleased]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.4.1...HEAD
+[unreleased]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.4.2...HEAD
+[3.4.2]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.4.1...3.4.2
 [3.4.1]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.4.0...3.4.1
 [3.4.0]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.3.0...3.4.0
 [3.3.0]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.2.1...3.3.0
