@@ -6,11 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [unreleased]
 
+- Nothing at the moment.
+
 ## [3.4.2] - 2020-12-31
 
 ### Fixed
 
-- `Phoenix.disconnect` does not reset internal model correctly. ([Issue #10](https://github.com/phollyer/elm-phoenix-websocket/issues/10).)
+- `Phoenix.disconnect` now resets the internal model correctly so that re-connects can happen. ([Issue #10](https://github.com/phollyer/elm-phoenix-websocket/issues/10).)
 
 ## [3.4.1] - 2020-12-30
 
@@ -22,8 +24,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
-- `pushInFlight` function to `Phoenix.elm` to determine if a `push` is on its way to its Channel.
-- `pushWaiting` function to `Phoenix.elm` to determine if a `push` is being actioned.
+- `pushInFlight` function to `Phoenix.elm` to determine if a `push` has been sent and is on its way to its Channel.
+- `pushWaiting` function to `Phoenix.elm` to determine if a `push` is being actioned. This is different to `pushInFlight` in that it also reports back queued pushes and timeout pushes.
 
 ## [3.3.0] - 2020-12-18
 
