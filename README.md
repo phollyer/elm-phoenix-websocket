@@ -40,3 +40,8 @@ For more information about Phoenix WebSockets see
 [Phoenix.Channel](https://hexdocs.pm/phoenix/1.5.3/Phoenix.Channel.html#content)
 , [Phoenix.Presence](https://hexdocs.pm/phoenix/1.5.3/Phoenix.Presence.html#content)
 and [PhoenixJS](https://hexdocs.pm/phoenix/js).
+
+## Roadmap
+
+- Add `pushSequence` function. I would like to add the ability to provide a list of pushes that will be actioned in sequence. This will need to handle some decision making based
+  on if a push succeeds, errors, or results in a timeout. I will be looking into this as soon as I am able to find the time. Pull requests are welcome.
