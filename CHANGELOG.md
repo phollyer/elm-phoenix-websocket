@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Nothing at the moment.
 
+## [3.4.4] - 2021-02-20
+
+### Fixed
+
+- `topic` should be `params.topic` in the last change to the `leave` function.
+
+### Changed
+
 ## [3.4.3] - 2021-02-20
 
 ### Changed
@@ -127,7 +135,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Initial Commit.
 
-[unreleased]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.4.2...HEAD
+[unreleased]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.4.4...HEAD
+[3.4.4]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.4.3...3.4.4
+[3.4.3]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.4.2...3.4.3
 [3.4.2]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.4.1...3.4.2
 [3.4.1]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.4.0...3.4.1
 [3.4.0]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.3.0...3.4.0

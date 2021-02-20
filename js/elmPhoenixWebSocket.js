@@ -593,7 +593,7 @@ let ElmPhoenixWebSocket = {
         } else {
             // The channel does not exist, but send back Ok anyway so that the
             // Elm program can continue as intended
-            this.channelSend(topic, "LeaveOk", {})
+            this.channelSend(params.topic, "LeaveOk", {})
         }
     },
 
