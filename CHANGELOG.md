@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Nothing at the moment.
 
+## [3.4.3] - 2020-02-20
+
+### Changed
+
+- Calling `leave` on a channel topic that is not joined no longer causes a JS `Uncaught TypeError`. Fixes [Issue #11](https://github.com/phollyer/elm-phoenix-websocket/issues/11) (which wasn't really an issue). The only change was to the provided JS.
+
 ## [3.4.2] - 2020-12-31
 
 ### Fixed

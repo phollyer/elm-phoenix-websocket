@@ -586,8 +586,15 @@ let ElmPhoenixWebSocket = {
 
         this.events[params.topic] = []
 
-        channel.leave(params.timeout)
-            .receive("ok", _ => this.leaveOk(params.topic))
+        if (channel) {
+            // Only try to leave if the channel exists
+            channel.leave(params.timeout)
+                .receive("ok", _ => this.leaveOk(params.topic))
+        } else {
+            // The channel does not exist, but send back Ok anyway so that the
+            // Elm program can continue as intended
+            this.channelSend(topic, "LeaveOk", {})
+        }
     },
 
 
