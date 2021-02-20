@@ -834,7 +834,7 @@ push ({ topic } as config) (Model ({ channel } as model)) =
 [Topic](#Topic).
 -}
 addEvent : Topic -> Event -> Model -> Cmd Msg
-addEvent topic event (Model ({ portConfig } as model)) =
+addEvent topic event (Model { portConfig }) =
     Phoenix.Channel.on
         { topic = topic
         , event = event
@@ -846,7 +846,7 @@ addEvent topic event (Model ({ portConfig } as model)) =
 [Topic](#Topic).
 -}
 addEvents : Topic -> List Event -> Model -> Cmd Msg
-addEvents topic events (Model ({ portConfig } as model)) =
+addEvents topic events (Model { portConfig }) =
     Phoenix.Channel.allOn
         { topic = topic
         , events = events
@@ -858,7 +858,7 @@ addEvents topic events (Model ({ portConfig } as model)) =
 identified by [Topic](#Topic).
 -}
 dropEvent : Topic -> Event -> Model -> Cmd Msg
-dropEvent topic event (Model ({ portConfig } as model)) =
+dropEvent topic event (Model { portConfig }) =
     Phoenix.Channel.off
         { topic = topic
         , event = event
@@ -870,7 +870,7 @@ dropEvent topic event (Model ({ portConfig } as model)) =
 identified by [Topic](#Topic).
 -}
 dropEvents : Topic -> List Event -> Model -> Cmd Msg
-dropEvents topic events (Model ({ portConfig } as model)) =
+dropEvents topic events (Model { portConfig }) =
     Phoenix.Channel.allOff
         { topic = topic
         , events = events
