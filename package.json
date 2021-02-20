@@ -1,0 +1,23 @@
+{
+  "name": "elm-phoenix-websocket",
+  "version": "3.4.2",
+  "description": "A very simple to use Package that provides your Elm program access to the PhoenixJS API.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "elm-tooling install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/phollyer/elm-phoenix-websocket.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/phollyer/elm-phoenix-websocket/issues"
+  },
+  "homepage": "https://github.com/phollyer/elm-phoenix-websocket#readme",
+  "dependencies": {
+    "elm-tooling": "^1.2.0"
+  }
+}
