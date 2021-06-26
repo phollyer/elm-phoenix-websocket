@@ -203,7 +203,7 @@ type alias EventIn =
 
     import Json.Encode as JE
     import Phoenix.Channel as Channel
-    import Ports.Phoenix as Port
+    import Ports.Phoenix as Ports
 
     Channel.join
         { topic = "topic:subtopic"
@@ -211,7 +211,7 @@ type alias EventIn =
         , events = []
         , timeout = Nothing
         }
-        Port.pheonixSend
+        Ports.phoenixSend
 
 -}
 join : JoinConfig -> PortOut msg -> Cmd msg
@@ -231,13 +231,13 @@ join { topic, events, payload, timeout } portOut =
 {-| Leave a Channel.
 
     import Phoenix.Channel as Channel
-    import Ports.Phoenix as Port
+    import Ports.Phoenix as Ports
 
     Channel.leave
         { topic = "topic:subtopic"
         , timeout = Nothing
         }
-        Port.pheonixSend
+        Ports.phoenixSend
 
 -}
 leave : LeaveConfig -> PortOut msg -> Cmd msg
