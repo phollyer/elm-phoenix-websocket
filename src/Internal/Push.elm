@@ -230,11 +230,11 @@ allQueued (Push { queue }) =
 
 allPushConfigs : InternalConfig r -> Config Ref (List (PushConfig r)) -> Config Topic (List (PushConfig r))
 allPushConfigs { pushConfig } config =
-    Config.update pushConfig.topic (maybeToList pushConfig) config
+    Config.update pushConfig.topic (toMaybeList pushConfig) config
 
 
-maybeToList : PushConfig r -> Maybe (List (PushConfig r)) -> Maybe (List (PushConfig r))
-maybeToList push maybeList =
+toMaybeList : PushConfig r -> Maybe (List (PushConfig r)) -> Maybe (List (PushConfig r))
+toMaybeList push maybeList =
     case maybeList of
         Just list ->
             Just (push :: list)
