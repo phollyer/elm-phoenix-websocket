@@ -26,6 +26,7 @@ module Internal.Push exposing
     , timeoutCountdown
     , timeoutTick
     , timeoutsExist
+    , toConfigs
     , waiting
     )
 
@@ -345,6 +346,13 @@ dropTimeout compareFunc (Push push) =
 
 
 {- Transform -}
+
+
+toConfigs : Config Ref (InternalConfig r) -> List (PushConfig r)
+toConfigs config =
+    Config.values config
+        |> List.map
+            (\internalConfig -> internalConfig.pushConfig)
 
 
 partitionTimeouts : (Ref -> InternalConfig r -> Bool) -> Push r msg -> ( Config Ref (InternalConfig r), Config Ref (InternalConfig r) )

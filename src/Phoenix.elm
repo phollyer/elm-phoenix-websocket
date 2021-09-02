@@ -365,6 +365,7 @@ type PhoenixMsg
     | ChannelResponse ChannelResponse
     | ChannelEvent Topic Event Payload
     | PresenceEvent PresenceEvent
+    | PushTimeoutsSent (List PushConfig)
     | InternalError InternalError
 
 
@@ -975,7 +976,12 @@ update msg (Model model) =
             in
             ( Model { model | push = Push.setTimeouts toKeep push_ }
             , pushCmd
-            , NoOp
+            , case Push.toConfigs toSend of
+                [] ->
+                    NoOp
+
+                configs ->
+                    PushTimeoutsSent configs
             )
 
         ReceivedSocketMsg subMsg ->
