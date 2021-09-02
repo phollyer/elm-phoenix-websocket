@@ -8,6 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Nothing at the moment.
 
+## [4.0.0] - 2021-09-02
+
+### Fixed
+
+- typos in Docs (thanks to [Alan Hoarf](https://github.com/hoarf))
+
+### Added
+
+- new OutMsg of PushTimeoutsSent which reports a list of push configs that are being attempted again (according to their retry strategy) after they timed out.
+
 ## [3.4.4] - 2021-02-20
 
 ### Fixed
@@ -133,7 +143,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Initial Commit.
 
-[unreleased]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.4.4...HEAD
+[unreleased]: https://github.com/phollyer/elm-phoenix-websocket/compare/4.0.0...HEAD
+[4.0.0]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.4.4...4.0.0
 [3.4.4]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.4.3...3.4.4
 [3.4.3]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.4.2...3.4.3
 [3.4.2]: https://github.com/phollyer/elm-phoenix-websocket/compare/3.4.1...3.4.2
